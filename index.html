@@ -339,12 +339,16 @@ async function loadGS(){
     setTimeout(closeModal,1000);
   }catch(e){setSt('gsSt','❌ '+e.message,false);}
 }
+const GS_URL='https://script.google.com/macros/s/AKfycbxWa1KbIgjV-Xv7bO42twWh_f1FAH5d0BZTBNMykRZTzReNFG949J3VHLGPkNWy21vK/exec';
+
 window.addEventListener('DOMContentLoaded',()=>{
-  try{
-    const s=localStorage.getItem('gsUrl');
-    if(s){document.getElementById('gsUrl').value=s;showAutoLoading();autoGS(s);}
-    else openModal();
-  }catch(e){openModal();}
+  // ดึง URL จาก: 1) query param  2) hardcoded  3) localStorage
+  const params=new URLSearchParams(window.location.search);
+  const url=params.get('gs')||GS_URL||localStorage.getItem('gsUrl')||'';
+  if(url){
+    try{document.getElementById('gsUrl').value=url;localStorage.setItem('gsUrl',url);}catch(e){}
+    showAutoLoading();autoGS(url);
+  }else openModal();
 });
 function showAutoLoading(){
   const c=document.getElementById('con');
