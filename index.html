@@ -8,587 +8,317 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0f1117;
-    --surface: #181c27;
-    --surface2: #1e2334;
-    --border: #2a3045;
-    --accent: #f5a623;
-    --accent2: #e74c3c;
-    --blue: #3b8ef3;
-    --green: #2ecc71;
-    --text: #e8ecf4;
-    --text2: #8a93a8;
-    --highlight: #ffe066;
-    --card-shadow: 0 4px 24px rgba(0,0,0,0.4);
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'IBM Plex Sans Thai', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+:root {
+  --bg: #0f1117;
+  --surface: #181c27;
+  --surface2: #1e2334;
+  --border: #2a3045;
+  --accent: #f5a623;
+  --accent2: #e74c3c;
+  --blue: #3b8ef3;
+  --green: #2ecc71;
+  --purple: #9b59b6;
+  --text: #e8ecf4;
+  --text2: #8a93a8;
+  --new-badge: #ffe066;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'IBM Plex Sans Thai', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-  /* UPLOAD OVERLAY */
-  #uploadOverlay {
-    position: fixed; inset: 0; z-index: 1000;
-    background: linear-gradient(135deg, #0a0d14 0%, #151b2e 100%);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 32px;
-    transition: opacity 0.5s ease;
-  }
-  #uploadOverlay.hidden { opacity: 0; pointer-events: none; }
-  .upload-logo {
-    display: flex; align-items: center; gap: 14px;
-  }
-  .upload-logo-box {
-    width: 60px; height: 60px; background: var(--accent);
-    border-radius: 12px; display: flex; align-items: center; justify-content: center;
-    font-size: 28px; font-weight: 700; color: #000;
-  }
-  .upload-logo-text h1 { font-size: 26px; font-weight: 700; color: var(--text); }
-  .upload-logo-text p { font-size: 13px; color: var(--text2); margin-top: 2px; }
-  .drop-zone {
-    border: 2px dashed var(--border);
-    border-radius: 20px;
-    width: 480px; max-width: 90vw;
-    padding: 48px 32px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background: var(--surface);
-  }
-  .drop-zone:hover, .drop-zone.dragover {
-    border-color: var(--accent);
-    background: rgba(245,166,35,0.05);
-    transform: scale(1.02);
-  }
-  .drop-icon { font-size: 48px; margin-bottom: 16px; }
-  .drop-zone h2 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
-  .drop-zone p { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
-  .btn-upload {
-    background: var(--accent); color: #000;
-    border: none; padding: 10px 28px;
-    border-radius: 8px; font-size: 14px; font-weight: 600;
-    cursor: pointer; transition: all 0.2s;
-  }
-  .btn-upload:hover { background: #ffb84d; transform: translateY(-1px); }
-  #fileInput { display: none; }
-  .demo-hint { font-size: 12px; color: var(--text2); }
-  .demo-hint span { color: var(--accent); cursor: pointer; text-decoration: underline; }
+/* HEADER */
+.header {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 0 20px; display: flex; align-items: center; gap: 12px;
+  height: 60px; position: sticky; top: 0; z-index: 200; flex-wrap: wrap;
+}
+.logo { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #000; flex-shrink: 0; }
+.title-block h1 { font-size: 16px; font-weight: 700; }
+.title-block h1 span { color: var(--accent2); }
+.title-block p { font-size: 10px; color: var(--text2); }
+.filter-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: 8px; }
+.fg { display: flex; flex-direction: column; gap: 1px; }
+.fg label { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; }
+select.fs, input.fs {
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  padding: 4px 8px; border-radius: 6px; font-size: 11px; font-family: inherit; cursor: pointer; min-width: 80px;
+}
+select.fs:focus, input.fs:focus { outline: none; border-color: var(--accent); }
+.btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); padding: 5px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; transition: all .2s; white-space: nowrap; }
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { background: #ffb84d; color: #000; }
+.update-info { margin-left: auto; text-align: right; font-size: 10px; color: var(--text2); }
+.update-info strong { display: block; font-size: 12px; color: var(--text); }
 
-  /* MAIN DASHBOARD */
-  #dashboard { display: none; flex-direction: column; min-height: 100vh; }
-  #dashboard.visible { display: flex; }
+/* UPLOAD MODAL */
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 500; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+.modal-bg.hidden { display: none; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 420px; max-width: 90vw; }
+.modal h2 { font-size: 18px; margin-bottom: 6px; }
+.modal p { font-size: 12px; color: var(--text2); margin-bottom: 20px; }
+.drop-zone {
+  border: 2px dashed var(--border); border-radius: 12px; padding: 36px 20px;
+  text-align: center; cursor: pointer; transition: all .25s;
+}
+.drop-zone:hover, .drop-zone.dragover { border-color: var(--accent); background: rgba(245,166,35,.05); }
+.drop-icon { font-size: 40px; margin-bottom: 12px; }
+.drop-zone p { margin-bottom: 14px; font-size: 13px; }
+.modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+#uploadStatus { font-size: 12px; color: var(--accent2); margin-top: 8px; min-height: 18px; }
 
-  /* HEADER */
-  .header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 0 24px;
-    display: flex; align-items: center; gap: 16px;
-    height: 64px; flex-shrink: 0;
-    position: sticky; top: 0; z-index: 100;
-  }
-  .header-logo {
-    width: 40px; height: 40px; background: var(--accent);
-    border-radius: 8px; display: flex; align-items: center; justify-content: center;
-    font-size: 14px; font-weight: 700; color: #000; flex-shrink: 0;
-  }
-  .header-title { flex: 1; }
-  .header-title h1 { font-size: 18px; font-weight: 700; }
-  .header-title h1 span { color: var(--accent2); }
-  .header-title p { font-size: 11px; color: var(--text2); margin-top: 1px; }
+/* CHIPS */
+.chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 6px 20px 0; min-height: 28px; }
+.chip { display: flex; align-items: center; gap: 3px; background: rgba(245,166,35,.15); color: var(--accent); border: 1px solid rgba(245,166,35,.3); border-radius: 20px; padding: 2px 10px; font-size: 11px; cursor: pointer; }
+.chip:hover { background: rgba(245,166,35,.25); }
 
-  /* FILTER BAR */
-  .filter-bar {
-    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  }
-  .filter-group { display: flex; flex-direction: column; gap: 2px; }
-  .filter-group label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; }
-  .filter-select {
-    background: var(--surface2); border: 1px solid var(--border);
-    color: var(--text); padding: 5px 10px; border-radius: 6px;
-    font-size: 12px; font-family: inherit; cursor: pointer;
-    min-width: 90px; transition: border-color 0.2s;
-  }
-  .filter-select:focus { outline: none; border-color: var(--accent); }
-  .filter-date {
-    background: var(--surface2); border: 1px solid var(--border);
-    color: var(--text); padding: 5px 10px; border-radius: 6px;
-    font-size: 12px; font-family: inherit; width: 120px;
-    color-scheme: dark;
-  }
-  .update-info { margin-left: auto; text-align: right; font-size: 11px; color: var(--text2); }
-  .update-info strong { display: block; font-size: 13px; color: var(--text); }
+/* CONTENT */
+.content { padding: 12px 20px 24px; display: flex; flex-direction: column; gap: 12px; }
 
-  .btn-reload {
-    background: var(--surface2); border: 1px solid var(--border);
-    color: var(--text2); padding: 6px 14px; border-radius: 6px;
-    font-size: 12px; cursor: pointer; transition: all 0.2s;
-    display: flex; align-items: center; gap: 6px;
-  }
-  .btn-reload:hover { border-color: var(--accent); color: var(--accent); }
+/* KPI STRIP */
+.kpi-strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.kpi-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 14px; cursor: pointer; transition: all .2s; position: relative; overflow: hidden;
+}
+.kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 10px 10px 0 0; }
+.kpi-card.c-blue::before { background: var(--blue); }
+.kpi-card.c-green::before { background: var(--green); }
+.kpi-card.c-orange::before { background: var(--accent); }
+.kpi-card.c-red::before { background: var(--accent2); }
+.kpi-card.c-purple::before { background: var(--purple); }
+.kpi-card.c-yellow::before { background: var(--new-badge); }
+.kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.4); }
+.kpi-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+.kpi-val { font-size: 22px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; line-height: 1; }
+.kpi-val.blue { color: var(--blue); } .kpi-val.green { color: var(--green); }
+.kpi-val.orange { color: var(--accent); } .kpi-val.red { color: var(--accent2); }
+.kpi-val.purple { color: var(--purple); } .kpi-val.yellow { color: var(--new-badge); }
+.kpi-sub { font-size: 10px; color: var(--text2); margin-top: 4px; }
+.badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; margin-top: 3px; }
+.badge-g { background: rgba(46,204,113,.15); color: var(--green); }
+.badge-r { background: rgba(231,76,60,.15); color: var(--accent2); }
+.badge-o { background: rgba(245,166,35,.15); color: var(--accent); }
 
-  /* CONTENT */
-  .content { padding: 16px 20px; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+/* GRID */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
 
-  /* KPI STRIP */
-  .kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-  .kpi-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; padding: 16px 18px;
-    position: relative; overflow: hidden; cursor: pointer;
-    transition: all 0.25s ease;
-  }
-  .kpi-card:hover { border-color: var(--blue); transform: translateY(-2px); box-shadow: var(--card-shadow); }
-  .kpi-card.active { border-color: var(--accent); background: rgba(245,166,35,0.06); }
-  .kpi-card::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    background: var(--blue); border-radius: 12px 12px 0 0;
-  }
-  .kpi-card.green::before { background: var(--green); }
-  .kpi-card.orange::before { background: var(--accent); }
-  .kpi-card.red::before { background: var(--accent2); }
-  .kpi-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
-  .kpi-value { font-size: 28px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; line-height: 1; }
-  .kpi-value.green { color: var(--green); }
-  .kpi-value.orange { color: var(--accent); }
-  .kpi-value.red { color: var(--accent2); }
-  .kpi-sub { font-size: 11px; color: var(--text2); margin-top: 6px; }
-  .kpi-badge {
-    display: inline-block; padding: 2px 8px; border-radius: 12px;
-    font-size: 11px; font-weight: 600; margin-top: 4px;
-  }
-  .badge-green { background: rgba(46,204,113,0.15); color: var(--green); }
-  .badge-red { background: rgba(231,76,60,0.15); color: var(--accent2); }
+/* CARD */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.card-hdr { padding: 10px 14px 8px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.card-title { font-size: 12px; font-weight: 600; }
+.card-badge { font-size: 10px; color: var(--text2); background: var(--surface2); padding: 1px 7px; border-radius: 8px; }
+.card-body { padding: 12px; }
 
-  /* MAIN GRID */
-  .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .main-grid .full { grid-column: 1 / -1; }
+/* TABLE */
+.tbl-wrap { overflow: auto; max-height: 280px; }
+.tbl-wrap::-webkit-scrollbar { width: 4px; height: 4px; }
+.tbl-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+table { width: 100%; border-collapse: collapse; font-size: 11px; }
+th { background: var(--surface2); color: var(--text2); padding: 6px 8px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; position: sticky; top: 0; cursor: pointer; user-select: none; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th:hover { color: var(--accent); }
+th.sa::after { content: ' ↑'; color: var(--accent); }
+th.sd::after { content: ' ↓'; color: var(--accent); }
+td { padding: 5px 8px; border-bottom: 1px solid rgba(42,48,69,.4); white-space: nowrap; }
+tr:hover td { background: rgba(59,142,243,.05); cursor: pointer; }
+tr.new-row td { background: rgba(255,224,102,.06); }
+tr.sel td { background: rgba(245,166,35,.1); }
+.tr { text-align: right; font-family: 'IBM Plex Mono', monospace; }
+tfoot td { font-weight: 700; background: var(--surface2); border-top: 1px solid var(--border); }
+.new-tag { display: inline-block; background: var(--new-badge); color: #000; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px; margin-left: 4px; }
 
-  /* BOTTOM GRID */
-  .bottom-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+/* SEARCH */
+.tbl-search { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 3px 8px; border-radius: 5px; font-size: 11px; width: 150px; }
 
-  /* CARDS */
-  .card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; overflow: hidden;
-    transition: box-shadow 0.2s;
-  }
-  .card:hover { box-shadow: var(--card-shadow); }
-  .card-header {
-    padding: 12px 16px 10px;
-    border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .card-title { font-size: 13px; font-weight: 600; }
-  .card-badge { font-size: 10px; color: var(--text2); background: var(--surface2); padding: 2px 8px; border-radius: 10px; }
-  .card-body { padding: 14px; }
+/* NO DATA */
+.no-data { text-align: center; padding: 40px; color: var(--text2); font-size: 13px; }
 
-  /* TABLE */
-  .table-wrap { overflow-x: auto; max-height: 260px; overflow-y: auto; }
-  .table-wrap::-webkit-scrollbar { width: 5px; height: 5px; }
-  .table-wrap::-webkit-scrollbar-track { background: var(--surface2); }
-  .table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th {
-    background: var(--surface2); color: var(--text2);
-    padding: 8px 10px; text-align: left; font-size: 10px;
-    text-transform: uppercase; letter-spacing: 0.04em;
-    position: sticky; top: 0; cursor: pointer; white-space: nowrap;
-    user-select: none; border-bottom: 1px solid var(--border);
-  }
-  th:hover { color: var(--accent); }
-  th.sort-asc::after { content: ' ↑'; color: var(--accent); }
-  th.sort-desc::after { content: ' ↓'; color: var(--accent); }
-  td { padding: 7px 10px; border-bottom: 1px solid rgba(42,48,69,0.5); white-space: nowrap; }
-  tr:hover td { background: rgba(59,142,243,0.05); cursor: pointer; }
-  tr.highlight td { background: rgba(255,224,102,0.08); }
-  tr.selected td { background: rgba(245,166,35,0.12); }
-  .td-num { text-align: right; font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
-  .tfoot td { font-weight: 700; background: var(--surface2); border-top: 1px solid var(--border); }
-
-  /* CHART CONTAINERS */
-  .chart-container { position: relative; }
-
-  /* GAUGE */
-  .gauge-wrap { display: flex; flex-direction: column; align-items: center; padding: 8px; }
-  .gauge-val { font-size: 32px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; margin-top: -20px; }
-  .gauge-sub { font-size: 11px; color: var(--text2); margin-top: 4px; }
-
-  /* ACTIVE FILTER CHIPS */
-  .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; min-height: 24px; }
-  .chip {
-    display: flex; align-items: center; gap: 4px;
-    background: rgba(245,166,35,0.15); color: var(--accent);
-    border: 1px solid rgba(245,166,35,0.3);
-    border-radius: 20px; padding: 2px 10px; font-size: 11px;
-    cursor: pointer; transition: all 0.15s;
-  }
-  .chip:hover { background: rgba(245,166,35,0.25); }
-  .chip-x { font-size: 14px; line-height: 1; margin-left: 2px; }
-
-  /* LEGEND */
-  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
-  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); cursor: pointer; }
-  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
-
-  /* LOADING */
-  .loading { text-align: center; padding: 40px; color: var(--text2); font-size: 13px; }
-
-  @media (max-width: 1100px) {
-    .main-grid { grid-template-columns: 1fr; }
-    .bottom-grid { grid-template-columns: 1fr 1fr; }
-    .kpi-strip { grid-template-columns: repeat(2, 1fr); }
-  }
-  @media (max-width: 700px) {
-    .bottom-grid { grid-template-columns: 1fr; }
-    .kpi-strip { grid-template-columns: 1fr 1fr; }
-    .filter-bar { gap: 8px; }
-  }
+@media(max-width:1200px){ .kpi-strip{grid-template-columns:repeat(3,1fr);} .grid-2,.grid-3{grid-template-columns:1fr;} }
+@media(max-width:700px){ .kpi-strip{grid-template-columns:repeat(2,1fr);} }
 </style>
 </head>
 <body>
 
-<!-- UPLOAD OVERLAY -->
-<div id="uploadOverlay">
-  <div class="upload-logo">
-    <div class="upload-logo-box">ST</div>
-    <div class="upload-logo-text">
-      <h1>Replan Performance & <span style="color:var(--accent2)">Loss</span> Overview</h1>
-      <p>Summary of replan quantity and cost impact by process</p>
-    </div>
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">ST</div>
+  <div class="title-block">
+    <h1>Replan Performance & <span>Loss</span> Overview</h1>
+    <p>Summary of replan value and cost impact by process</p>
   </div>
-  <div class="drop-zone" id="dropZone">
-    <div class="drop-icon">📊</div>
-    <h2>อัปโหลดไฟล์ Excel</h2>
-    <p>ลากไฟล์ .xlsx / .xls มาวางที่นี่<br>หรือคลิกเพื่อเลือกไฟล์<br><small style="color:var(--text2)">(ระบบจะอ่านตาราง <strong style="color:var(--accent)">rpall_</strong> จากไฟล์)</small></p>
-    <button class="btn-upload" onclick="document.getElementById('fileInput').click()">เลือกไฟล์</button>
-    <input type="file" id="fileInput" accept=".xlsx,.xls">
+  <div class="filter-bar">
+    <div class="fg"><label>Year</label><select class="fs" id="fYear" onchange="applyFilters()"></select></div>
+    <div class="fg"><label>Month</label><select class="fs" id="fMonth" onchange="applyFilters()"></select></div>
+    <div class="fg"><label>Department</label><select class="fs" id="fDept" onchange="applyFilters()"></select></div>
+    <div class="fg"><label>Machine</label><select class="fs" id="fMach" onchange="applyFilters()"></select></div>
+    <button class="btn" onclick="resetFilters()">↺ Reset</button>
+    <button class="btn primary" onclick="openUpload()">📁 อัปเดตข้อมูล</button>
   </div>
-  <p class="demo-hint">ไม่มีไฟล์? <span onclick="loadDemo()">ลองดูตัวอย่าง Demo</span></p>
-  <div id="uploadError" style="color:var(--accent2);font-size:13px;display:none;"></div>
+  <div class="update-info"><strong id="updateDate">—</strong>Data Update</div>
 </div>
 
-<!-- MAIN DASHBOARD -->
-<div id="dashboard">
-  <!-- HEADER -->
-  <div class="header">
-    <div class="header-logo">ST</div>
-    <div class="header-title">
-      <h1>Replan Performance & <span>Loss</span> Overview</h1>
-      <p>Summary of replan quantity and cost impact by process</p>
+<!-- UPLOAD MODAL -->
+<div class="modal-bg hidden" id="uploadModal">
+  <div class="modal">
+    <h2>📁 อัปเดตข้อมูล</h2>
+    <p>อัปโหลดไฟล์ Excel ที่มี sheet <strong style="color:var(--accent)">rpall_</strong> และ <strong style="color:var(--accent)">Target</strong></p>
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-icon">📊</div>
+      <p>ลากไฟล์ .xlsx มาวางที่นี่<br>หรือคลิกเพื่อเลือกไฟล์</p>
+      <button class="btn primary" onclick="document.getElementById('fileInput').click()">เลือกไฟล์</button>
+      <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
     </div>
-    <div class="filter-bar">
-      <div class="filter-group">
-        <label>Year</label>
-        <select class="filter-select" id="filterYear" onchange="applyFilters()"></select>
-      </div>
-      <div class="filter-group">
-        <label>Month</label>
-        <select class="filter-select" id="filterMonth" onchange="applyFilters()"></select>
-      </div>
-      <div class="filter-group">
-        <label>Department</label>
-        <select class="filter-select" id="filterDept" onchange="applyFilters()"></select>
-      </div>
-      <div class="filter-group">
-        <label>Machine</label>
-        <select class="filter-select" id="filterMachine" onchange="applyFilters()"></select>
-      </div>
-      <button class="btn-reload" onclick="resetFilters()">↺ Reset</button>
-      <button class="btn-reload" onclick="document.getElementById('fileInput2').click()">📁 อัปเดตข้อมูล</button>
-      <input type="file" id="fileInput2" accept=".xlsx,.xls" style="display:none">
-    </div>
-    <div class="update-info">
-      <strong id="updateDate">-</strong>
-      Data Update
+    <div id="uploadStatus"></div>
+    <div class="modal-btns">
+      <button class="btn" onclick="loadDemo()">ทดสอบด้วย Demo</button>
+      <button class="btn" onclick="closeUpload()">ปิด</button>
     </div>
   </div>
+</div>
 
-  <!-- CONTENT -->
-  <div class="content">
-    <!-- ACTIVE FILTERS -->
-    <div class="filter-chips" id="filterChips"></div>
+<!-- ACTIVE FILTER CHIPS -->
+<div class="chips" id="chips"></div>
 
-    <!-- KPI STRIP -->
-    <div class="kpi-strip">
-      <div class="kpi-card green" id="kpiTotal" onclick="toggleKpiFilter('total')">
-        <div class="kpi-label">Total Qty (Sh)</div>
-        <div class="kpi-value green" id="kpiTotalVal">-</div>
-        <div class="kpi-sub">รวมปริมาณ Replan ทั้งหมด</div>
-      </div>
-      <div class="kpi-card orange" id="kpiTarget">
-        <div class="kpi-label">Target (-25%)</div>
-        <div class="kpi-value orange" id="kpiTargetVal">-</div>
-        <div class="kpi-sub" id="kpiTargetPct">-</div>
-      </div>
-      <div class="kpi-card red" id="kpiValue">
-        <div class="kpi-label">Total Value (THB)</div>
-        <div class="kpi-value red" id="kpiValueVal">-</div>
-        <div class="kpi-sub" id="kpiJobCount">-</div>
-      </div>
-      <div class="kpi-card" id="kpiJobs">
-        <div class="kpi-label">Jobs > 5,000 THB</div>
-        <div class="kpi-value" id="kpiJobsVal" style="color:var(--blue)">-</div>
-        <div class="kpi-sub" id="kpiJobsVal2">-</div>
-      </div>
-    </div>
-
-    <!-- MAIN GRID -->
-    <div class="main-grid">
-      <!-- Monthly Chart -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">📅 Monthly Replan Qty</span>
-          <div style="display:flex;gap:8px;align-items:center">
-            <span class="card-badge" id="monthlyBadge">ทั้งปี</span>
-            <select class="filter-select" style="font-size:11px;padding:2px 6px" id="chartYearSel" onchange="renderCharts()"></select>
-          </div>
-        </div>
-        <div class="card-body">
-          <div class="legend">
-            <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> Qty (Sh)</div>
-            <div class="legend-item"><div class="legend-dot" style="background:var(--accent2)"></div> Target (-25%)</div>
-          </div>
-          <div class="chart-container" style="height:200px">
-            <canvas id="monthlyChart"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- Value by Product -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">📦 Value by Product (Top 10)</span>
-          <span class="card-badge" id="productBadge">กรองได้</span>
-        </div>
-        <div class="card-body">
-          <div class="chart-container" style="height:230px">
-            <canvas id="productChart"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- Department Chart -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">🏭 Department Overview</span>
-          <span class="card-badge">คลิกเพื่อกรอง</span>
-        </div>
-        <div class="card-body">
-          <div class="legend">
-            <div class="legend-item"><div class="legend-dot" style="background:var(--accent2)"></div> Total Value (THB)</div>
-            <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div> Qty (Sh)</div>
-          </div>
-          <div class="chart-container" style="height:200px">
-            <canvas id="deptChart"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- KPI Gauge -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">🎯 KPI vs Target</span>
-          <span class="card-badge" id="kpiBadge">-</span>
-        </div>
-        <div class="card-body">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center">
-            <div class="gauge-wrap">
-              <canvas id="gaugeChart" width="180" height="120"></canvas>
-              <div class="gauge-val" id="gaugeVal" style="color:var(--green)">-</div>
-              <div class="gauge-sub" id="gaugeSub">Target: -</div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:10px">
-              <div style="background:var(--surface2);border-radius:8px;padding:12px">
-                <div style="font-size:11px;color:var(--text2)">Job Value > 5,000</div>
-                <div style="font-size:24px;font-weight:700;color:var(--blue);font-family:'IBM Plex Mono',monospace" id="kpiJobCount2">-</div>
-                <div style="font-size:11px;color:var(--text2)">Job</div>
-              </div>
-              <div style="background:var(--surface2);border-radius:8px;padding:12px">
-                <div style="font-size:11px;color:var(--text2)">Total Value Job > 5,000</div>
-                <div style="font-size:20px;font-weight:700;color:var(--accent);font-family:'IBM Plex Mono',monospace" id="kpiJobVal2">-</div>
-                <div style="font-size:11px;color:var(--text2)">THB</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- DETAIL TABLE -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">📋 รายละเอียด Replan</span>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="text" id="tableSearch" placeholder="🔍 ค้นหา..." 
-            style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 10px;border-radius:6px;font-size:12px;width:180px"
-            oninput="renderTable()">
-          <span class="card-badge" id="tableCount">0 rows</span>
-        </div>
-      </div>
-      <div class="card-body" style="padding:0">
-        <div class="table-wrap">
-          <table id="detailTable">
-            <thead>
-              <tr>
-                <th onclick="sortTable('jo')">JO</th>
-                <th onclick="sortTable('compnt')">Component</th>
-                <th onclick="sortTable('jo_problem')">JO Problem</th>
-                <th onclick="sortTable('machine')">Machine</th>
-                <th onclick="sortTable('cause')">Cause</th>
-                <th onclick="sortTable('dept')">Dept</th>
-                <th onclick="sortTable('month')">Month</th>
-                <th onclick="sortTable('qtySh')" style="text-align:right">Qty Sh</th>
-                <th onclick="sortTable('val')" style="text-align:right">Value (THB)</th>
-              </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-            <tfoot id="tableFoot"></tfoot>
-          </table>
-        </div>
-      </div>
-    </div>
+<!-- MAIN CONTENT -->
+<div class="content" id="mainContent">
+  <div class="no-data">📂 กรุณาอัปโหลดไฟล์ Excel เพื่อดูข้อมูล<br><br>
+    <button class="btn primary" onclick="openUpload()" style="padding:8px 20px;font-size:13px">📁 อัปเดตข้อมูล</button>
+    <span style="margin:0 10px;color:var(--text2)">หรือ</span>
+    <button class="btn" onclick="loadDemo()" style="padding:8px 20px;font-size:13px">ดูตัวอย่าง Demo</button>
   </div>
 </div>
 
 <script>
 // ============================================================
-// DATA STATE
+// STATE
 // ============================================================
-let allData = [];
-let filteredData = [];
-let activeFilters = { year: 'all', month: 'all', dept: 'all', machine: 'all' };
-let chartInstances = {};
-let sortState = { col: 'val', dir: 'desc' };
-let baselineAvg = 0;
+let allData = [], filteredData = [], targetData = {};
+let sortMain = {col:'val',dir:'desc'}, sortNew = {col:'val',dir:'desc'};
+let chartsMap = {};
+
+const MONTHS = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const fmt = n => isNaN(n) ? '-' : Math.round(n).toLocaleString('en-US');
+const fmtB = n => {
+  if (isNaN(n)) return '-';
+  if (Math.abs(n) >= 1e6) return (n/1e6).toFixed(2)+'M';
+  if (Math.abs(n) >= 1e3) return (n/1e3).toFixed(1)+'K';
+  return Math.round(n).toLocaleString('en-US');
+};
 
 // ============================================================
-// DEMO DATA GENERATOR
+// UPLOAD / MODAL
 // ============================================================
-function loadDemo() {
-  const depts = ['PR1','OUTWORK','PR2','CON2','CON1','cutout','MAT','PDTN','GL1'];
-  const machines = ['PRT16','PRT202','OUTPR','OUTWORK','CON2M','CUTM'];
-  const causes = ['SETOFF','ตัวหนังสือหาย','สีเพี้ยน','OUTWORKรอย','ตัวหนังสือบวม','ฉากเต็งUVSPOT','งานเสีย','พิมพ์เบี้ยว'];
-  const components = ['TEP(031R01)','TGT(644)','PNV(029R01)','MB(1330)','TCSB(061R01)','SCJ(030.D2)','MGTH(Z329)','LION(1692.F)','LION(1566)','TTW(Z635.F)'];
-  const data = [];
-  const years = [2025, 2026];
-  years.forEach(year => {
-    for (let m = 1; m <= 12; m++) {
-      const rows = Math.floor(Math.random() * 20) + 5;
-      for (let i = 0; i < rows; i++) {
-        const comp = components[Math.floor(Math.random() * components.length)];
-        const dept = depts[Math.floor(Math.random() * depts.length)];
-        data.push({
-          jo: 70000 + Math.floor(Math.random() * 15000),
-          compnt: comp,
-          jo_problem: 70000 + Math.floor(Math.random() * 10000),
-          machine: machines[Math.floor(Math.random() * machines.length)],
-          cause: causes[Math.floor(Math.random() * causes.length)],
-          dept: dept,
-          year: year,
-          month: m,
-          qtySh: Math.floor(Math.random() * 15000) + 1000,
-          val: Math.floor(Math.random() * 35000) + 3000
-        });
-      }
-    }
-  });
-  allData = data;
-  initDashboard();
+function openUpload() { document.getElementById('uploadModal').classList.remove('hidden'); }
+function closeUpload() { document.getElementById('uploadModal').classList.add('hidden'); document.getElementById('uploadStatus').textContent=''; }
+
+document.getElementById('fileInput').addEventListener('change', e => { if(e.target.files[0]) readExcel(e.target.files[0]); });
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); if(e.dataTransfer.files[0]) readExcel(e.dataTransfer.files[0]); });
+
+function setStatus(msg, err=false) {
+  const el = document.getElementById('uploadStatus');
+  el.textContent = msg; el.style.color = err ? 'var(--accent2)' : 'var(--green)';
 }
 
-// ============================================================
-// EXCEL READER
-// ============================================================
 function readExcel(file) {
+  setStatus('กำลังอ่านไฟล์...');
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      const wb = XLSX.read(e.target.result, { type: 'array' });
-      // Find sheet starting with rpall_
-      let sheetName = wb.SheetNames.find(n => n.toLowerCase().startsWith('rpall_'));
-      if (!sheetName) {
-        // Try to find any sheet or use first
-        sheetName = wb.SheetNames[0];
-        showError(`ไม่พบ sheet "rpall_" — ใช้ sheet "${sheetName}" แทน`);
+      const wb = XLSX.read(e.target.result, { type:'array' });
+      // Read rpall_ sheet
+      let rpSheet = wb.SheetNames.find(n => n.toLowerCase().startsWith('rpall_'));
+      if (!rpSheet) rpSheet = wb.SheetNames[0];
+      const rpRaw = XLSX.utils.sheet_to_json(wb.Sheets[rpSheet], { defval:'' });
+
+      // Read Target sheet
+      let tgSheet = wb.SheetNames.find(n => n.toLowerCase() === 'target');
+      if (tgSheet) {
+        const tgRaw = XLSX.utils.sheet_to_json(wb.Sheets[tgSheet], { defval:0 });
+        parseTarget(tgRaw);
       }
-      const ws = wb.Sheets[sheetName];
-      const raw = XLSX.utils.sheet_to_json(ws, { defval: '' });
-      parseData(raw);
-    } catch(err) {
-      showError('อ่านไฟล์ไม่ได้: ' + err.message);
-    }
+
+      parseData(rpRaw);
+      setStatus(`✅ โหลดสำเร็จ ${allData.length.toLocaleString()} rows จาก "${rpSheet}"`);
+      setTimeout(closeUpload, 1200);
+    } catch(err) { setStatus('อ่านไฟล์ไม่ได้: '+err.message, true); }
   };
   reader.readAsArrayBuffer(file);
 }
 
-function showError(msg) {
-  const el = document.getElementById('uploadError');
-  if (el) { el.textContent = msg; el.style.display = 'block'; }
+function parseTarget(raw) {
+  targetData = {};
+  raw.forEach(row => {
+    const norm = k => String(k).toLowerCase().trim();
+    const keys = Object.keys(row).map(norm);
+    const dept = row[Object.keys(row)[keys.indexOf('dept')]] || row[Object.keys(row)[0]];
+    const target = parseFloat(row[Object.keys(row)[keys.indexOf('target')]] || row[Object.keys(row)[1]] || 0);
+    if (dept) targetData[String(dept).trim()] = target;
+  });
 }
 
 function parseData(raw) {
-  // Normalize column names (case-insensitive, trim)
-  const normalize = s => String(s).toLowerCase().replace(/\s+/g,'_').trim();
+  const n = k => String(k).toLowerCase().replace(/\s+/g,'_').trim();
   allData = raw.map(row => {
     const r = {};
-    Object.keys(row).forEach(k => { r[normalize(k)] = row[k]; });
-    // Map expected fields
-    const jo = r.jo || r['jo'] || '';
+    Object.keys(row).forEach(k => r[n(k)] = row[k]);
+    const jo = r.jo || '';
     const compnt = r.compnt || r.component || r.comp || '';
-    const jo_problem = r.jo_problem || r.jo_prob || r.joproblem || '';
+    const jo_problem = r.jo_problem || r.jo_prob || '';
     const machine = r.machine || r.mach || '';
     const cause = r.cause || r.reason || '';
-    const dept = r.dept || r.department || r.dep || '';
-    // Date / year / month
+    const dept = r.dept || r.department || '';
+    const check = r.check !== undefined ? parseInt(r.check) : 1;
     let year = parseInt(r.year || r.yr || 0);
     let month = parseInt(r.month || r.mon || r.mth || 0);
     if (!year || !month) {
-      const dateVal = r.date || r.plan_date || r.replan_date || '';
-      if (dateVal) {
+      const dv = r.date || r.plan_date || r.replan_date || '';
+      if (dv) {
         let d;
-        if (typeof dateVal === 'number') { d = XLSX.SSF.parse_date_code(dateVal); year = d.y; month = d.m; }
-        else { d = new Date(dateVal); if (!isNaN(d)) { year = d.getFullYear(); month = d.getMonth()+1; } }
+        if (typeof dv === 'number') { const dd = XLSX.SSF.parse_date_code(dv); year=dd.y; month=dd.m; }
+        else { d = new Date(dv); if(!isNaN(d)){year=d.getFullYear();month=d.getMonth()+1;} }
       }
     }
-    const qtySh = parseFloat(r.qty_sh || r.qtysh || r.qty || r.sh || r.quantity || 0);
     const val = parseFloat(r.val || r.value || r.amount || r.cost || 0);
-    return { jo, compnt, jo_problem, machine, cause, dept, year, month, qtySh, val };
-  }).filter(r => r.qtySh > 0 || r.val > 0);
-
-  if (allData.length === 0) {
-    showError('ไม่พบข้อมูลในไฟล์ หรือ column ไม่ตรง');
-    return;
-  }
-  initDashboard();
+    return { jo, compnt, jo_problem, machine, cause, dept, year, month, val, check, isNew: check === 0 };
+  }).filter(r => r.val !== 0 || r.jo);
+  document.getElementById('updateDate').textContent = new Date().toLocaleDateString('th-TH',{day:'2-digit',month:'short',year:'numeric'}) + ' ';
+  buildFilters();
+  applyFilters();
 }
 
 // ============================================================
-// INIT
+// DEMO
 // ============================================================
-function initDashboard() {
-  document.getElementById('uploadOverlay').classList.add('hidden');
-  setTimeout(() => {
-    document.getElementById('uploadOverlay').style.display = 'none';
-    document.getElementById('dashboard').classList.add('visible');
-  }, 500);
-
-  document.getElementById('updateDate').textContent = new Date().toLocaleDateString('th-TH', {day:'2-digit',month:'short',year:'numeric'});
-
-  // Calculate baseline avg (from all data, grouped by month)
-  const monthlyTotals = {};
-  allData.forEach(r => {
-    const k = `${r.year}-${r.month}`;
-    monthlyTotals[k] = (monthlyTotals[k]||0) + r.qtySh;
+function loadDemo() {
+  const depts = ['PR1','OUTWORK','PR2','CON2','CON1','cutout','MAT','PDTN','GL1'];
+  const machines = ['PRT16','PRT202','OUTPR','OUTWORK','CON2M','CUTM'];
+  const causes = ['SETOFF','ตัวหนังสือหาย','สีเพี้ยน','OUTWORKรอย','ตัวหนังสือบวม','งานเสีย','พิมพ์เบี้ยว'];
+  const comps = ['TEP(031R01)','TGT(644)','PNV(029R01)','MB(1330)','TCSB(061R01)','SCJ(030.D2)','MGTH(Z329)','LION(1692.F)','LION(1566)','TTW(Z635.F)'];
+  const data = [];
+  targetData = { PR1:179990, CON1:45794, GL1:3445, PR2:120236, CON2:11164, PDTN:43776, 'Avg.':539207, All:404405 };
+  [2025,2026].forEach(yr => {
+    for (let m=1;m<=12;m++) {
+      for (let i=0;i<Math.floor(Math.random()*18)+4;i++) {
+        const dept = depts[Math.floor(Math.random()*depts.length)];
+        data.push({
+          jo: 70000+Math.floor(Math.random()*15000),
+          compnt: comps[Math.floor(Math.random()*comps.length)],
+          jo_problem: 70000+Math.floor(Math.random()*10000),
+          machine: machines[Math.floor(Math.random()*machines.length)],
+          cause: causes[Math.floor(Math.random()*causes.length)],
+          dept, year: yr, month: m,
+          val: Math.floor(Math.random()*35000)+500,
+          check: Math.random() < 0.2 ? 0 : 1
+        });
+      }
+    }
   });
-  const vals = Object.values(monthlyTotals).filter(v=>v>0);
-  baselineAvg = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
-
+  allData = data.map(r => ({...r, isNew: r.check===0}));
+  document.getElementById('updateDate').textContent = 'Demo ';
+  closeUpload();
   buildFilters();
   applyFilters();
 }
@@ -600,364 +330,373 @@ function buildFilters() {
   const years = [...new Set(allData.map(r=>r.year).filter(Boolean))].sort();
   const months = [...new Set(allData.map(r=>r.month).filter(Boolean))].sort((a,b)=>a-b);
   const depts = [...new Set(allData.map(r=>r.dept).filter(Boolean))].sort();
-  const machines = [...new Set(allData.map(r=>r.machine).filter(Boolean))].sort();
+  const machs = [...new Set(allData.map(r=>r.machine).filter(Boolean))].sort();
 
-  const setOpts = (id, vals, label) => {
+  const setOpts = (id, vals, label, mapFn) => {
     const el = document.getElementById(id);
-    el.innerHTML = `<option value="all">All ${label}</option>` +
-      vals.map(v=>`<option value="${v}">${v}</option>`).join('');
+    const cur = el.value;
+    el.innerHTML = `<option value="all">All ${label}</option>` + vals.map(v=>`<option value="${v}">${mapFn?mapFn(v):v}</option>`).join('');
+    if (vals.includes(cur) || cur === 'all') el.value = cur;
   };
-  setOpts('filterYear', years, 'Years');
-  setOpts('filterMonth', months.map(m=>m), 'Months');
-  document.getElementById('filterMonth').innerHTML = `<option value="all">All Months</option>` +
-    months.map(m=>`<option value="${m}">${monthName(m)}</option>`).join('');
-  setOpts('filterDept', depts, 'Depts');
-  setOpts('filterMachine', machines, 'Machines');
+  setOpts('fYear', years, 'Years');
+  setOpts('fMonth', months, 'Months', m => MONTHS[m]);
+  setOpts('fDept', depts, 'Depts');
+  setOpts('fMach', machs, 'Machines');
 
-  // Chart year selector
-  const cys = document.getElementById('chartYearSel');
-  cys.innerHTML = `<option value="all">All</option>` + years.map(y=>`<option value="${y}">${y}</option>`).join('');
-
-  // File input 2
-  document.getElementById('fileInput2').onchange = e => { if(e.target.files[0]) readExcel(e.target.files[0]); };
-}
-
-function monthName(m) {
-  return ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m]||m;
+  // Set default year to latest
+  if (years.length && document.getElementById('fYear').value === 'all') {
+    // keep all
+  }
 }
 
 function applyFilters() {
-  const y = document.getElementById('filterYear').value;
-  const m = document.getElementById('filterMonth').value;
-  const d = document.getElementById('filterDept').value;
-  const mc = document.getElementById('filterMachine').value;
-  activeFilters = { year: y, month: m, dept: d, machine: mc };
+  const y = document.getElementById('fYear').value;
+  const m = document.getElementById('fMonth').value;
+  const d = document.getElementById('fDept').value;
+  const mc = document.getElementById('fMach').value;
 
   filteredData = allData.filter(r => {
-    if (y !== 'all' && String(r.year) !== String(y)) return false;
-    if (m !== 'all' && String(r.month) !== String(m)) return false;
-    if (d !== 'all' && r.dept !== d) return false;
-    if (mc !== 'all' && r.machine !== mc) return false;
+    if (y!=='all' && String(r.year)!==y) return false;
+    if (m!=='all' && String(r.month)!==m) return false;
+    if (d!=='all' && r.dept!==d) return false;
+    if (mc!=='all' && r.machine!==mc) return false;
     return true;
   });
-
   renderChips();
-  renderKPIs();
-  renderCharts();
-  renderTable();
+  renderAll();
 }
 
 function resetFilters() {
-  ['filterYear','filterMonth','filterDept','filterMachine'].forEach(id => {
-    document.getElementById(id).value = 'all';
-  });
+  ['fYear','fMonth','fDept','fMach'].forEach(id => document.getElementById(id).value='all');
   applyFilters();
 }
 
 function renderChips() {
-  const chips = document.getElementById('filterChips');
-  const labels = { year:'Year', month:'Month', dept:'Dept', machine:'Machine' };
+  const map = {fYear:'Year',fMonth:'Month',fDept:'Dept',fMach:'Machine'};
+  const chips = document.getElementById('chips');
   chips.innerHTML = '';
-  Object.entries(activeFilters).forEach(([k,v]) => {
-    if (v !== 'all') {
-      const c = document.createElement('div');
-      c.className = 'chip';
-      c.innerHTML = `${labels[k]}: <strong>${k==='month'?monthName(v):v}</strong><span class="chip-x" onclick="clearFilter('${k}')">×</span>`;
+  Object.entries(map).forEach(([id,label]) => {
+    const v = document.getElementById(id).value;
+    if (v!=='all') {
+      const c = document.createElement('div'); c.className='chip';
+      c.innerHTML = `${label}: <strong>${id==='fMonth'?MONTHS[v]:v}</strong><span style="margin-left:4px;font-size:14px" onclick="clearFilter('${id}')">×</span>`;
       chips.appendChild(c);
     }
   });
 }
+function clearFilter(id) { document.getElementById(id).value='all'; applyFilters(); }
 
-function clearFilter(key) {
-  document.getElementById('filter'+key.charAt(0).toUpperCase()+key.slice(1)).value = 'all';
-  applyFilters();
+// ============================================================
+// RENDER ALL
+// ============================================================
+function renderAll() {
+  const mc = document.getElementById('mainContent');
+  mc.innerHTML = '';
+
+  // KPI
+  const kpiDiv = document.createElement('div'); kpiDiv.className='kpi-strip'; mc.appendChild(kpiDiv);
+  renderKPIs(kpiDiv);
+
+  // Charts row
+  const g2 = document.createElement('div'); g2.className='grid-2'; mc.appendChild(g2);
+  const monthCard = makeCard('📅 Monthly Value (THB)', 'คลิกแท่งเพื่อกรอง'); g2.appendChild(monthCard);
+  const deptCard = makeCard('🏭 Department Value', 'คลิกเพื่อกรอง'); g2.appendChild(deptCard);
+
+  // Charts row 2
+  const g3 = document.createElement('div'); g3.className='grid-2'; mc.appendChild(g3);
+  const prodCard = makeCard('📦 Top 10 Products by Value', ''); g3.appendChild(prodCard);
+  const kpiGaugeCard = makeCard('🎯 KPI vs Target', ''); g3.appendChild(kpiGaugeCard);
+
+  // Tables
+  const tblCard = makeCard('📋 รายละเอียดทั้งหมด', ''); mc.appendChild(tblCard);
+  const newCard = makeCard('🆕 รายการใหม่ (check = 0)', `${filteredData.filter(r=>r.isNew).length} รายการ`); mc.appendChild(newCard);
+
+  // Render charts
+  renderMonthly(monthCard.querySelector('.card-body'));
+  renderDept(deptCard.querySelector('.card-body'));
+  renderProduct(prodCard.querySelector('.card-body'));
+  renderGauge(kpiGaugeCard.querySelector('.card-body'));
+  renderTable(tblCard, filteredData, 'main');
+  renderTable(newCard, filteredData.filter(r=>r.isNew), 'new', true);
+}
+
+function makeCard(title, badge) {
+  const c = document.createElement('div'); c.className='card';
+  c.innerHTML = `<div class="card-hdr"><span class="card-title">${title}</span><span class="card-badge">${badge}</span></div><div class="card-body"></div>`;
+  return c;
 }
 
 // ============================================================
 // KPIs
 // ============================================================
-function renderKPIs() {
-  const totalQty = filteredData.reduce((a,r)=>a+r.qtySh,0);
+function renderKPIs(container) {
   const totalVal = filteredData.reduce((a,r)=>a+r.val,0);
-  const target = baselineAvg * 0.75; // -25%
-  const pct = target > 0 ? ((totalQty - target) / target * 100).toFixed(1) : 0;
   const jobs5k = filteredData.filter(r=>r.val>5000);
-  const jobCount = jobs5k.length;
-  const jobVal = jobs5k.reduce((a,r)=>a+r.val,0);
+  const totalJobs = filteredData.length;
+  const newItems = filteredData.filter(r=>r.isNew);
 
-  document.getElementById('kpiTotalVal').textContent = fmt(totalQty);
-  document.getElementById('kpiTargetVal').textContent = fmt(Math.round(target));
-  const pctBadge = totalQty <= target
-    ? `<span class="kpi-badge badge-green">✓ ต่ำกว่าเป้า (+${Math.abs(pct)}%)</span>`
-    : `<span class="kpi-badge badge-red">⚠ เกินเป้า (+${Math.abs(pct)}%)</span>`;
-  document.getElementById('kpiTargetPct').innerHTML = pctBadge;
-  document.getElementById('kpiValueVal').textContent = fmtCurrency(totalVal);
-  document.getElementById('kpiJobCount').textContent = `${jobCount} jobs > 5,000 THB`;
-  document.getElementById('kpiJobsVal').textContent = jobCount;
-  document.getElementById('kpiJobsVal2').textContent = fmtCurrency(jobVal) + ' THB';
-  document.getElementById('kpiJobCount2').textContent = jobCount;
-  document.getElementById('kpiJobVal2').textContent = fmtCurrency(jobVal);
+  // Target
+  const tgtAll = targetData['All'] || targetData['all'] || 0;
+  const tgtAvg = targetData['Avg.'] || targetData['avg'] || targetData['AVG'] || 0;
+  const pct = tgtAll > 0 ? ((totalVal - tgtAll)/tgtAll*100) : null;
+  const pass = pct !== null ? totalVal <= tgtAll : null;
 
-  // Gauge
-  const gaugeEl = document.getElementById('gaugeChart');
-  const pctOfTarget = target > 0 ? Math.min(totalQty / (target*1.5), 1) : 0.5;
-  drawGauge(gaugeEl, pctOfTarget, totalQty <= target);
-  document.getElementById('gaugeVal').textContent = fmt(totalQty);
-  document.getElementById('gaugeVal').style.color = totalQty <= target ? 'var(--green)' : 'var(--accent2)';
-  document.getElementById('gaugeSub').textContent = `Target: ${fmt(Math.round(target))}`;
-  document.getElementById('kpiBadge').textContent = totalQty <= target ? '✓ ผ่านเป้า' : '⚠ เกินเป้า';
-  document.getElementById('kpiBadge').style.background = totalQty <= target ? 'rgba(46,204,113,0.15)' : 'rgba(231,76,60,0.15)';
-  document.getElementById('kpiBadge').style.color = totalQty <= target ? 'var(--green)' : 'var(--accent2)';
-}
+  const cards = [
+    { label:'Total Value (THB)', val: fmtB(totalVal), cls:'blue', sub: tgtAll ? `Target: ${fmtB(tgtAll)} THB` : 'รวมทั้งหมด',
+      badge: pct!==null ? `<span class="badge ${pass?'badge-g':'badge-r'}">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ต่ำกว่า':'เกิน'}เป้า</span>` : '' },
+    { label:'Target All (THB)', val: tgtAll ? fmtB(tgtAll) : '—', cls:'orange', sub:'เป้าหมายรวม' },
+    { label:'Baseline Avg (THB)', val: tgtAvg ? fmtB(tgtAvg) : '—', cls:'purple', sub:'ค่าเฉลี่ย Baseline' },
+    { label:'Total Jobs', val: fmt(totalJobs), cls:'green', sub:'จำนวนรายการทั้งหมด' },
+    { label:'Jobs > 5,000 THB', val: fmt(jobs5k.length), cls:'red',
+      sub:`มูลค่ารวม: ${fmtB(jobs5k.reduce((a,r)=>a+r.val,0))} THB` },
+    { label:'รายการใหม่ (check=0)', val: fmt(newItems.length), cls:'yellow',
+      sub:`มูลค่ารวม: ${fmtB(newItems.reduce((a,r)=>a+r.val,0))} THB` },
+  ];
 
-function drawGauge(canvas, pct, good) {
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  ctx.clearRect(0,0,W,H);
-  const cx = W/2, cy = H*0.88, r = Math.min(W,H)*0.72;
-  const startA = Math.PI, endA = 2*Math.PI;
-  // BG arc
-  ctx.beginPath(); ctx.arc(cx,cy,r,startA,endA);
-  ctx.lineWidth = 18; ctx.strokeStyle = '#2a3045'; ctx.lineCap = 'round'; ctx.stroke();
-  // Value arc
-  const valA = startA + pct*(endA-startA);
-  ctx.beginPath(); ctx.arc(cx,cy,r,startA,valA);
-  ctx.strokeStyle = good ? '#2ecc71' : '#e74c3c'; ctx.stroke();
-  // Target mark (75%)
-  const tA = startA + 0.75*(endA-startA);
-  const tx = cx + r*Math.cos(tA), ty = cy + r*Math.sin(tA);
-  ctx.beginPath(); ctx.arc(tx,ty,5,0,2*Math.PI);
-  ctx.fillStyle = '#f5a623'; ctx.fill();
+  container.innerHTML = cards.map(c=>`
+    <div class="kpi-card c-${c.cls}">
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-val ${c.cls}">${c.val}</div>
+      <div class="kpi-sub">${c.sub}</div>
+      ${c.badge||''}
+    </div>`).join('');
 }
 
 // ============================================================
-// CHARTS
+// MONTHLY CHART
 // ============================================================
-function renderCharts() {
-  renderMonthly();
-  renderProduct();
-  renderDept();
-}
+function renderMonthly(container) {
+  container.innerHTML = '';
+  const years = [...new Set(filteredData.map(r=>r.year).filter(Boolean))].sort();
+  const selY = document.getElementById('fYear').value;
+  const src = selY!=='all' ? filteredData : filteredData.filter(r=>r.year===Math.max(...years));
+  const labels = MONTHS.slice(1);
+  const vals = Array.from({length:12},(_,i)=>src.filter(r=>r.month===i+1).reduce((a,r)=>a+r.val,0));
+  const tgtAll = targetData['All'] || targetData['all'] || 0;
+  const tgtAvg = targetData['Avg.'] || targetData['avg'] || targetData['AVG'] || 0;
 
-function destroyChart(id) {
-  if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
-}
+  const wrap = document.createElement('div'); wrap.style.cssText='position:relative;height:220px'; container.appendChild(wrap);
+  const canvas = document.createElement('canvas'); wrap.appendChild(canvas);
 
-function renderMonthly() {
-  destroyChart('monthly');
-  const cy = document.getElementById('chartYearSel').value;
-  const src = cy === 'all' ? filteredData : filteredData.filter(r=>String(r.year)===cy);
-  const months = Array.from({length:12},(_,i)=>i+1);
-  const labels = months.map(m=>monthName(m));
-  const qtys = months.map(m => src.filter(r=>r.month===m).reduce((a,r)=>a+r.qtySh,0));
-  const targetLine = Array(12).fill(Math.round(baselineAvg*0.75));
+  const datasets = [{
+    label:'Value (THB)', data: vals, type:'bar',
+    backgroundColor: vals.map(v => v > (tgtAll||tgtAvg) ? 'rgba(231,76,60,0.8)' : 'rgba(59,142,243,0.8)'),
+    borderRadius: 4, order: 2,
+    datalabels: { display: true, color:'#e8ecf4', font:{size:9}, formatter: v => v>0?fmtB(v):'' }
+  }];
+  if (tgtAvg) datasets.push({ label:`Avg. ${fmtB(tgtAvg)}`, data:Array(12).fill(tgtAvg), type:'line', borderColor:'#f5a623', borderWidth:2, borderDash:[6,3], pointRadius:0, fill:false, order:1, datalabels:{display:false} });
+  if (tgtAll) datasets.push({ label:`Target ${fmtB(tgtAll)}`, data:Array(12).fill(tgtAll), type:'line', borderColor:'#e74c3c', borderWidth:2, borderDash:[4,2], pointRadius:0, fill:false, order:0, datalabels:{display:false} });
 
-  const ctx = document.getElementById('monthlyChart').getContext('2d');
-  chartInstances['monthly'] = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: 'Qty (Sh)', data: qtys,
-          backgroundColor: qtys.map((v,i) => {
-            if (activeFilters.month !== 'all' && (i+1) === parseInt(activeFilters.month)) return '#f5a623';
-            return v > baselineAvg*0.75 ? 'rgba(231,76,60,0.8)' : 'rgba(59,142,243,0.8)';
-          }),
-          borderRadius: 4, order: 1
-        },
-        { label: 'Target (-25%)', data: targetLine, type: 'line', borderColor: '#f5a623', borderWidth: 2, borderDash: [6,3], pointRadius: 0, fill: false, order: 0 }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      onClick: (e, els) => {
-        if (els.length) {
-          const m = els[0].index + 1;
-          document.getElementById('filterMonth').value = String(m);
-          applyFilters();
-        }
+  const chart = new Chart(canvas, {
+    type:'bar', data:{ labels, datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      onClick:(e,els)=>{ if(els.length){ const m=els[0].index+1; document.getElementById('fMonth').value=String(m); applyFilters(); } },
+      plugins:{
+        legend:{ labels:{ color:'#8a93a8', font:{size:10}, boxWidth:20 } },
+        tooltip:{ callbacks:{ label: ctx=>' '+fmt(ctx.parsed.y)+' THB' } }
       },
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.parsed.y)}` } }
-      },
-      scales: {
-        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8a93a8', font: {size:11} } },
-        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8a93a8', font: {size:11}, callback: v => fmt(v) } }
+      scales:{
+        x:{ grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#8a93a8',font:{size:10}} },
+        y:{ grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#8a93a8',font:{size:10},callback:v=>fmtB(v)} }
       }
     }
   });
+  chartsMap['monthly'] = chart;
 }
 
-function renderProduct() {
-  destroyChart('product');
-  const grouped = {};
-  filteredData.forEach(r => {
-    const k = `${r.compnt} ${r.dept||''}`.trim();
-    grouped[k] = (grouped[k]||0) + r.val;
-  });
-  const sorted = Object.entries(grouped).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  const labels = sorted.map(([k])=>k.length>22?k.slice(0,22)+'…':k);
-  const vals = sorted.map(([,v])=>v);
-
-  const ctx = document.getElementById('productChart').getContext('2d');
-  chartInstances['product'] = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{ label: 'Value (THB)', data: vals, backgroundColor: 'rgba(59,142,243,0.85)', borderRadius: 3 }]
-    },
-    options: {
-      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-      onClick: (e, els) => {
-        if (els.length) {
-          const label = sorted[els[0].index][0];
-          // filter by component search
-          document.getElementById('tableSearch').value = label.split(' ')[0];
-          renderTable();
-        }
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ` ${fmtCurrency(ctx.parsed.x)} THB` } }
-      },
-      scales: {
-        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8a93a8', font:{size:10}, callback: v=>fmtK(v) } },
-        y: { grid: { display: false }, ticks: { color: '#e8ecf4', font:{size:11} } }
-      }
-    }
-  });
-}
-
-function renderDept() {
-  destroyChart('dept');
+// ============================================================
+// DEPT CHART
+// ============================================================
+function renderDept(container) {
+  container.innerHTML = '';
   const depts = [...new Set(allData.map(r=>r.dept).filter(Boolean))].sort();
-  const vals = depts.map(d => filteredData.filter(r=>r.dept===d).reduce((a,r)=>a+r.val,0));
-  const qtys = depts.map(d => filteredData.filter(r=>r.dept===d).reduce((a,r)=>a+r.qtySh,0));
+  const vals = depts.map(d=>filteredData.filter(r=>r.dept===d).reduce((a,r)=>a+r.val,0));
+  const tgtVals = depts.map(d=>targetData[d]||0);
 
-  const ctx = document.getElementById('deptChart').getContext('2d');
-  chartInstances['dept'] = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: depts,
-      datasets: [
-        { label: 'Value', data: vals, backgroundColor: 'rgba(231,76,60,0.8)', borderRadius: 3, yAxisID: 'y' },
-        { label: 'Qty', data: qtys, type: 'line', borderColor: 'rgba(59,142,243,0.9)', borderWidth: 2, pointRadius: 3, fill: false, yAxisID: 'y2', tension: 0.3 }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      onClick: (e, els) => {
-        if (els.length) {
-          const dept = depts[els[0].index];
-          document.getElementById('filterDept').value = dept;
-          applyFilters();
-        }
+  const wrap = document.createElement('div'); wrap.style.cssText='position:relative;height:220px'; container.appendChild(wrap);
+  const canvas = document.createElement('canvas'); wrap.appendChild(canvas);
+
+  new Chart(canvas, {
+    type:'bar',
+    data:{ labels:depts, datasets:[
+      { label:'Actual Value', data:vals, backgroundColor:'rgba(231,76,60,0.8)', borderRadius:3 },
+      { label:'Target', data:tgtVals, backgroundColor:'rgba(245,166,35,0.5)', borderRadius:3 }
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      onClick:(e,els)=>{ if(els.length){ document.getElementById('fDept').value=depts[els[0].index]; applyFilters(); } },
+      plugins:{
+        legend:{ labels:{ color:'#8a93a8', font:{size:10}, boxWidth:16 } },
+        tooltip:{ callbacks:{ label:ctx=>' '+fmtB(ctx.parsed.y)+' THB' } },
+        datalabels:{ display:true, color:'#e8ecf4', font:{size:9}, rotation:-90, anchor:'end', align:'start', formatter:v=>v>0?fmtB(v):'' }
       },
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${fmtCurrency(ctx.parsed.y)}` } } },
-      scales: {
-        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8a93a8', font:{size:10} } },
-        y: { position: 'left', grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8a93a8', font:{size:10}, callback: v=>fmtK(v) } },
-        y2: { position: 'right', grid: { display: false }, ticks: { color: '#3b8ef3', font:{size:10}, callback: v=>fmtK(v) } }
+      scales:{
+        x:{ grid:{display:false}, ticks:{color:'#8a93a8',font:{size:10}} },
+        y:{ grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#8a93a8',font:{size:10},callback:v=>fmtB(v)} }
       }
     }
   });
+}
+
+// ============================================================
+// PRODUCT CHART
+// ============================================================
+function renderProduct(container) {
+  container.innerHTML = '';
+  const grp = {};
+  filteredData.forEach(r=>{ const k=`${r.compnt} ${r.dept||''}`.trim(); grp[k]=(grp[k]||0)+r.val; });
+  const sorted = Object.entries(grp).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  const wrap = document.createElement('div'); wrap.style.cssText='position:relative;height:260px'; container.appendChild(wrap);
+  const canvas = document.createElement('canvas'); wrap.appendChild(canvas);
+
+  new Chart(canvas, {
+    type:'bar',
+    data:{ labels:sorted.map(([k])=>k.length>24?k.slice(0,24)+'…':k), datasets:[{
+      label:'Value', data:sorted.map(([,v])=>v), backgroundColor:'rgba(59,142,243,0.85)', borderRadius:3
+    }]},
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      onClick:(e,els)=>{ if(els.length){ document.getElementById('tblSearch').value=sorted[els[0].index][0].split(' ')[0]; renderTableFilter(); }},
+      plugins:{
+        legend:{display:false},
+        tooltip:{ callbacks:{ label:ctx=>' '+fmtB(ctx.parsed.x)+' THB' } },
+        datalabels:{ display:true, color:'#e8ecf4', font:{size:9}, anchor:'end', align:'end', formatter:v=>fmtB(v) }
+      },
+      scales:{
+        x:{ grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#8a93a8',font:{size:9},callback:v=>fmtB(v)} },
+        y:{ grid:{display:false}, ticks:{color:'#e8ecf4',font:{size:10}} }
+      },
+      layout:{ padding:{ right:50 } }
+    }
+  });
+}
+
+// ============================================================
+// GAUGE / KPI VISUAL
+// ============================================================
+function renderGauge(container) {
+  container.innerHTML = '';
+  const totalVal = filteredData.reduce((a,r)=>a+r.val,0);
+  const tgtAll = targetData['All']||0;
+  const pass = tgtAll ? totalVal<=tgtAll : null;
+  const pct = tgtAll ? (totalVal/tgtAll) : 0.5;
+
+  const gaugeWrap = document.createElement('div');
+  gaugeWrap.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center';
+  container.appendChild(gaugeWrap);
+
+  // Gauge canvas
+  const gLeft = document.createElement('div'); gLeft.style.cssText='display:flex;flex-direction:column;align-items:center';
+  const canvas = document.createElement('canvas'); canvas.width=200; canvas.height=130; gLeft.appendChild(canvas);
+  const gVal = document.createElement('div');
+  gVal.style.cssText=`font-size:28px;font-weight:700;font-family:'IBM Plex Mono',monospace;margin-top:-16px;color:${pass===false?'var(--accent2)':pass===true?'var(--green)':'var(--blue)'}`;
+  gVal.textContent = fmtB(totalVal);
+  gLeft.appendChild(gVal);
+  const gSub = document.createElement('div'); gSub.style.cssText='font-size:11px;color:var(--text2);margin-top:4px';
+  gSub.textContent = tgtAll ? `Target: ${fmtB(tgtAll)} THB` : 'ยังไม่มีข้อมูล Target';
+  gLeft.appendChild(gSub);
+  if (pass!==null) {
+    const badge = document.createElement('div');
+    badge.className = `badge ${pass?'badge-g':'badge-r'}`; badge.style.marginTop='6px';
+    badge.textContent = pass ? '✓ ผ่านเป้าหมาย' : '⚠ เกินเป้าหมาย';
+    gLeft.appendChild(badge);
+  }
+  gaugeWrap.appendChild(gLeft);
+
+  // Draw gauge
+  const ctx = canvas.getContext('2d');
+  const cx=100,cy=115,r=85;
+  ctx.beginPath(); ctx.arc(cx,cy,r,Math.PI,2*Math.PI); ctx.lineWidth=18; ctx.strokeStyle='#2a3045'; ctx.lineCap='round'; ctx.stroke();
+  const ang = Math.PI + Math.min(pct,1.5)*Math.PI;
+  ctx.beginPath(); ctx.arc(cx,cy,r,Math.PI,ang); ctx.strokeStyle=pass===false?'#e74c3c':pass===true?'#2ecc71':'#3b8ef3'; ctx.stroke();
+  // Target line at 1.0
+  if (tgtAll) {
+    const ta=2*Math.PI; const tx=cx+r*Math.cos(ta); const ty=cy+r*Math.sin(ta);
+    ctx.beginPath(); ctx.arc(tx,ty,5,0,2*Math.PI); ctx.fillStyle='#f5a623'; ctx.fill();
+  }
+
+  // Right side stats
+  const gRight = document.createElement('div'); gRight.style.cssText='display:flex;flex-direction:column;gap:8px';
+  const deptTarget = document.getElementById('fDept').value;
+  const deptTgt = deptTarget!=='all' ? (targetData[deptTarget]||0) : 0;
+  const stats = [
+    { label:'Dept Target', val: deptTgt ? fmtB(deptTgt)+' THB' : (deptTarget==='all'?'—':'ไม่มีข้อมูล'), color:'var(--accent)' },
+    { label:'Jobs > 5,000', val: fmt(filteredData.filter(r=>r.val>5000).length)+' jobs', color:'var(--accent2)' },
+    { label:'Value Jobs > 5K', val: fmtB(filteredData.filter(r=>r.val>5000).reduce((a,r)=>a+r.val,0))+' THB', color:'var(--blue)' },
+    { label:'New Items', val: fmt(filteredData.filter(r=>r.isNew).length)+' items', color:'var(--new-badge)' },
+  ];
+  stats.forEach(s=>{
+    const box = document.createElement('div'); box.style.cssText='background:var(--surface2);border-radius:6px;padding:8px 10px';
+    box.innerHTML=`<div style="font-size:10px;color:var(--text2)">${s.label}</div><div style="font-size:15px;font-weight:700;color:${s.color};font-family:'IBM Plex Mono',monospace">${s.val}</div>`;
+    gRight.appendChild(box);
+  });
+  gaugeWrap.appendChild(gRight);
 }
 
 // ============================================================
 // TABLE
 // ============================================================
-let tableData = [];
-function renderTable() {
-  const search = document.getElementById('tableSearch').value.toLowerCase();
-  tableData = filteredData.filter(r => {
+let currentTableData = [];
+function renderTable(card, data, key, isNew=false) {
+  const body = card.querySelector('.card-body');
+  body.innerHTML = '';
+
+  // Search + count bar
+  const bar = document.createElement('div'); bar.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap';
+  const inp = document.createElement('input'); inp.type='text'; inp.className='tbl-search';
+  inp.placeholder='🔍 ค้นหา...'; inp.id=key+'Search';
+  inp.oninput = () => renderTableRows(key, data, tbody, foot, countBadge, inp.value);
+  const countBadge = document.createElement('span'); countBadge.className='card-badge'; countBadge.id=key+'Count';
+  bar.appendChild(inp); bar.appendChild(countBadge);
+  body.appendChild(bar);
+
+  const wrap = document.createElement('div'); wrap.className='tbl-wrap'; body.appendChild(wrap);
+  const tbl = document.createElement('table'); wrap.appendChild(tbl);
+  const cols = [{k:'jo',l:'JO'},{k:'compnt',l:'Component'},{k:'jo_problem',l:'JO Problem'},{k:'machine',l:'Machine'},{k:'cause',l:'Cause'},{k:'dept',l:'Dept'},{k:'month',l:'Month'},{k:'val',l:'Value (THB)'}];
+  const thead = document.createElement('thead'); tbl.appendChild(thead);
+  const hrow = document.createElement('tr'); thead.appendChild(hrow);
+  cols.forEach(c=>{
+    const th=document.createElement('th'); th.textContent=c.l; th.onclick=()=>{ const s=key==='new'?sortNew:sortMain; if(s.col===c.k)s.dir=s.dir==='asc'?'desc':'asc'; else{s.col=c.k;s.dir='desc';} renderTableRows(key,data,tbody,foot,countBadge,inp.value); }; hrow.appendChild(th);
+  });
+  if (isNew) { const th=document.createElement('th'); th.textContent='Status'; hrow.appendChild(th); }
+
+  const tbody = document.createElement('tbody'); tbl.appendChild(tbody);
+  const foot = document.createElement('tfoot'); tbl.appendChild(foot);
+  renderTableRows(key, data, tbody, foot, countBadge, '');
+}
+
+function renderTableRows(key, srcData, tbody, foot, countBadge, search) {
+  const s = key==='new' ? sortNew : sortMain;
+  let data = srcData.filter(r => {
     if (!search) return true;
-    return [r.jo,r.compnt,r.machine,r.cause,r.dept].some(v=>String(v).toLowerCase().includes(search));
+    return [r.jo,r.compnt,r.machine,r.cause,r.dept].some(v=>String(v).toLowerCase().includes(search.toLowerCase()));
   });
-
-  // Sort
-  tableData.sort((a,b) => {
-    const v = sortState.dir === 'asc' ? 1 : -1;
-    const av = a[sortState.col], bv = b[sortState.col];
-    if (typeof av === 'number') return (av-bv)*v;
-    return String(av).localeCompare(String(bv))*v;
+  data = [...data].sort((a,b)=>{
+    const v=s.dir==='asc'?1:-1;
+    const av=a[s.col],bv=b[s.col];
+    return (typeof av==='number'?(av-bv):String(av).localeCompare(String(bv)))*v;
   });
-
-  document.getElementById('tableCount').textContent = `${tableData.length.toLocaleString()} rows`;
-  const tbody = document.getElementById('tableBody');
-  const top50 = tableData.slice(0, 500);
-
-  tbody.innerHTML = top50.map((r,i) => {
-    const high = r.val > 5000;
-    return `<tr class="${high?'highlight':''}" onclick="selectRow(this,${i})">
-      <td>${r.jo}</td>
-      <td>${r.compnt}</td>
-      <td>${r.jo_problem}</td>
+  countBadge.textContent = data.length.toLocaleString()+' rows';
+  tbody.innerHTML = data.slice(0,500).map(r=>`
+    <tr class="${r.isNew?'new-row':''}" onclick="this.classList.toggle('sel')">
+      <td>${r.jo}</td><td>${r.compnt}</td><td>${r.jo_problem}</td>
       <td>${r.machine}</td>
-      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis">${r.cause}</td>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis" title="${r.cause}">${r.cause}</td>
       <td>${r.dept}</td>
-      <td>${monthName(r.month)} ${r.year}</td>
-      <td class="td-num">${fmt(r.qtySh)}</td>
-      <td class="td-num" style="${r.val>5000?'color:var(--accent)':''}">${fmtCurrency(r.val)}</td>
-    </tr>`;
-  }).join('');
-
-  // Footer
-  const totQty = tableData.reduce((a,r)=>a+r.qtySh,0);
-  const totVal = tableData.reduce((a,r)=>a+r.val,0);
-  document.getElementById('tableFoot').innerHTML = `<tr class="tfoot">
-    <td colspan="7"><strong>Total (${tableData.length.toLocaleString()} rows)</strong></td>
-    <td class="td-num"><strong>${fmt(totQty)}</strong></td>
-    <td class="td-num"><strong>${fmtCurrency(totVal)}</strong></td>
-  </tr>`;
-}
-
-function selectRow(tr, idx) {
-  document.querySelectorAll('#tableBody tr').forEach(r=>r.classList.remove('selected'));
-  tr.classList.toggle('selected');
-}
-
-function sortTable(col) {
-  if (sortState.col === col) sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
-  else { sortState.col = col; sortState.dir = 'desc'; }
-  document.querySelectorAll('th').forEach(th => { th.classList.remove('sort-asc','sort-desc'); });
-  const thMap = { jo:0, compnt:1, jo_problem:2, machine:3, cause:4, dept:5, month:6, qtySh:7, val:8 };
-  const ths = document.querySelectorAll('#detailTable thead th');
-  if (ths[thMap[col]]) ths[thMap[col]].classList.add(sortState.dir==='asc'?'sort-asc':'sort-desc');
-  renderTable();
+      <td>${MONTHS[r.month]||''} ${r.year||''}</td>
+      <td class="tr" style="${r.val>5000?'color:var(--accent)':''}">${fmt(r.val)}</td>
+      ${key==='new'?`<td><span class="new-tag">NEW</span></td>`:''}
+    </tr>`).join('');
+  const totVal = data.reduce((a,r)=>a+r.val,0);
+  foot.innerHTML = `<tr><td colspan="${key==='new'?8:7}"><strong>Total (${data.length.toLocaleString()} rows)</strong></td><td class="tr"><strong>${fmt(totVal)}</strong></td>${key==='new'?'<td></td>':''}</tr>`;
 }
 
 // ============================================================
-// HELPERS
+// INIT — show upload prompt
 // ============================================================
-function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
-function fmtCurrency(n) { 
-  if (n >= 1e6) return (n/1e6).toFixed(2)+'M';
-  if (n >= 1e3) return (n/1e3).toFixed(1)+'K';
-  return Math.round(n).toLocaleString('en-US');
-}
-function fmtK(n) { 
-  if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
-  if (n >= 1e3) return (n/1e3).toFixed(0)+'K';
-  return n;
-}
-
-// ============================================================
-// FILE UPLOAD EVENTS
-// ============================================================
-document.getElementById('fileInput').addEventListener('change', e => {
-  if (e.target.files[0]) readExcel(e.target.files[0]);
-});
-
-const dz = document.getElementById('dropZone');
-dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
-dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
-dz.addEventListener('drop', e => {
-  e.preventDefault(); dz.classList.remove('dragover');
-  const f = e.dataTransfer.files[0];
-  if (f) readExcel(f);
-});
+openUpload();
 </script>
 </body>
 </html>
