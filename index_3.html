@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Replan Performance & Loss Overview</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f1117;--surface:#181c27;--surface2:#1e2334;--border:#2a3045;--accent:#f5a623;--accent2:#e74c3c;--blue:#3b8ef3;--green:#2ecc71;--purple:#9b59b6;--text:#e8ecf4;--text2:#8a93a8;--yellow:#ffe066;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'IBM Plex Sans Thai',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* HEADER */
+.hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:6px 20px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:300;flex-wrap:wrap;row-gap:6px;}
+.logo{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#000;flex-shrink:0;}
+.ttl h1{font-size:15px;font-weight:700;}.ttl h1 em{color:var(--accent2);font-style:normal;}.ttl p{font-size:10px;color:var(--text2);}
+.fbar{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;}
+.fg{display:flex;flex-direction:column;gap:2px;}
+.fg label{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;}
+select.fs{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:6px;font-size:11px;font-family:inherit;cursor:pointer;min-width:80px;}
+select.fs:focus{outline:none;border-color:var(--accent);}
+.btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:5px 11px;border-radius:6px;font-size:11px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn:hover{border-color:var(--accent);color:var(--accent);}
+.btn.pri{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600;}
+.btn.pri:hover{background:#ffb84d;}
+.upd{margin-left:auto;text-align:right;font-size:10px;color:var(--text2);}
+.upd strong{display:block;font-size:12px;color:var(--text);}
+
+/* MULTI-SELECT DEPT */
+.msw{position:relative;}
+.msb{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;min-width:130px;display:flex;align-items:center;justify-content:space-between;gap:4px;user-select:none;}
+.msb:hover,.msb.open{border-color:var(--accent);}
+.msb-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px;}
+.msp{position:absolute;top:calc(100% + 4px);left:0;min-width:190px;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:999;display:none;flex-direction:column;}
+.msp.open{display:flex;}
+.msp-srch{padding:6px 8px;border-bottom:1px solid var(--border);}
+.msp-srch input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:5px;font-size:11px;font-family:inherit;outline:none;}
+.msp-act{display:flex;gap:4px;padding:5px 8px;border-bottom:1px solid var(--border);}
+.msp-act button{font-size:10px;padding:2px 8px;border-radius:4px;cursor:pointer;background:var(--surface2);border:1px solid var(--border);color:var(--text2);}
+.msp-act button:hover{color:var(--accent);border-color:var(--accent);}
+.msp-list{max-height:200px;overflow-y:auto;padding:4px 0;}
+.msp-list::-webkit-scrollbar{width:4px;}.msp-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.msp-item{display:flex;align-items:center;gap:7px;padding:5px 10px;cursor:pointer;font-size:12px;transition:background .1s;}
+.msp-item:hover{background:var(--surface2);}
+.msp-item input[type=checkbox]{accent-color:var(--accent);width:13px;height:13px;cursor:pointer;flex-shrink:0;}
+.ms-cnt{background:var(--accent);color:#000;font-size:9px;font-weight:700;border-radius:10px;padding:1px 5px;min-width:16px;text-align:center;}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.76);z-index:600;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.overlay.hidden{display:none;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:26px;width:470px;max-width:93vw;}
+.modal h2{font-size:17px;margin-bottom:5px;}.modal-sub{font-size:12px;color:var(--text2);margin-bottom:16px;}
+.mtabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.mt{padding:6px 15px;font-size:12px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;transition:all .2s;}
+.mt.on{color:var(--accent);border-bottom-color:var(--accent);}
+.mpane{display:none;}.mpane.on{display:block;}
+.dz{border:2px dashed var(--border);border-radius:10px;padding:26px 16px;text-align:center;cursor:pointer;transition:all .25s;}
+.dz:hover,.dz.ov{border-color:var(--accent);background:rgba(245,166,35,.05);}
+.dz-ico{font-size:34px;margin-bottom:8px;}.dz p{font-size:12px;color:var(--text2);margin-bottom:12px;}
+.gss{display:flex;flex-direction:column;gap:10px;}
+.gsi{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:7px;font-size:12px;font-family:inherit;outline:none;width:100%;}
+.gsi:focus{border-color:var(--accent);}
+.gsh{font-size:11px;color:var(--text2);line-height:1.7;background:var(--surface2);border-radius:7px;padding:10px 12px;}
+.gsh code{color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:10px;word-break:break-all;}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;}
+#upSt,#gsSt{font-size:11px;margin-top:6px;min-height:16px;}
+
+/* CHIPS */
+.chips{display:flex;gap:6px;flex-wrap:wrap;padding:6px 20px 0;min-height:24px;}
+.chip{display:flex;align-items:center;gap:3px;background:rgba(245,166,35,.15);color:var(--accent);border:1px solid rgba(245,166,35,.3);border-radius:20px;padding:2px 9px;font-size:11px;cursor:pointer;}
+.chip:hover{background:rgba(245,166,35,.25);}
+
+/* SEARCH */
+.sbar{background:var(--surface);border-bottom:1px solid var(--border);padding:7px 20px;display:none;align-items:center;gap:8px;flex-wrap:wrap;}
+.sw2{display:flex;align-items:center;flex:1;max-width:500px;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .2s;}
+.sw2:focus-within{border-color:var(--accent);}
+.sf-s{background:var(--surface2);border:none;border-right:1px solid var(--border);color:var(--text2);padding:6px 9px;font-size:11px;font-family:inherit;cursor:pointer;outline:none;min-width:108px;}
+.sf-s:focus{color:var(--accent);}
+.sf-i{background:transparent;border:none;color:var(--text);padding:6px 9px;font-size:12px;font-family:inherit;flex:1;outline:none;min-width:0;}
+.sf-i::placeholder{color:var(--text2);}
+.sf-x{background:none;border:none;color:var(--text2);padding:0 9px;cursor:pointer;font-size:16px;line-height:1;display:none;}
+.sf-x:hover{color:var(--accent2);}
+.sc{font-size:11px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);padding:4px 9px;border-radius:6px;white-space:nowrap;display:none;}
+.sc span{color:var(--accent);font-weight:700;}
+mark.hl{background:rgba(245,166,35,.35);border-radius:2px;padding:0 1px;}
+
+/* CONTENT */
+.con{padding:12px 20px 28px;display:flex;flex-direction:column;gap:12px;}
+.nd{text-align:center;padding:60px 20px;color:var(--text2);font-size:14px;line-height:2.4;}
+
+/* KPI */
+.krow{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}
+.kc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;position:relative;overflow:hidden;transition:all .2s;}
+.kc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:10px 10px 0 0;}
+.kc.cb::before{background:var(--blue);}.kc.cg::before{background:var(--green);}.kc.co::before{background:var(--accent);}
+.kc.cr::before{background:var(--accent2);}.kc.cp::before{background:var(--purple);}.kc.cy::before{background:var(--yellow);}
+.kc:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.4);}
+.kl{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
+.kv{font-size:21px;font-weight:700;font-family:'IBM Plex Mono',monospace;line-height:1;}
+.kv.b{color:var(--blue);}.kv.g{color:var(--green);}.kv.o{color:var(--accent);}.kv.r{color:var(--accent2);}.kv.p{color:var(--purple);}.kv.y{color:var(--yellow);}
+.ks{font-size:10px;color:var(--text2);margin-top:4px;}
+.badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;margin-top:3px;}
+.bg{background:rgba(46,204,113,.15);color:var(--green);}.br{background:rgba(231,76,60,.15);color:var(--accent2);}
+
+/* GRID / CARD */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.ch2{padding:9px 14px 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.ct2{font-size:12px;font-weight:600;}
+.cb3{font-size:10px;color:var(--text2);background:var(--surface2);padding:1px 7px;border-radius:8px;}
+.cbody{padding:12px;}
+
+/* TABLE */
+.tw{overflow:auto;max-height:300px;}
+.tw::-webkit-scrollbar{width:4px;height:4px;}.tw::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+th{background:var(--surface2);color:var(--text2);padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.04em;position:sticky;top:0;cursor:pointer;user-select:none;border-bottom:1px solid var(--border);white-space:nowrap;}
+th:hover{color:var(--accent);}
+th.sa::after{content:' ↑';color:var(--accent);}th.sd::after{content:' ↓';color:var(--accent);}
+td{padding:5px 8px;border-bottom:1px solid rgba(42,48,69,.4);white-space:nowrap;}
+tr:hover td{background:rgba(59,142,243,.05);}
+tr.nr td{background:rgba(255,224,102,.06);}
+tr.sel td{background:rgba(245,166,35,.1);}
+.tr{text-align:right;font-family:'IBM Plex Mono',monospace;}
+tfoot td{font-weight:700;background:var(--surface2);border-top:1px solid var(--border);}
+.ntag{display:inline-block;background:var(--yellow);color:#000;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;}
+.ts2{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:5px;font-size:11px;width:145px;outline:none;}
+.ts2:focus{border-color:var(--accent);}
+
+@media(max-width:1200px){.krow{grid-template-columns:repeat(3,1fr);}.g2{grid-template-columns:1fr;}}
+@media(max-width:700px){.krow{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="logo">ST</div>
+  <div class="ttl"><h1>Replan Performance &amp; <em>Loss</em> Overview</h1><p>Summary of replan value and cost impact by process</p></div>
+  <div class="fbar">
+    <div class="fg"><label>Year</label><select class="fs" id="fY" onchange="applyFilters()"></select></div>
+    <div class="fg"><label>Month</label><select class="fs" id="fM" onchange="applyFilters()"></select></div>
+    <div class="fg">
+      <label>Department</label>
+      <div class="msw" id="msw">
+        <div class="msb" id="msb" onclick="toggleMS()"><span class="msb-txt" id="msTxt">All Depts</span><span style="font-size:9px;color:var(--text2)">▼</span></div>
+        <div class="msp" id="msp">
+          <div class="msp-srch"><input id="msSearch" placeholder="ค้นหาแผนก..." oninput="renderMSItems()" autocomplete="off"></div>
+          <div class="msp-act">
+            <button onclick="msAll()">เลือกทั้งหมด</button>
+            <button onclick="msClear()">ล้างทั้งหมด</button>
+          </div>
+          <div class="msp-list" id="msList"></div>
+        </div>
+      </div>
+    </div>
+    <div class="fg"><label>Machine</label><select class="fs" id="fMc" onchange="applyFilters()"></select></div>
+    <button class="btn" onclick="resetFilters()">↺ Reset</button>
+    <button class="btn pri" onclick="openModal()">📁 อัปเดตข้อมูล</button>
+  </div>
+  <div class="upd"><strong id="updDate">—</strong>Data Update</div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay hidden" id="overlay">
+  <div class="modal">
+    <h2>📁 จัดการข้อมูล</h2>
+    <p class="modal-sub">อัปโหลด Excel หรือเชื่อมต่อ Google Sheets เพื่อแชร์ข้อมูลกับทีม</p>
+    <div class="mtabs">
+      <div class="mt on" onclick="switchTab('xl')">📂 Excel Upload</div>
+      <div class="mt" onclick="switchTab('gs')">🔗 Google Sheets</div>
+    </div>
+    <div class="mpane on" id="pXl">
+      <div class="dz" id="dz">
+        <div class="dz-ico">📊</div>
+        <p>ลากไฟล์ .xlsx มาวางที่นี่ หรือคลิกเพื่อเลือก<br><small>ต้องมี sheet <strong style="color:var(--accent)">rpall_</strong> และ <strong style="color:var(--accent)">Target</strong></small></p>
+        <button class="btn pri" onclick="document.getElementById('fi').click()">เลือกไฟล์</button>
+        <input type="file" id="fi" accept=".xlsx,.xls" style="display:none">
+      </div>
+      <div id="upSt"></div>
+    </div>
+    <div class="mpane" id="pGs">
+      <div class="gss">
+        <div class="gsh">
+          <strong style="color:var(--text)">วิธีตั้งค่า Google Sheets (ทำครั้งเดียว):</strong><br>
+          1. เปิด Google Sheets → <strong>Extensions → Apps Script</strong><br>
+          2. วางโค้ดนี้แล้ว Save:<br>
+          <code>function doGet(e){
+  var ss=SpreadsheetApp.getActiveSpreadsheet();
+  var rp=ss.getSheets().find(function(s){return s.getName().toLowerCase().indexOf('rpall_')===0;});
+  var tg=ss.getSheetByName('Target');
+  var page=e&&e.parameter&&e.parameter.page?parseInt(e.parameter.page):0;
+  var pageSize=5000;
+  var rpData=[];
+  var headers=[];
+  var totalRows=0;
+  if(rp){
+    var allData=rp.getDataRange().getValues();
+    headers=allData[0];
+    totalRows=allData.length-1;
+    var start=1+page*pageSize;
+    var end=Math.min(start+pageSize,allData.length);
+    rpData=allData.slice(page===0?0:start,end);
+    if(page===0)rpData=allData.slice(0,Math.min(1+pageSize,allData.length));
+  }
+  var d={
+    rpall:rpData,
+    target:tg?tg.getDataRange().getValues():[],
+    totalRows:totalRows,
+    pageSize:pageSize,
+    page:page
+  };
+  return ContentService.createTextOutput(JSON.stringify(d)).setMimeType(ContentService.MimeType.JSON);
+}</code><br><br>
+          3. กด <strong>Deploy → New deployment → Web App</strong><br>
+          &nbsp;&nbsp;&nbsp;— Execute as: <strong>Me</strong> | Who has access: <strong>Anyone</strong><br>
+          4. คัดลอก URL มาวางด้านล่าง
+        </div>
+        <input class="gsi" id="gsUrl" placeholder="https://script.google.com/macros/s/…/exec">
+        <div id="gsSt"></div>
+        <button class="btn pri" onclick="loadGS()">🔗 เชื่อมต่อและโหลดข้อมูล</button>
+        <div style="font-size:10px;color:var(--text2)">URL จะถูกจำไว้ — ครั้งหน้าเปิดหน้าเว็บจะโหลดอัตโนมัติ</div>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn" onclick="loadDemo()">🎮 Demo</button>
+      <button class="btn" onclick="closeModal()">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHIPS + SEARCH -->
+<div class="chips" id="chips"></div>
+<div class="sbar" id="sbar">
+  <div class="sw2">
+    <select class="sf-s" id="sfSel" onchange="onSearch()">
+      <option value="all">🔍 ทุก Field</option>
+      <option value="jo">JO</option>
+      <option value="compnt">Component</option>
+      <option value="jo_problem">JO Problem</option>
+      <option value="machine">Machine</option>
+      <option value="cause">Cause</option>
+      <option value="dept">Department</option>
+    </select>
+    <input class="sf-i" id="sfI" placeholder="พิมพ์เพื่อค้นหา real-time…" oninput="onSearch()" autocomplete="off">
+    <button class="sf-x" id="sfX" onclick="clearSearch()">×</button>
+  </div>
+  <div class="sc" id="sc">พบ <span id="sN">0</span> จาก <span id="sT">0</span></div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="con" id="con">
+  <div class="nd">
+    📂 กรุณาอัปโหลดไฟล์ Excel หรือเชื่อมต่อ Google Sheets<br>
+    <button class="btn pri" onclick="openModal()" style="padding:7px 18px;font-size:13px">📁 อัปเดตข้อมูล</button>
+    &nbsp;
+    <button class="btn" onclick="loadDemo()" style="padding:7px 18px;font-size:13px">🎮 Demo</button>
+  </div>
+</div>
+
+<script>
+// ═══ STATE ═══
+let allData=[],filteredData=[],targetData={};
+let selDepts=new Set(['__all__']),allDeptList=[];
+let sortM={col:'val',dir:'desc'},sortN={col:'val',dir:'desc'};
+let gsr={field:'all',query:''};
+const MN=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const fmt=n=>isNaN(n)?'-':Math.round(n).toLocaleString('en-US');
+const fB=n=>{if(isNaN(n))return'-';const a=Math.abs(n);if(a>=1e6)return(n/1e6).toFixed(2)+'M';if(a>=1e3)return(n/1e3).toFixed(1)+'K';return Math.round(n).toLocaleString();};
+
+// ═══ MODAL ═══
+function openModal(){document.getElementById('overlay').classList.remove('hidden');}
+function closeModal(){document.getElementById('overlay').classList.add('hidden');}
+document.getElementById('overlay').addEventListener('click',e=>{if(e.target===document.getElementById('overlay'))closeModal();});
+function switchTab(t){
+  document.querySelectorAll('.mt').forEach((el,i)=>el.classList.toggle('on',i===(t==='xl'?0:1)));
+  document.getElementById('pXl').classList.toggle('on',t==='xl');
+  document.getElementById('pGs').classList.toggle('on',t==='gs');
+}
+
+// ═══ EXCEL UPLOAD ═══
+document.getElementById('fi').addEventListener('change',e=>{if(e.target.files[0])readXL(e.target.files[0]);});
+const dzEl=document.getElementById('dz');
+dzEl.addEventListener('dragover',e=>{e.preventDefault();dzEl.classList.add('ov');});
+dzEl.addEventListener('dragleave',()=>dzEl.classList.remove('ov'));
+dzEl.addEventListener('drop',e=>{e.preventDefault();dzEl.classList.remove('ov');if(e.dataTransfer.files[0])readXL(e.dataTransfer.files[0]);});
+function setSt(id,msg,ok=true){const el=document.getElementById(id);el.textContent=msg;el.style.color=ok?'var(--green)':'var(--accent2)';}
+function readXL(file){
+  setSt('upSt','กำลังอ่านไฟล์...',true);
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const rpN=wb.SheetNames.find(n=>n.toLowerCase().startsWith('rpall_'))||wb.SheetNames[0];
+      const tgN=wb.SheetNames.find(n=>n.toLowerCase()==='target');
+      const rpR=XLSX.utils.sheet_to_json(wb.Sheets[rpN],{defval:''});
+      if(tgN)parseTgt(XLSX.utils.sheet_to_json(wb.Sheets[tgN],{defval:0}));
+      parseData(rpR,'Excel');
+      setSt('upSt','✅ โหลดสำเร็จ '+allData.length.toLocaleString()+' rows');
+      setTimeout(closeModal,900);
+    }catch(e2){setSt('upSt','❌ '+e2.message,false);}
+  };
+  r.readAsArrayBuffer(file);
+}
+
+// ═══ GOOGLE SHEETS ═══
+async function fetchAllPages(url){
+  let allRows=[], headers=[], page=0, totalRows=999999, targetRows=[];
+  while(allRows.length<totalRows){
+    const res=await fetch(url+'?page='+page,{redirect:'follow'});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const text=await res.text();
+    let j;try{j=JSON.parse(text);}catch(e){throw new Error('รูปแบบข้อมูลไม่ถูกต้อง');}
+    if(!j.rpall||j.rpall.length<2)break;
+    if(page===0){headers=j.rpall[0];if(j.target&&j.target.length>1)targetRows=j.target;totalRows=j.totalRows||999999;}
+    const rows=j.rpall.slice(page===0?1:0);
+    allRows=allRows.concat(rows);
+    if(rows.length<(j.pageSize||5000))break;
+    page++;
+    setSt('gsSt','⏳ โหลดข้อมูล... '+allRows.length.toLocaleString()+' rows',true);
+  }
+  return{headers,rows:allRows,targetRows};
+}
+async function loadGS(){
+  const url=document.getElementById('gsUrl').value.trim();
+  if(!url){setSt('gsSt','กรุณาใส่ URL',false);return;}
+  setSt('gsSt','⏳ กำลังเชื่อมต่อ...',true);
+  try{
+    const{headers,rows,targetRows}=await fetchAllPages(url);
+    if(rows.length<1)throw new Error('ไม่พบข้อมูล rpall_');
+    const hd=headers.map(h=>String(h).toLowerCase().replace(/\s+/g,'_').trim());
+    const parsed=rows.map(row=>{const r={};hd.forEach((h,i)=>r[h]=row[i]);return r;});
+    if(targetRows.length>1){const th=targetRows[0].map(h=>String(h).toLowerCase().trim());parseTgt(targetRows.slice(1).map(row=>{const r={};th.forEach((h,i)=>r[h]=row[i]);return r;}));}
+    parseData(parsed,'Google Sheets');
+    try{localStorage.setItem('gsUrl',url);}catch(e){}
+    setSt('gsSt','✅ โหลดสำเร็จ '+parsed.length.toLocaleString()+' rows!');
+    setTimeout(closeModal,1000);
+  }catch(e){setSt('gsSt','❌ '+e.message,false);}
+}
+window.addEventListener('DOMContentLoaded',()=>{
+  try{
+    const s=localStorage.getItem('gsUrl');
+    if(s){document.getElementById('gsUrl').value=s;showAutoLoading();autoGS(s);}
+    else openModal();
+  }catch(e){openModal();}
+});
+function showAutoLoading(){
+  const c=document.getElementById('con');
+  c.innerHTML='<div class="nd">⏳ กำลังโหลดข้อมูลจาก Google Sheets...<br><small style="font-size:12px;color:var(--text2)">กรุณารอสักครู่</small></div>';
+}
+async function autoGS(url){
+  try{
+    const{headers,rows,targetRows}=await fetchAllPages(url);
+    if(rows.length<1)throw new Error('ไม่พบข้อมูล');
+    const hd=headers.map(h=>String(h).toLowerCase().replace(/\s+/g,'_').trim());
+    const parsed=rows.map(row=>{const r={};hd.forEach((h,i)=>r[h]=row[i]);return r;});
+    if(targetRows.length>1){const th=targetRows[0].map(h=>String(h).toLowerCase().trim());parseTgt(targetRows.slice(1).map(row=>{const r={};th.forEach((h,i)=>r[h]=row[i]);return r;}));}
+    parseData(parsed,'Google Sheets');
+  }catch(e){
+    const c=document.getElementById('con');
+    c.innerHTML=`<div class="nd">❌ โหลดข้อมูลไม่สำเร็จ<br><small style="color:var(--accent2)">${e.message}</small><br><br><button class="btn pri" onclick="openModal()" style="padding:7px 18px;font-size:13px">📁 ตั้งค่าใหม่</button>&nbsp;<button class="btn" onclick="retryGS()" style="padding:7px 18px;font-size:13px">🔄 ลองใหม่</button></div>`;
+  }
+}
+function retryGS(){try{const s=localStorage.getItem('gsUrl');if(s){showAutoLoading();autoGS(s);}}catch(e){openModal();}}
+
+// ═══ PARSE TARGET ═══
+function parseTgt(raw){
+  targetData={};
+  raw.forEach(row=>{
+    const ks=Object.keys(row).map(k=>k.toLowerCase().trim());
+    const di=ks.findIndex(k=>k==='dept'||k==='department');
+    const ti=ks.findIndex(k=>k==='target');
+    const dept=String(di>=0?Object.values(row)[di]:Object.values(row)[0]).trim();
+    const val=parseFloat(ti>=0?Object.values(row)[ti]:Object.values(row)[1])||0;
+    if(dept)targetData[dept]=val;
+  });
+}
+
+// ═══ PARSE DATA ═══
+function parseData(raw,src){
+  const n=k=>String(k).toLowerCase().replace(/\s+/g,'_').trim();
+  allData=raw.map(row=>{
+    const r={};Object.keys(row).forEach(k=>r[n(k)]=row[k]);
+    const jo=r.jo||'',compnt=r.compnt||r.component||r.comp||'',jp=r.jo_problem||r.jo_prob||'';
+    const mach=r.machine||r.mach||'',cause=r.cause||r.reason||'',dept=r.dept||r.department||'';
+    const rawChk=r.check!==undefined&&r.check!==""&&r.check!==null?r.check:(r.chk!==undefined?r.chk:1);const chk=isNaN(parseInt(rawChk))?1:parseInt(rawChk);
+    let yr=parseInt(r.year||r.yr||0),mo=parseInt(r.month||r.mon||r.mth||0);
+    if(!yr||!mo){const dv=r.date||r.plan_date||r.replan_date||'';if(dv){if(typeof dv==='number'){const dd=XLSX.SSF.parse_date_code(dv);yr=dd.y;mo=dd.m;}else{const d=new Date(dv);if(!isNaN(d)){yr=d.getFullYear();mo=d.getMonth()+1;}}}}
+    const val=parseFloat(r.val||r.value||r.amount||r.cost||0);
+    const isNew=chk===0;
+    return{jo,compnt,jo_problem:jp,machine:mach,cause,dept,year:yr,month:mo,val,check:chk,isNew};
+  }).filter(r=>r.val!==0||r.jo);
+  document.getElementById('updDate').textContent=(src||'')+'  ';
+  buildFilters();applyFilters();
+  document.getElementById('sbar').style.display='flex';
+}
+
+// ═══ DEMO ═══
+function loadDemo(){
+  const depts=['PR1','OUTWORK','PR2','CON2','CON1','cutout','MAT','PDTN','GL1'];
+  const machs=['PRT16','PRT202','OUTPR','OUTWORK','CON2M','CUTM'];
+  const causes=['SETOFF','ตัวหนังสือหาย','สีเพี้ยน','OUTWORKรอย','ตัวหนังสือบวม','งานเสีย','พิมพ์เบี้ยว'];
+  const comps=['TEP(031R01)','TGT(644)','PNV(029R01)','MB(1330)','TCSB(061R01)','SCJ(030.D2)','MGTH(Z329)','LION(1692.F)','LION(1566)','TTW(Z635.F)'];
+  targetData={PR1:179990,CON1:45794,GL1:3445,PR2:120236,CON2:11164,PDTN:43776,'Avg.':539207,All:404405};
+  const rows=[];
+  [2025,2026].forEach(yr=>{for(let m=1;m<=12;m++){for(let i=0;i<Math.floor(Math.random()*18)+4;i++){rows.push({jo:70000+Math.floor(Math.random()*15000),compnt:comps[~~(Math.random()*comps.length)],jo_problem:70000+Math.floor(Math.random()*10000),machine:machs[~~(Math.random()*machs.length)],cause:causes[~~(Math.random()*causes.length)],dept:depts[~~(Math.random()*depts.length)],year:yr,month:m,val:Math.floor(Math.random()*35000)+500,check:Math.random()<.2?0:1});}}});
+  allData=rows.map(r=>({...r,isNew:r.check===0}));
+  document.getElementById('updDate').textContent='Demo  ';
+  closeModal();buildFilters();applyFilters();
+  document.getElementById('sbar').style.display='flex';
+}
+
+// ═══ MULTI-SELECT DEPT ═══
+function toggleMS(){const p=document.getElementById('msp');p.classList.toggle('open');if(p.classList.contains('open'))document.getElementById('msSearch').focus();}
+document.addEventListener('click',e=>{if(!document.getElementById('msw').contains(e.target))document.getElementById('msp').classList.remove('open');});
+function renderMSItems(){
+  const q=document.getElementById('msSearch').value.toLowerCase();
+  const all=selDepts.has('__all__');
+  document.getElementById('msList').innerHTML=allDeptList.filter(d=>d.toLowerCase().includes(q)).map(d=>`
+    <label class="msp-item">
+      <input type="checkbox" ${all||selDepts.has(d)?'checked':''} onchange="onDeptChk('${d}',this.checked)">
+      <span>${d}</span>
+    </label>`).join('');
+}
+function onDeptChk(d,chk){
+  selDepts.delete('__all__');
+  chk?selDepts.add(d):selDepts.delete(d);
+  if(selDepts.size===0||selDepts.size===allDeptList.length)selDepts=new Set(['__all__']);
+  updateMSBtn();applyFilters();
+}
+function msAll(){selDepts=new Set(['__all__']);updateMSBtn();renderMSItems();applyFilters();}
+function msClear(){selDepts=new Set();updateMSBtn();renderMSItems();applyFilters();}
+function updateMSBtn(){
+  const el=document.getElementById('msTxt');
+  if(selDepts.has('__all__')||selDepts.size===0)el.innerHTML='All Depts';
+  else if(selDepts.size===1)el.textContent=[...selDepts][0];
+  else el.innerHTML=[...selDepts].slice(0,2).join(', ')+` <span class="ms-cnt">${selDepts.size}</span>`;
+}
+
+// ═══ FILTERS ═══
+function buildFilters(){
+  const years=[...new Set(allData.map(r=>r.year).filter(Boolean))].sort();
+  const months=[...new Set(allData.map(r=>r.month).filter(Boolean))].sort((a,b)=>a-b);
+  allDeptList=[...new Set(allData.map(r=>r.dept).filter(Boolean))].sort();
+  const machs=[...new Set(allData.map(r=>r.machine).filter(Boolean))].sort();
+  const so=(id,vals,lbl,mf)=>{const el=document.getElementById(id),cur=el.value;el.innerHTML=`<option value="all">All ${lbl}</option>`+vals.map(v=>`<option value="${v}">${mf?mf(v):v}</option>`).join('');if(vals.map(String).includes(cur)||cur==='all')el.value=cur;};
+  so('fY',years,'Years');so('fM',months,'Months',m=>MN[m]);so('fMc',machs,'Machines');
+  selDepts=new Set(['__all__']);updateMSBtn();renderMSItems();
+}
+function applyFilters(){
+  const y=document.getElementById('fY').value,m=document.getElementById('fM').value,mc=document.getElementById('fMc').value;
+  const da=selDepts.has('__all__')||selDepts.size===0;
+  filteredData=allData.filter(r=>{
+    if(y!=='all'&&String(r.year)!==y)return false;
+    if(m!=='all'&&String(r.month)!==m)return false;
+    if(mc!=='all'&&r.machine!==mc)return false;
+    if(!da&&!selDepts.has(r.dept))return false;
+    return true;
+  });
+  renderChips();renderAll();
+}
+function resetFilters(){document.getElementById('fY').value='all';document.getElementById('fM').value='all';document.getElementById('fMc').value='all';msAll();}
+function renderChips(){
+  const ch=document.getElementById('chips');ch.innerHTML='';
+  const add=(lbl,val,clr)=>{if(!val||val==='all')return;const c=document.createElement('div');c.className='chip';c.innerHTML=`${lbl}: <strong>${val}</strong><span style="margin-left:4px;font-size:14px" onclick="${clr}">×</span>`;ch.appendChild(c);};
+  add('Year',document.getElementById('fY').value,"document.getElementById('fY').value='all';applyFilters()");
+  add('Month',MN[document.getElementById('fM').value]||document.getElementById('fM').value,"document.getElementById('fM').value='all';applyFilters()");
+  add('Machine',document.getElementById('fMc').value,"document.getElementById('fMc').value='all';applyFilters()");
+  if(!selDepts.has('__all__')&&selDepts.size>0){[...selDepts].forEach(d=>{const c=document.createElement('div');c.className='chip';c.innerHTML=`Dept: <strong>${d}</strong><span style="margin-left:4px;font-size:14px" onclick="rmDept('${d}')">×</span>`;ch.appendChild(c);});}
+}
+function rmDept(d){selDepts.delete(d);if(selDepts.size===0)selDepts=new Set(['__all__']);updateMSBtn();renderMSItems();applyFilters();}
+
+// ═══ GLOBAL SEARCH ═══
+function onSearch(){
+  const inp=document.getElementById('sfI'),sel=document.getElementById('sfSel'),x=document.getElementById('sfX');
+  gsr.field=sel.value;gsr.query=inp.value.trim();x.style.display=gsr.query?'block':'none';applySearch();
+}
+function clearSearch(){document.getElementById('sfI').value='';gsr.query='';document.getElementById('sfX').style.display='none';document.getElementById('sc').style.display='none';refreshTbls(filteredData);}
+function applySearch(){
+  const q=gsr.query.toLowerCase(),f=gsr.field;
+  if(!q){refreshTbls(filteredData);document.getElementById('sc').style.display='none';return;}
+  const gv=(r,fl)=>fl==='all'?[r.jo,r.compnt,r.jo_problem,r.machine,r.cause,r.dept].map(v=>String(v||'').toLowerCase()).join(' '):String(r[fl]||'').toLowerCase();
+  const matched=filteredData.filter(r=>gv(r,f).includes(q));
+  refreshTbls(matched);
+  const sc=document.getElementById('sc');sc.style.display='block';
+  document.getElementById('sN').textContent=matched.length.toLocaleString();
+  document.getElementById('sT').textContent=filteredData.length.toLocaleString();
+}
+function refreshTbls(data){
+  const mc=document.getElementById('tcMain'),nc=document.getElementById('tcNew');
+  if(mc)renderTable(mc,data,'main');if(nc)renderTable(nc,data.filter(r=>r.isNew),'new',true);
+}
+function hl(txt,q){
+  if(!q)return String(txt||'');const s=String(txt||''),i=s.toLowerCase().indexOf(q.toLowerCase());
+  if(i===-1)return s;return s.slice(0,i)+`<mark class="hl">${s.slice(i,i+q.length)}</mark>`+s.slice(i+q.length);
+}
+
+// ═══ RENDER ALL ═══
+function renderAll(){
+  const c=document.getElementById('con');c.innerHTML='';
+  gsr.query='';document.getElementById('sfI').value='';document.getElementById('sfX').style.display='none';document.getElementById('sc').style.display='none';
+  const ks=document.createElement('div');ks.className='krow';c.appendChild(ks);renderKPIs(ks);
+  const g1=document.createElement('div');g1.className='g2';c.appendChild(g1);
+  const mC=mkCard('📅 Monthly Value (THB)','คลิกแท่งเพื่อกรอง');g1.appendChild(mC);
+  const dC=mkCard('🏭 Department Value','คลิกเพื่อกรอง');g1.appendChild(dC);
+  const g2=document.createElement('div');g2.className='g2';c.appendChild(g2);
+  const pC=mkCard('📦 Top 10 Products by Value','');g2.appendChild(pC);
+  const gC=mkCard('🎯 KPI vs Target','');g2.appendChild(gC);
+  const t1=mkCard('📋 รายละเอียดทั้งหมด','');t1.id='tcMain';c.appendChild(t1);
+  const t2=mkCard('🆕 รายการใหม่ (check = 0)',filteredData.filter(r=>r.isNew).length+' รายการ');t2.id='tcNew';c.appendChild(t2);
+  renderMonthly(mC.querySelector('.cbody'));renderDeptChart(dC.querySelector('.cbody'));
+  renderProduct(pC.querySelector('.cbody'));renderGauge(gC.querySelector('.cbody'));
+  renderTable(t1,filteredData,'main');renderTable(t2,filteredData.filter(r=>r.isNew),'new',true);
+}
+function mkCard(title,badge){const c=document.createElement('div');c.className='card';c.innerHTML=`<div class="ch2"><span class="ct2">${title}</span><span class="cb3">${badge}</span></div><div class="cbody"></div>`;return c;}
+
+// ═══ KPIs ═══
+function renderKPIs(el){
+  const tv=filteredData.reduce((a,r)=>a+r.val,0);
+  const j5=filteredData.filter(r=>r.val>5000);
+  const ni=filteredData.filter(r=>r.isNew);
+  const tA=targetData['All']||targetData['all']||0,tAv=targetData['Avg.']||targetData['avg']||0;
+  const pct=tA?(tv-tA)/tA*100:null,pass=pct!==null?tv<=tA:null;
+  const cards=[
+    {l:'Total Value (THB)',v:fB(tv),c:'cb',cls:'b',sub:tA?`Target: ${fB(tA)} THB`:'รวมทั้งหมด',bx:pct!==null?`<span class="badge ${pass?'bg':'br'}">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ต่ำกว่า':'เกิน'}เป้า</span>`:''},
+    {l:'Target All (THB)',v:tA?fB(tA):'—',c:'co',cls:'o',sub:'เป้าหมายรวม'},
+    {l:'Baseline Avg (THB)',v:tAv?fB(tAv):'—',c:'cp',cls:'p',sub:'ค่าเฉลี่ย Baseline'},
+    {l:'Total Jobs',v:fmt(filteredData.length),c:'cg',cls:'g',sub:'จำนวนรายการทั้งหมด'},
+    {l:'Jobs > 5,000 THB',v:fmt(j5.length),c:'cr',cls:'r',sub:`มูลค่ารวม: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`},
+    {l:'รายการใหม่ (check=0)',v:fmt(ni.length),c:'cy',cls:'y',sub:`มูลค่ารวม: ${fB(ni.reduce((a,r)=>a+r.val,0))} THB`},
+  ];
+  el.innerHTML=cards.map(c=>`<div class="kc ${c.c}"><div class="kl">${c.l}</div><div class="kv ${c.cls}">${c.v}</div><div class="ks">${c.sub}</div>${c.bx||''}</div>`).join('');
+}
+
+// ═══ MONTHLY — Avg. ป่ะ / Target ทึบ ═══
+function renderMonthly(con){
+  con.innerHTML='';
+  const yr=document.getElementById('fY').value;
+  const years=[...new Set(filteredData.map(r=>r.year).filter(Boolean))].sort();
+  const src=yr!=='all'?filteredData:(years.length?filteredData.filter(r=>r.year===Math.max(...years)):filteredData);
+  const vals=Array.from({length:12},(_,i)=>src.filter(r=>r.month===i+1).reduce((a,r)=>a+r.val,0));
+  const tA=targetData['All']||targetData['all']||0,tAv=targetData['Avg.']||targetData['avg']||0;
+  const w=document.createElement('div');w.style.cssText='position:relative;height:230px';con.appendChild(w);
+  const cv=document.createElement('canvas');w.appendChild(cv);
+  const ds=[{label:'Value (THB)',data:vals,type:'bar',backgroundColor:vals.map(v=>v>(tA||tAv)?'rgba(231,76,60,.8)':'rgba(59,142,243,.8)'),borderRadius:4,order:3}];
+  // เส้น Avg. = ป่ะ (dashed)
+  if(tAv)ds.push({label:`Avg. ${fB(tAv)}`,data:Array(12).fill(tAv),type:'line',borderColor:'#f5a623',borderWidth:2,borderDash:[8,5],pointRadius:0,fill:false,order:1,datalabels:{display:false}});
+  // เส้น Target = ทึบ
+  if(tA)ds.push({label:`Target ${fB(tA)}`,data:Array(12).fill(tA),type:'line',borderColor:'#e74c3c',borderWidth:2.5,borderDash:[],pointRadius:0,fill:false,order:0,datalabels:{display:false}});
+  new Chart(cv,{type:'bar',data:{labels:MN.slice(1),datasets:ds},options:{
+    responsive:true,maintainAspectRatio:false,
+    onClick:(e,els)=>{if(els.length){document.getElementById('fM').value=String(els[0].index+1);applyFilters();}},
+    plugins:{legend:{labels:{color:'#8a93a8',font:{size:10},boxWidth:20}},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.parsed.y)+' THB'}}},
+    scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8a93a8',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8a93a8',font:{size:10},callback:v=>fB(v)}}},
+    animation:{onComplete(ctx){
+      const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.font='bold 9px IBM Plex Mono,monospace';c2.fillStyle='#e8ecf4';c2.textAlign='center';
+      ch.data.datasets[0].data.forEach((v,i)=>{if(v>0){const m=ch.getDatasetMeta(0);if(m.data[i]){const b=m.data[i].getProps(['x','y'],true);c2.fillText(fB(v),b.x,b.y-5);}}});
+      c2.restore();
+    }}
+  }});
+}
+
+// ═══ DEPT CHART ═══
+function renderDeptChart(con){
+  con.innerHTML='';
+  const depts=[...new Set(allData.map(r=>r.dept).filter(Boolean))].sort();
+  const vals=depts.map(d=>filteredData.filter(r=>r.dept===d).reduce((a,r)=>a+r.val,0));
+  const tgts=depts.map(d=>targetData[d]||0);
+  const w=document.createElement('div');w.style.cssText='position:relative;height:230px';con.appendChild(w);
+  const cv=document.createElement('canvas');w.appendChild(cv);
+  new Chart(cv,{type:'bar',data:{labels:depts,datasets:[
+    {label:'Actual',data:vals,backgroundColor:'rgba(231,76,60,.8)',borderRadius:3},
+    {label:'Target',data:tgts,backgroundColor:'rgba(245,166,35,.45)',borderRadius:3}
+  ]},options:{
+    responsive:true,maintainAspectRatio:false,
+    onClick:(e,els)=>{if(els.length){const d=depts[els[0].index];selDepts=new Set([d]);updateMSBtn();renderMSItems();applyFilters();}},
+    plugins:{legend:{labels:{color:'#8a93a8',font:{size:10},boxWidth:16}},tooltip:{callbacks:{label:ctx=>' '+fB(ctx.parsed.y)+' THB'}}},
+    scales:{x:{grid:{display:false},ticks:{color:'#8a93a8',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8a93a8',font:{size:10},callback:v=>fB(v)}}},
+    animation:{onComplete(ctx){
+      const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.font='9px IBM Plex Mono,monospace';c2.fillStyle='#e8ecf4';c2.textAlign='center';
+      ch.data.datasets[0].data.forEach((v,i)=>{if(v>0){const m=ch.getDatasetMeta(0);if(m.data[i]){const b=m.data[i].getProps(['x','y'],true);c2.fillText(fB(v),b.x,b.y-4);}}});
+      c2.restore();
+    }}
+  }});
+}
+
+// ═══ PRODUCT CHART ═══
+function renderProduct(con){
+  con.innerHTML='';
+  const grp={};filteredData.forEach(r=>{const k=`${r.compnt} ${r.dept||''}`.trim();grp[k]=(grp[k]||0)+r.val;});
+  const sorted=Object.entries(grp).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const w=document.createElement('div');w.style.cssText='position:relative;height:260px';con.appendChild(w);
+  const cv=document.createElement('canvas');w.appendChild(cv);
+  new Chart(cv,{type:'bar',data:{labels:sorted.map(([k])=>k.length>26?k.slice(0,26)+'…':k),datasets:[{label:'Value',data:sorted.map(([,v])=>v),backgroundColor:'rgba(59,142,243,.85)',borderRadius:3}]},options:{
+    indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fB(ctx.parsed.x)+' THB'}}},
+    scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8a93a8',font:{size:9},callback:v=>fB(v)}},y:{grid:{display:false},ticks:{color:'#e8ecf4',font:{size:10}}}},
+    layout:{padding:{right:60}},
+    animation:{onComplete(ctx){
+      const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.font='9px IBM Plex Mono,monospace';c2.fillStyle='#e8ecf4';c2.textAlign='left';
+      ch.data.datasets[0].data.forEach((v,i)=>{if(v>0){const m=ch.getDatasetMeta(0);if(m.data[i]){const b=m.data[i].getProps(['x','y','height'],true);c2.fillText(fB(v),b.x+5,b.y+(b.height||0)/2+4);}}});
+      c2.restore();
+    }}
+  }});
+}
+
+// ═══ GAUGE ═══
+function renderGauge(con){
+  con.innerHTML='';
+  const tv=filteredData.reduce((a,r)=>a+r.val,0);
+  const tA=targetData['All']||0;
+  const pass=tA?tv<=tA:null,pct=tA?tv/tA:0.5;
+  const w=document.createElement('div');w.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center';con.appendChild(w);
+  const left=document.createElement('div');left.style.cssText='display:flex;flex-direction:column;align-items:center';
+  const cv=document.createElement('canvas');cv.width=200;cv.height=130;left.appendChild(cv);
+  const gv=document.createElement('div');gv.style.cssText=`font-size:26px;font-weight:700;font-family:'IBM Plex Mono',monospace;margin-top:-14px;color:${pass===false?'var(--accent2)':pass===true?'var(--green)':'var(--blue)'}`;gv.textContent=fB(tv);left.appendChild(gv);
+  const gs=document.createElement('div');gs.style.cssText='font-size:10px;color:var(--text2);margin-top:3px';gs.textContent=tA?`Target: ${fB(tA)} THB`:'ยังไม่มีข้อมูล Target';left.appendChild(gs);
+  if(pass!==null){const b=document.createElement('div');b.className=`badge ${pass?'bg':'br'}`;b.style.marginTop='5px';b.textContent=pass?'✓ ผ่านเป้าหมาย':'⚠ เกินเป้าหมาย';left.appendChild(b);}
+  w.appendChild(left);
+  const c2=cv.getContext('2d'),cx=100,cy=115,r=84;
+  c2.beginPath();c2.arc(cx,cy,r,Math.PI,2*Math.PI);c2.lineWidth=18;c2.strokeStyle='#2a3045';c2.lineCap='round';c2.stroke();
+  c2.beginPath();c2.arc(cx,cy,r,Math.PI,Math.PI+Math.min(pct,1.5)*Math.PI);c2.strokeStyle=pass===false?'#e74c3c':pass===true?'#2ecc71':'#3b8ef3';c2.stroke();
+  const right=document.createElement('div');right.style.cssText='display:flex;flex-direction:column;gap:8px';
+  const ds=[...selDepts].filter(d=>d!=='__all__');
+  const dt=ds.length===1?(targetData[ds[0]]||0):0;
+  [{l:'Dept Target',v:dt?fB(dt)+' THB':(ds.length===1?'ไม่มีข้อมูล':'—'),col:'var(--accent)'},
+   {l:'Jobs > 5,000',v:fmt(filteredData.filter(r=>r.val>5000).length)+' jobs',col:'var(--accent2)'},
+   {l:'Value Jobs > 5K',v:fB(filteredData.filter(r=>r.val>5000).reduce((a,r)=>a+r.val,0))+' THB',col:'var(--blue)'},
+   {l:'รายการใหม่',v:fmt(filteredData.filter(r=>r.isNew).length)+' items',col:'var(--yellow)'}
+  ].forEach(s=>{const b=document.createElement('div');b.style.cssText='background:var(--surface2);border-radius:6px;padding:8px 10px';b.innerHTML=`<div style="font-size:9px;color:var(--text2)">${s.l}</div><div style="font-size:14px;font-weight:700;color:${s.col};font-family:'IBM Plex Mono',monospace">${s.v}</div>`;right.appendChild(b);});
+  w.appendChild(right);
+}
+
+// ═══ TABLE ═══
+function renderTable(card,data,key,isNew=false){
+  const body=card.querySelector('.cbody');body.innerHTML='';
+  const bar=document.createElement('div');bar.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap';
+  const inp=document.createElement('input');inp.type='text';inp.className='ts2';inp.placeholder='🔍 ค้นหาในตาราง...';
+  const cnt=document.createElement('span');cnt.className='cb3';
+  inp.oninput=()=>renderRows(key,data,tbody,foot,cnt,inp.value,isNew);
+  bar.appendChild(inp);bar.appendChild(cnt);body.appendChild(bar);
+  const wrap=document.createElement('div');wrap.className='tw';body.appendChild(wrap);
+  const tbl=document.createElement('table');wrap.appendChild(tbl);
+  const cols=[{k:'jo',l:'JO'},{k:'compnt',l:'Component'},{k:'jo_problem',l:'JO Problem'},{k:'machine',l:'Machine'},{k:'cause',l:'Cause'},{k:'dept',l:'Dept'},{k:'month',l:'Month'},{k:'val',l:'Value (THB)'}];
+  const thead=document.createElement('thead');tbl.appendChild(thead);
+  const hr=document.createElement('tr');thead.appendChild(hr);
+  cols.forEach(c=>{const th=document.createElement('th');th.textContent=c.l;th.onclick=()=>{const s=key==='new'?sortN:sortM;if(s.col===c.k)s.dir=s.dir==='asc'?'desc':'asc';else{s.col=c.k;s.dir='desc';}renderRows(key,data,tbody,foot,cnt,inp.value);};hr.appendChild(th);});
+  if(isNew){const th=document.createElement('th');th.textContent='Status';hr.appendChild(th);}
+  const tbody=document.createElement('tbody');tbl.appendChild(tbody);
+  const foot=document.createElement('tfoot');tbl.appendChild(foot);
+  renderRows(key,data,tbody,foot,cnt,"",isNew);
+}
+function renderRows(key,src,tbody,foot,cnt,search,isNew=false){
+  const s=key==='new'?sortN:sortM;
+  let data=src.filter(r=>{if(!search)return true;return[r.jo,r.compnt,r.machine,r.cause,r.dept].some(v=>String(v||'').toLowerCase().includes(search.toLowerCase()));});
+  data=[...data].sort((a,b)=>{const v=s.dir==='asc'?1:-1,av=a[s.col],bv=b[s.col];return(typeof av==='number'?(av-bv):String(av).localeCompare(String(bv)))*v;});
+  cnt.textContent=data.length.toLocaleString()+' rows';
+  const q=gsr.query,f=gsr.field;
+  const hq=(val,field)=>(q&&(f==='all'||f===field))?hl(val,q):String(val||'');
+  tbody.innerHTML=data.slice(0,500).map(r=>`
+    <tr class="${r.isNew?'nr':''}" onclick="this.classList.toggle('sel')">
+      <td>${hq(r.jo,'jo')}</td><td>${hq(r.compnt,'compnt')}</td><td>${hq(r.jo_problem,'jo_problem')}</td>
+      <td>${hq(r.machine,'machine')}</td>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis" title="${r.cause}">${hq(r.cause,'cause')}</td>
+      <td>${hq(r.dept,'dept')}</td>
+      <td>${MN[r.month]||''} ${r.year||''}</td>
+      <td class="tr" style="${r.val>5000?'color:var(--accent)':''}">${fmt(r.val)}</td>
+      ${isNew?`<td><span class="ntag">NEW</span></td>`:''}
+    </tr>`).join('');
+  foot.innerHTML=`<tr><td colspan="${isNew?8:7}"><strong>Total (${data.length.toLocaleString()} rows)</strong></td><td class="tr"><strong>${fmt(data.reduce((a,r)=>a+r.val,0))}</strong></td>${isNew?'<td></td>':''}</tr>`;
+}
+</script>
+</body>
+</html>
