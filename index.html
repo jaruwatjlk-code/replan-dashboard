@@ -685,6 +685,7 @@ function openExp(key){
   document.getElementById('expSearch').value='';
   document.getElementById('expFYear').value='all';
   document.getElementById('expFMonth').value='all';
+  document.getElementById('expFDept').value='all';
   populateExpFilters(expTableData);
   renderExpFilterChips();
   renderExpKpi(expTableData);
@@ -707,27 +708,32 @@ function setExpFilter(key,val,label){
   else expActiveFilters[key]=val;
   expActiveFilters[key+'_label']=label;
   renderExpFilterChips();
-  renderExpTable(getExpFiltered());
+  const d=getExpFiltered();renderExpKpi(d);renderExpTable(d);
 }
 
 function removeExpFilter(key){
   delete expActiveFilters[key];delete expActiveFilters[key+'_label'];
-  renderExpFilterChips();renderExpTable(getExpFiltered());
+  renderExpFilterChips();
+  const d=getExpFiltered();renderExpKpi(d);renderExpTable(d);
 }
 
 function populateExpFilters(data){
   const years=[...new Set(data.map(r=>r.year).filter(Boolean))].sort();
   const months=[...new Set(data.map(r=>r.month).filter(Boolean))].sort((a,b)=>a-b);
+  const depts=[...new Set(data.map(r=>r.dept).filter(Boolean))].sort();
   const yEl=document.getElementById('expFYear');
   const mEl=document.getElementById('expFMonth');
+  const dEl=document.getElementById('expFDept');
   yEl.innerHTML=`<option value="all">All Years</option>`+years.map(y=>`<option value="${y}">${y}</option>`).join('');
   mEl.innerHTML=`<option value="all">All Months</option>`+months.map(m=>`<option value="${m}">${MN[m]}</option>`).join('');
+  dEl.innerHTML=`<option value="all">All Dept</option>`+depts.map(d=>`<option value="${d}">${d}</option>`).join('');
 }
 
 function getExpFiltered(){
   const q=document.getElementById('expSearch').value.toLowerCase();
   const yr=document.getElementById('expFYear').value;
   const mo=document.getElementById('expFMonth').value;
+  const dp=document.getElementById('expFDept').value;
   return expTableData.filter(r=>{
     if(expActiveFilters.month!==undefined&&r.month!==expActiveFilters.month)return false;
     if(expActiveFilters.dept!==undefined&&r.dept!==expActiveFilters.dept)return false;
@@ -735,6 +741,7 @@ function getExpFiltered(){
     if(expActiveFilters.compnt!==undefined&&r.compnt!==expActiveFilters.compnt)return false;
     if(yr!=='all'&&String(r.year)!==yr)return false;
     if(mo!=='all'&&String(r.month)!==mo)return false;
+    if(dp!=='all'&&r.dept!==dp)return false;
     if(q&&![r.jo,r.compnt,r.machine,r.cause,r.dept].some(v=>String(v||'').toLowerCase().includes(q)))return false;
     return true;
   });
@@ -773,6 +780,7 @@ function resetExpFilter(){
   document.getElementById('expSearch').value='';
   document.getElementById('expFYear').value='all';
   document.getElementById('expFMonth').value='all';
+  document.getElementById('expFDept').value='all';
   renderExpFilterChips();
   renderExpKpi(expTableData);
   renderExpTable(expTableData);
@@ -1110,6 +1118,9 @@ function renderRows(key,src,tbody,foot,cnt,search,isNew=false){
           </select>
           <select id="expFMonth" onchange="applyExpFilter()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:5px;font-size:11px;font-family:inherit;outline:none;cursor:pointer;">
             <option value="all">All Months</option>
+          </select>
+          <select id="expFDept" onchange="applyExpFilter()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:5px;font-size:11px;font-family:inherit;outline:none;cursor:pointer;">
+            <option value="all">All Dept</option>
           </select>
           <button onclick="resetExpFilter()" style="background:none;border:1px solid var(--border);color:var(--text2);padding:3px 9px;border-radius:5px;font-size:11px;cursor:pointer;transition:all .2s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">↺ ล้าง</button>
         </div>
