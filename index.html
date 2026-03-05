@@ -88,7 +88,7 @@ mark.hl{background:rgba(245,166,35,.35);border-radius:2px;padding:0 1px;}
 
 /* CONTENT */
 .con{padding:12px 20px 28px;display:flex;flex-direction:column;gap:12px;}
-.nd{text-align:center;padding:60px 20px;color:var(--text2);font-size:14px;line-height:2.4;}
+.nd{text-align:center;color:var(--text2);font-size:14px;line-height:2.4;display:flex;align-items:center;justify-content:center;min-height:60vh;width:100%;}
 
 /* KPI */
 .krow{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}
@@ -135,7 +135,17 @@ tfoot td{font-weight:700;background:var(--surface2);border-top:1px solid var(--b
 .ts2{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:5px;font-size:11px;width:145px;outline:none;}
 .ts2:focus{border-color:var(--accent);}
 
-/* EXPAND MODAL */
+/* LOADING BAR */
+.gs-loader{display:flex;flex-direction:column;align-items:center;gap:14px;width:320px;}
+.gs-bar-wrap{width:100%;display:flex;align-items:center;gap:10px;}
+.gs-bar-track{flex:1;height:8px;background:var(--surface2);border-radius:99px;overflow:hidden;border:1px solid var(--border);}
+.gs-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--blue),var(--accent));border-radius:99px;transition:width .4s ease;box-shadow:0 0 8px rgba(59,142,243,.5);}
+.gs-bar-pct{font-size:11px;color:var(--accent);font-family:'IBM Plex Mono',monospace;min-width:36px;}
+.gs-dots{display:flex;gap:6px;}
+.gs-dots span{width:8px;height:8px;border-radius:50%;background:var(--blue);animation:gsdot 1.2s infinite ease-in-out;}
+.gs-dots span:nth-child(2){animation-delay:.2s;background:var(--accent);}
+.gs-dots span:nth-child(3){animation-delay:.4s;background:var(--accent2);}
+@keyframes gsdot{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
 .exp-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:none;backdrop-filter:blur(6px);}
 .exp-overlay.open{display:flex;}
 .exp-modal{display:flex;flex-direction:column;width:96vw;height:92vh;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin:auto;box-shadow:0 24px 80px rgba(0,0,0,.7);}
@@ -300,24 +310,28 @@ const MN=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','
 const fmt=n=>isNaN(n)?'-':Math.round(n).toLocaleString('en-US');
 const fB=n=>{if(isNaN(n))return'-';const a=Math.abs(n);if(a>=1e6)return(n/1e6).toFixed(2)+'M';if(a>=1e3)return(n/1e3).toFixed(1)+'K';return Math.round(n).toLocaleString();};
 
-// ── ไล่สีตาม ratio vs Target: ฟ้า→เหลือง→ส้ม→แดง→แดงเข้มมืด ──
+// ── ไล่สีตาม ratio vs Target ──
+// 0-50%=ฟ้าสด / 51-70%=เหลือง / 71-85%=ส้ม / 86-99%=แดงอ่อน / 100-119%=แดง / 120%+=แดงเข้มมืด
 const targetRatioColor=(v,target,alpha=0.88)=>{
   if(!target||target===0)return`rgba(59,142,243,${alpha})`;
-  const r=v/target;
+  const r=v/target*100; // เป็น %
   let rr,g,b;
-  if(r<=0.5){                        // 0–50%: ฟ้าสด
+  if(r<=50){                        // ฟ้าสด
     rr=59;g=142;b=243;
-  } else if(r<=0.8){                 // 50–80%: ฟ้า→เหลือง
-    const t=(r-0.5)/0.3;
+  } else if(r<=70){                 // ฟ้า→เหลือง
+    const t=(r-50)/20;
     rr=Math.round(59+t*(255-59));g=Math.round(142+t*(220-142));b=Math.round(243+t*(0-243));
-  } else if(r<=1.0){                 // 80–100%: เหลือง→ส้ม
-    const t=(r-0.8)/0.2;
+  } else if(r<=85){                 // เหลือง→ส้ม
+    const t=(r-70)/15;
     rr=255;g=Math.round(220+t*(140-220));b=0;
-  } else if(r<=1.2){                 // 100–120%: ส้ม→แดง
-    const t=(r-1.0)/0.2;
-    rr=Math.round(255+t*(220-255));g=Math.round(140+t*(30-140));b=Math.round(0+t*(30-0));
-  } else {                           // >120%: แดง→แดงเข้มมืด
-    const t=Math.min((r-1.2)/0.4,1);
+  } else if(r<=99){                 // ส้ม→แดงอ่อน
+    const t=(r-85)/14;
+    rr=255;g=Math.round(140+t*(80-140));b=Math.round(0+t*(80-0));
+  } else if(r<=119){                // แดงอ่อน→แดง
+    const t=(r-99)/20;
+    rr=Math.round(255+t*(220-255));g=Math.round(80+t*(30-80));b=Math.round(80+t*(30-80));
+  } else {                          // แดงเข้มมืด
+    const t=Math.min((r-119)/40,1);
     rr=Math.round(220+t*(120-220));g=Math.round(30+t*(0-30));b=Math.round(30+t*(0-30));
   }
   return`rgba(${rr},${g},${b},${alpha})`;
@@ -363,7 +377,7 @@ function readXL(file){
 }
 
 // ═══ GOOGLE SHEETS ═══
-async function fetchAllPages(url){
+async function fetchAllPages(url,onProgress){
   let allRows=[], headers=[], page=0, totalRows=999999, targetRows=[];
   while(allRows.length<totalRows){
     const res=await fetch(url+'?page='+page,{redirect:'follow'});
@@ -374,6 +388,7 @@ async function fetchAllPages(url){
     if(page===0){headers=j.rpall[0];if(j.target&&j.target.length>1)targetRows=j.target;totalRows=j.totalRows||999999;}
     const rows=j.rpall.slice(page===0?1:0);
     allRows=allRows.concat(rows);
+    if(onProgress)onProgress(allRows.length,totalRows,page);
     if(rows.length<(j.pageSize||5000))break;
     page++;
     setSt('gsSt','⏳ โหลดข้อมูล... '+allRows.length.toLocaleString()+' rows',true);
@@ -408,15 +423,37 @@ window.addEventListener('DOMContentLoaded',()=>{
 });
 function showAutoLoading(){
   const c=document.getElementById('con');
-  c.innerHTML='<div class="nd">⏳ กำลังโหลดข้อมูลจาก Google Sheets...<br><small style="font-size:12px;color:var(--text2)">กรุณารอสักครู่</small></div>';
+  c.innerHTML=`
+  <div class="nd" style="flex-direction:column;gap:20px;align-items:center;justify-content:center;width:100%;text-align:center;">
+    <div style="font-size:14px;color:var(--text)">⏳ กำลังโหลดข้อมูลจาก Google Sheets...</div>
+    <div class="gs-loader">
+      <div class="gs-bar-wrap">
+        <div class="gs-bar-track"><div class="gs-bar-fill" id="gsBarFill"></div></div>
+        <span class="gs-bar-pct" id="gsBarPct">0%</span>
+      </div>
+      <div class="gs-dots"><span></span><span></span><span></span></div>
+    </div>
+    <div id="gsLoadMsg" style="font-size:11px;color:var(--text2)">กำลังเชื่อมต่อ...</div>
+  </div>`;
 }
 async function autoGS(url){
+  const setP=(pct,msg)=>{
+    const f=document.getElementById('gsBarFill'),p=document.getElementById('gsBarPct'),m=document.getElementById('gsLoadMsg');
+    if(f)f.style.width=pct+'%';if(p)p.textContent=Math.round(pct)+'%';if(m&&msg)m.textContent=msg;
+  };
+  setP(8,'กำลังเชื่อมต่อ Google Sheets...');
   try{
-    const{headers,rows,targetRows}=await fetchAllPages(url);
+    const{headers,rows,targetRows}=await fetchAllPages(url,(loaded,total,page)=>{
+      const pct=total>0?Math.min(10+loaded/total*80,90):Math.min(10+page*25,85);
+      setP(pct,`โหลดข้อมูล... ${loaded.toLocaleString()} rows`);
+    });
     if(rows.length<1)throw new Error('ไม่พบข้อมูล');
+    setP(92,'กำลังประมวลผลข้อมูล...');
     const hd=headers.map(h=>String(h).toLowerCase().replace(/\s+/g,'_').trim());
     const parsed=rows.map(row=>{const r={};hd.forEach((h,i)=>r[h]=row[i]);return r;});
     if(targetRows.length>1){const th=targetRows[0].map(h=>String(h).toLowerCase().trim());parseTgt(targetRows.slice(1).map(row=>{const r={};th.forEach((h,i)=>r[h]=row[i]);return r;}));}
+    setP(100,'✅ โหลดสำเร็จ!');
+    await new Promise(r=>setTimeout(r,400));
     parseData(parsed,'Google Sheets');
   }catch(e){
     const c=document.getElementById('con');
@@ -644,8 +681,9 @@ function openExp(key){
   const cfg=configs[key];if(!cfg)return;
   title.textContent=cfg.title;badge.textContent=cfg.badge;
   cfg.render(wrap);
-  resetExpFilter();
-  populateExpFilters(expTableData);
+  expActiveFilters={};
+  document.getElementById('expSearch').value='';
+  renderExpFilterChips();
   renderExpTable(expTableData);
   ov.classList.add('open');
   document.body.style.overflow='hidden';
@@ -658,64 +696,58 @@ function closeExpBtn(){
   if(expChartInst){try{expChartInst.destroy();}catch(e){}expChartInst=null;}
 }
 
-function populateExpFilters(data){
-  const uq=(key)=>[...new Set(data.map(r=>r[key]).filter(Boolean))].sort();
-  const fill=(id,vals,lbl)=>{
-    const el=document.getElementById(id),cur=el.value;
-    el.innerHTML=`<option value="all">All ${lbl}</option>`+vals.map(v=>`<option value="${v}">${v}</option>`).join('');
-    if(vals.includes(cur))el.value=cur;
-  };
-  fill('expFDept',uq('dept'),'Dept');
-  fill('expFMachine',uq('machine'),'Machine');
-  fill('expFCause',uq('cause'),'Cause');
-  const months=[...new Set(data.map(r=>r.month).filter(Boolean))].sort((a,b)=>a-b);
-  const mEl=document.getElementById('expFMonth');
-  mEl.innerHTML=`<option value="all">All Month</option>`+months.map(m=>`<option value="${m}">${MN[m]}</option>`).join('');
+let expActiveFilters={}; // {month:2, dept:'PR1', cause:'SETOFF', ...}
+
+function setExpFilter(key,val,label){
+  if(expActiveFilters[key]===val){delete expActiveFilters[key];}  // toggle off
+  else expActiveFilters[key]=val;
+  expActiveFilters[key+'_label']=label;
+  renderExpFilterChips();
+  renderExpTable(getExpFiltered());
 }
+
+function removeExpFilter(key){
+  delete expActiveFilters[key];delete expActiveFilters[key+'_label'];
+  renderExpFilterChips();renderExpTable(getExpFiltered());
+}
+
+function populateExpFilters(data){} // ไม่ต้องใช้แล้ว
 
 function getExpFiltered(){
   const q=document.getElementById('expSearch').value.toLowerCase();
-  const dept=document.getElementById('expFDept').value;
-  const machine=document.getElementById('expFMachine').value;
-  const cause=document.getElementById('expFCause').value;
-  const month=document.getElementById('expFMonth').value;
   return expTableData.filter(r=>{
-    if(dept!=='all'&&r.dept!==dept)return false;
-    if(machine!=='all'&&r.machine!==machine)return false;
-    if(cause!=='all'&&r.cause!==cause)return false;
-    if(month!=='all'&&String(r.month)!==month)return false;
+    if(expActiveFilters.month!==undefined&&r.month!==expActiveFilters.month)return false;
+    if(expActiveFilters.dept!==undefined&&r.dept!==expActiveFilters.dept)return false;
+    if(expActiveFilters.cause!==undefined&&r.cause!==expActiveFilters.cause)return false;
+    if(expActiveFilters.compnt!==undefined&&r.compnt!==expActiveFilters.compnt)return false;
     if(q&&![r.jo,r.compnt,r.machine,r.cause,r.dept].some(v=>String(v||'').toLowerCase().includes(q)))return false;
     return true;
   });
 }
 
-function applyExpFilter(){
-  renderExpFilterChips();
-  renderExpTable(getExpFiltered());
-}
-
-function filterExpTable(){applyExpFilter();}
+function applyExpFilter(){renderExpFilterChips();renderExpTable(getExpFiltered());}
+function filterExpTable(){renderExpTable(getExpFiltered());}
 
 function resetExpFilter(){
-  ['expFDept','expFMachine','expFCause','expFMonth'].forEach(id=>document.getElementById(id).value='all');
+  expActiveFilters={};
   document.getElementById('expSearch').value='';
-  applyExpFilter();
+  renderExpFilterChips();
+  renderExpTable(expTableData);
 }
 
 function renderExpFilterChips(){
   const chips=document.getElementById('expFilterChips');
-  const dept=document.getElementById('expFDept').value;
-  const machine=document.getElementById('expFMachine').value;
-  const cause=document.getElementById('expFCause').value;
-  const month=document.getElementById('expFMonth').value;
-  const active=[];
-  if(dept!=='all')active.push({l:`Dept: ${dept}`,clr:"document.getElementById('expFDept').value='all';applyExpFilter()"});
-  if(machine!=='all')active.push({l:`Machine: ${machine}`,clr:"document.getElementById('expFMachine').value='all';applyExpFilter()"});
-  if(cause!=='all')active.push({l:`Cause: ${cause}`,clr:"document.getElementById('expFCause').value='all';applyExpFilter()"});
-  if(month!=='all')active.push({l:`Month: ${MN[month]||month}`,clr:"document.getElementById('expFMonth').value='all';applyExpFilter()"});
+  const keys=['month','dept','cause','compnt'];
+  const labels={month:'Month',dept:'Dept',cause:'Cause',compnt:'Product'};
+  const active=keys.filter(k=>expActiveFilters[k]!==undefined);
   if(active.length){
     chips.style.display='flex';
-    chips.innerHTML=active.map(c=>`<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(245,166,35,.15);color:var(--accent);border:1px solid rgba(245,166,35,.3);border-radius:20px;padding:2px 9px;font-size:10px;cursor:pointer">${c.l}<span onclick="${c.clr}" style="font-size:13px;line-height:1;margin-left:2px">×</span></span>`).join('');
+    chips.innerHTML=`<span style="font-size:10px;color:var(--text2);margin-right:2px">Filter:</span>`
+      +active.map(k=>{
+        const v=expActiveFilters[k+'_label']||expActiveFilters[k];
+        return`<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(245,166,35,.15);color:var(--accent);border:1px solid rgba(245,166,35,.3);border-radius:20px;padding:2px 9px;font-size:10px;">${labels[k]}: <strong>${v}</strong><span onclick="removeExpFilter('${k}')" style="cursor:pointer;font-size:13px;line-height:1;margin-left:2px">×</span></span>`;
+      }).join('')
+      +`<span onclick="resetExpFilter()" style="cursor:pointer;font-size:10px;color:var(--text2);padding:2px 8px;border:1px solid var(--border);border-radius:20px;margin-left:4px;">↺ ล้าง</span>`;
   }else{chips.style.display='none';chips.innerHTML='';}
 }
 
@@ -788,7 +820,13 @@ function buildMonthlyChart(cv,coreData){
   if(tA)ds.push({label:`Target ${fB(tA)}`,data:Array(12).fill(tA),type:'line',borderColor:'#e74c3c',borderWidth:2.5,pointRadius:0,fill:false,order:0});
   return new Chart(cv,{type:'bar',data:{labels:MN.slice(1),datasets:ds},options:{
     responsive:true,maintainAspectRatio:false,
-    onClick:(e,els)=>{if(els.length){document.getElementById('fM').value=String(els[0].index+1);applyFilters();}},
+    onClick:(e,els)=>{
+      if(!els.length)return;
+      const mi=els[0].index+1;
+      if(document.getElementById('expOverlay').classList.contains('open')){
+        setExpFilter('month',mi,MN[mi]);
+      }else{document.getElementById('fM').value=String(mi);applyFilters();}
+    },
     plugins:{legend:{labels:{color:'#8a93a8',font:{size:10},boxWidth:20}},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.parsed.y)+' THB'}}},
     scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8a93a8',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8a93a8',font:{size:10},callback:v=>fB(v)}}},
     animation:{onComplete(ctx){
@@ -835,7 +873,13 @@ function buildDeptChart(cv){
     {label:'Target',data:tgts,backgroundColor:tgtColors,borderRadius:3}
   ]},options:{
     responsive:true,maintainAspectRatio:false,
-    onClick:(e,els)=>{if(els.length){const d=depts[els[0].index];selDepts=new Set([d]);updateMSBtn();renderMSItems();applyFilters();}},
+    onClick:(e,els)=>{
+      if(!els.length)return;
+      const d=depts[els[0].index];
+      if(document.getElementById('expOverlay').classList.contains('open')){
+        setExpFilter('dept',d,d);
+      }else{selDepts=new Set([d]);updateMSBtn();renderMSItems();applyFilters();}
+    },
     plugins:{legend:{labels:{color:'#8a93a8',font:{size:10},boxWidth:16}},tooltip:{callbacks:{label:ctx=>' '+fB(ctx.parsed.y)+' THB'}}},
     scales:{x:{grid:{display:false},ticks:{color:'#8a93a8',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8a93a8',font:{size:10},callback:v=>fB(v)}}},
     animation:{onComplete(ctx){
@@ -861,6 +905,12 @@ function buildProductChart(cv,data){
   const sorted=Object.entries(grp).sort((a,b)=>b[1]-a[1]).slice(0,10);
   return new Chart(cv,{type:'bar',data:{labels:sorted.map(([k])=>k.length>26?k.slice(0,26)+'…':k),datasets:[{label:'Value',data:sorted.map(([,v])=>v),backgroundColor:'rgba(59,142,243,.85)',borderRadius:3}]},options:{
     indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    onClick:(e,els)=>{
+      if(!els.length)return;
+      const k=sorted[els[0].index][0];
+      const compnt=k.split(' ')[0];
+      if(document.getElementById('expOverlay').classList.contains('open'))setExpFilter('compnt',compnt,compnt);
+    },
     plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fB(ctx.parsed.x)+' THB'}}},
     scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8a93a8',font:{size:9},callback:v=>fB(v)}},y:{grid:{display:false},ticks:{color:'#e8ecf4',font:{size:10}}}},
     layout:{padding:{right:60}},
@@ -935,6 +985,11 @@ function buildParetoChart(cv,data,mode){
     {label:'Cumulative %',data:cumPct,type:'line',borderColor:'#ffe066',borderWidth:2,pointBackgroundColor:'#ffe066',pointRadius:4,pointHoverRadius:6,fill:false,yAxisID:'y2',order:1}
   ]},options:{
     responsive:true,maintainAspectRatio:false,
+    onClick:(e,els)=>{
+      if(!els.length||els[0].datasetIndex!==0)return;
+      const cause=sorted[els[0].index].cause;
+      if(document.getElementById('expOverlay').classList.contains('open'))setExpFilter('cause',cause,cause);
+    },
     plugins:{legend:{labels:{color:'#8a93a8',font:{size:10},boxWidth:14}},tooltip:{callbacks:{label:ctx=>ctx.datasetIndex===0?(mode==='count'?` ${ctx.parsed.y} ครั้ง`:` ${fmt(ctx.parsed.y)} THB`):` ${ctx.parsed.y}%`}}},
     scales:{
       x:{grid:{display:false},ticks:{color:'#8a93a8',font:{size:9},maxRotation:35}},
@@ -1005,23 +1060,9 @@ function renderRows(key,src,tbody,foot,cnt,search,isNew=false){
         <div class="exp-search">
           <input id="expSearch" placeholder="🔍 ค้นหาในตาราง..." oninput="filterExpTable()">
         </div>
-        <!-- Active filter chips -->
-        <div id="expFilterChips" style="display:none;padding:6px 12px;gap:5px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--surface2);"></div>
-        <!-- Filter dropdowns -->
-        <div style="display:flex;gap:6px;padding:7px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center;flex-shrink:0;">
-          <select id="expFDept" onchange="applyExpFilter()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 7px;border-radius:5px;font-size:11px;font-family:inherit;outline:none;cursor:pointer;">
-            <option value="all">All Dept</option>
-          </select>
-          <select id="expFMachine" onchange="applyExpFilter()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 7px;border-radius:5px;font-size:11px;font-family:inherit;outline:none;cursor:pointer;">
-            <option value="all">All Machine</option>
-          </select>
-          <select id="expFCause" onchange="applyExpFilter()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 7px;border-radius:5px;font-size:11px;font-family:inherit;outline:none;cursor:pointer;">
-            <option value="all">All Cause</option>
-          </select>
-          <select id="expFMonth" onchange="applyExpFilter()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 7px;border-radius:5px;font-size:11px;font-family:inherit;outline:none;cursor:pointer;">
-            <option value="all">All Month</option>
-          </select>
-          <button onclick="resetExpFilter()" style="background:none;border:1px solid var(--border);color:var(--text2);padding:3px 9px;border-radius:5px;font-size:11px;cursor:pointer;">↺ Reset</button>
+        <!-- Active filter chips จากการคลิกกราฟ -->
+        <div id="expFilterChips" style="display:none;padding:6px 12px;gap:5px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--surface2);align-items:center;">
+          <span style="font-size:10px;color:var(--text2);margin-right:2px">Filter:</span>
         </div>
         <div class="exp-table-hdr">
           <span>รายละเอียด</span>
