@@ -683,6 +683,9 @@ function openExp(key){
   cfg.render(wrap);
   expActiveFilters={};
   document.getElementById('expSearch').value='';
+  document.getElementById('expFYear').value='all';
+  document.getElementById('expFMonth').value='all';
+  populateExpFilters(expTableData);
   renderExpFilterChips();
   renderExpTable(expTableData);
   ov.classList.add('open');
@@ -711,15 +714,26 @@ function removeExpFilter(key){
   renderExpFilterChips();renderExpTable(getExpFiltered());
 }
 
-function populateExpFilters(data){} // ไม่ต้องใช้แล้ว
+function populateExpFilters(data){
+  const years=[...new Set(data.map(r=>r.year).filter(Boolean))].sort();
+  const months=[...new Set(data.map(r=>r.month).filter(Boolean))].sort((a,b)=>a-b);
+  const yEl=document.getElementById('expFYear');
+  const mEl=document.getElementById('expFMonth');
+  yEl.innerHTML=`<option value="all">All Years</option>`+years.map(y=>`<option value="${y}">${y}</option>`).join('');
+  mEl.innerHTML=`<option value="all">All Months</option>`+months.map(m=>`<option value="${m}">${MN[m]}</option>`).join('');
+}
 
 function getExpFiltered(){
   const q=document.getElementById('expSearch').value.toLowerCase();
+  const yr=document.getElementById('expFYear').value;
+  const mo=document.getElementById('expFMonth').value;
   return expTableData.filter(r=>{
     if(expActiveFilters.month!==undefined&&r.month!==expActiveFilters.month)return false;
     if(expActiveFilters.dept!==undefined&&r.dept!==expActiveFilters.dept)return false;
     if(expActiveFilters.cause!==undefined&&r.cause!==expActiveFilters.cause)return false;
     if(expActiveFilters.compnt!==undefined&&r.compnt!==expActiveFilters.compnt)return false;
+    if(yr!=='all'&&String(r.year)!==yr)return false;
+    if(mo!=='all'&&String(r.month)!==mo)return false;
     if(q&&![r.jo,r.compnt,r.machine,r.cause,r.dept].some(v=>String(v||'').toLowerCase().includes(q)))return false;
     return true;
   });
@@ -731,6 +745,8 @@ function filterExpTable(){renderExpTable(getExpFiltered());}
 function resetExpFilter(){
   expActiveFilters={};
   document.getElementById('expSearch').value='';
+  document.getElementById('expFYear').value='all';
+  document.getElementById('expFMonth').value='all';
   renderExpFilterChips();
   renderExpTable(expTableData);
 }
@@ -1057,6 +1073,17 @@ function renderRows(key,src,tbody,foot,cnt,search,isNew=false){
     <div class="exp-body">
       <div class="exp-chart-wrap" id="expChartWrap"></div>
       <div class="exp-table-wrap">
+        <!-- Dropdown filters: Year + Month -->
+        <div style="display:flex;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0;align-items:center;flex-wrap:wrap;background:var(--surface2);">
+          <span style="font-size:10px;color:var(--text2);letter-spacing:.04em;text-transform:uppercase;">Filter:</span>
+          <select id="expFYear" onchange="applyExpFilter()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:5px;font-size:11px;font-family:inherit;outline:none;cursor:pointer;">
+            <option value="all">All Years</option>
+          </select>
+          <select id="expFMonth" onchange="applyExpFilter()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:5px;font-size:11px;font-family:inherit;outline:none;cursor:pointer;">
+            <option value="all">All Months</option>
+          </select>
+          <button onclick="resetExpFilter()" style="background:none;border:1px solid var(--border);color:var(--text2);padding:3px 9px;border-radius:5px;font-size:11px;cursor:pointer;transition:all .2s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">↺ ล้าง</button>
+        </div>
         <div class="exp-search">
           <input id="expSearch" placeholder="🔍 ค้นหาในตาราง..." oninput="filterExpTable()">
         </div>
