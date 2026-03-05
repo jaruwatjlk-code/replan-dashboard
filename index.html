@@ -750,14 +750,31 @@ function getExpFiltered(){
 function renderExpKpi(data){
   const el=document.getElementById('expKpiBar');if(!el)return;
   const tv=data.reduce((a,r)=>a+r.val,0);
-  const tA=targetData['All']||targetData['all']||0;
+
+  // คำนวณ target ตาม dept ที่ filter อยู่
+  const dp=document.getElementById('expFDept').value;
+  const chipDept=expActiveFilters.dept;
+  const activeDept=chipDept||( dp!=='all'?dp:null);
+
+  let tTarget=0;
+  if(activeDept){
+    tTarget=targetData[activeDept]||0;
+  } else {
+    // รวม target ทุก dept ที่มีข้อมูล (ไม่รวม All/Avg.)
+    const depts=[...new Set(data.map(r=>r.dept).filter(Boolean))];
+    tTarget=depts.reduce((a,d)=>a+(targetData[d]||0),0);
+    // fallback ถ้าไม่มี dept target เลย ใช้ Target All
+    if(tTarget===0)tTarget=targetData['All']||targetData['all']||0;
+  }
+
   const j5=data.filter(r=>r.val>=5000);
   const ni=data.filter(r=>r.isNew);
-  const pct=tA?(tv-tA)/tA*100:null;
-  const pass=pct!==null?tv<=tA:null;
+  const pct=tTarget?(tv-tTarget)/tTarget*100:null;
+  const pass=pct!==null?tv<=tTarget:null;
+  const tLabel=activeDept?`Target ${activeDept}: ${fB(tTarget)} THB`:(tTarget?`Target รวม: ${fB(tTarget)} THB`:'');
   const cards=[
     {l:'Total Value',v:fB(tv)+' THB',col:'var(--blue)',
-     sub:tA?`Target: ${fB(tA)} THB`:'',
+     sub:tLabel,
      badge:pct!==null?`<span style="display:inline-block;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:600;background:${pass?'rgba(46,204,113,.15)':'rgba(231,76,60,.15)'};color:${pass?'var(--green)':'var(--accent2)'};">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ต่ำกว่า':'เกิน'}เป้า</span>`:''},
     {l:'Total Jobs',v:fmt(data.length),col:'var(--green)',sub:'รายการทั้งหมด'},
     {l:'Jobs ≥ 5,000 THB',v:fmt(j5.length),col:'var(--accent2)',sub:`รวม: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`},
