@@ -687,6 +687,7 @@ function openExp(key){
   document.getElementById('expFMonth').value='all';
   populateExpFilters(expTableData);
   renderExpFilterChips();
+  renderExpKpi(expTableData);
   renderExpTable(expTableData);
   ov.classList.add('open');
   document.body.style.overflow='hidden';
@@ -739,8 +740,33 @@ function getExpFiltered(){
   });
 }
 
-function applyExpFilter(){renderExpFilterChips();renderExpTable(getExpFiltered());}
-function filterExpTable(){renderExpTable(getExpFiltered());}
+function renderExpKpi(data){
+  const el=document.getElementById('expKpiBar');if(!el)return;
+  const tv=data.reduce((a,r)=>a+r.val,0);
+  const tA=targetData['All']||targetData['all']||0;
+  const j5=data.filter(r=>r.val>=5000);
+  const ni=data.filter(r=>r.isNew);
+  const pct=tA?(tv-tA)/tA*100:null;
+  const pass=pct!==null?tv<=tA:null;
+  const cards=[
+    {l:'Total Value',v:fB(tv)+' THB',col:'var(--blue)',
+     sub:tA?`Target: ${fB(tA)} THB`:'',
+     badge:pct!==null?`<span style="display:inline-block;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:600;background:${pass?'rgba(46,204,113,.15)':'rgba(231,76,60,.15)'};color:${pass?'var(--green)':'var(--accent2)'};">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ต่ำกว่า':'เกิน'}เป้า</span>`:''},
+    {l:'Total Jobs',v:fmt(data.length),col:'var(--green)',sub:'รายการทั้งหมด'},
+    {l:'Jobs ≥ 5,000 THB',v:fmt(j5.length),col:'var(--accent2)',sub:`รวม: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`},
+    {l:'รายการใหม่ (check=0)',v:fmt(ni.length),col:'var(--yellow)',sub:`รวม: ${fB(ni.reduce((a,r)=>a+r.val,0))} THB`},
+  ];
+  el.innerHTML=cards.map(c=>`
+    <div style="flex:1;min-width:100px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
+      <div style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:3px">${c.l}</div>
+      <div style="font-size:16px;font-weight:700;color:${c.col};font-family:'IBM Plex Mono',monospace;line-height:1.2">${c.v}</div>
+      ${c.sub?`<div style="font-size:9px;color:var(--text2);margin-top:2px">${c.sub}</div>`:''}
+      ${c.badge||''}
+    </div>`).join('');
+}
+
+function applyExpFilter(){renderExpFilterChips();const d=getExpFiltered();renderExpKpi(d);renderExpTable(d);}
+function filterExpTable(){const d=getExpFiltered();renderExpKpi(d);renderExpTable(d);}
 
 function resetExpFilter(){
   expActiveFilters={};
@@ -748,6 +774,7 @@ function resetExpFilter(){
   document.getElementById('expFYear').value='all';
   document.getElementById('expFMonth').value='all';
   renderExpFilterChips();
+  renderExpKpi(expTableData);
   renderExpTable(expTableData);
 }
 
@@ -1073,6 +1100,8 @@ function renderRows(key,src,tbody,foot,cnt,search,isNew=false){
     <div class="exp-body">
       <div class="exp-chart-wrap" id="expChartWrap"></div>
       <div class="exp-table-wrap">
+        <!-- KPI mini cards -->
+        <div id="expKpiBar" style="display:flex;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;background:var(--surface);"></div>
         <!-- Dropdown filters: Year + Month -->
         <div style="display:flex;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0;align-items:center;flex-wrap:wrap;background:var(--surface2);">
           <span style="font-size:10px;color:var(--text2);letter-spacing:.04em;text-transform:uppercase;">Filter:</span>
