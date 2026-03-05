@@ -300,25 +300,25 @@ const MN=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','
 const fmt=n=>isNaN(n)?'-':Math.round(n).toLocaleString('en-US');
 const fB=n=>{if(isNaN(n))return'-';const a=Math.abs(n);if(a>=1e6)return(n/1e6).toFixed(2)+'M';if(a>=1e3)return(n/1e3).toFixed(1)+'K';return Math.round(n).toLocaleString();};
 
-// ── ไล่สีตาม ratio vs Target: น้อย=ฟ้า, ใกล้Target=ม่วง, เกิน=แดง, เกิน120%=แดงเข้ม ──
+// ── ไล่สีตาม ratio vs Target: ฟ้า→เหลือง→ส้ม→แดง→แดงเข้มมืด ──
 const targetRatioColor=(v,target,alpha=0.88)=>{
   if(!target||target===0)return`rgba(59,142,243,${alpha})`;
-  const r=v/target; // ratio
+  const r=v/target;
   let rr,g,b;
-  if(r<=0.5){                          // 0–50%: ฟ้าสด
+  if(r<=0.5){                        // 0–50%: ฟ้าสด
     rr=59;g=142;b=243;
-  } else if(r<=0.8){                   // 50–80%: ฟ้า→ม่วง
+  } else if(r<=0.8){                 // 50–80%: ฟ้า→เหลือง
     const t=(r-0.5)/0.3;
-    rr=Math.round(59+t*(120-59));g=Math.round(142+t*(80-142));b=Math.round(243+t*(220-243));
-  } else if(r<=1.0){                   // 80–100%: ม่วง→แดงอ่อน
+    rr=Math.round(59+t*(255-59));g=Math.round(142+t*(220-142));b=Math.round(243+t*(0-243));
+  } else if(r<=1.0){                 // 80–100%: เหลือง→ส้ม
     const t=(r-0.8)/0.2;
-    rr=Math.round(120+t*(220-120));g=Math.round(80+t*(80-80));b=Math.round(220+t*(100-220));
-  } else if(r<=1.2){                   // 100–120%: แดงอ่อน→แดง
+    rr=255;g=Math.round(220+t*(140-220));b=0;
+  } else if(r<=1.2){                 // 100–120%: ส้ม→แดง
     const t=(r-1.0)/0.2;
-    rr=Math.round(220+t*(231-220));g=Math.round(80+t*(50-80));b=Math.round(100+t*(50-100));
-  } else {                             // >120%: แดงเข้มมาก
-    const t=Math.min((r-1.2)/0.3,1);
-    rr=Math.round(231+t*(160-231));g=Math.round(50+t*(10-50));b=Math.round(50+t*(10-50));
+    rr=Math.round(255+t*(220-255));g=Math.round(140+t*(30-140));b=Math.round(0+t*(30-0));
+  } else {                           // >120%: แดง→แดงเข้มมืด
+    const t=Math.min((r-1.2)/0.4,1);
+    rr=Math.round(220+t*(120-220));g=Math.round(30+t*(0-30));b=Math.round(30+t*(0-30));
   }
   return`rgba(${rr},${g},${b},${alpha})`;
 };
@@ -644,6 +644,8 @@ function openExp(key){
   const cfg=configs[key];if(!cfg)return;
   title.textContent=cfg.title;badge.textContent=cfg.badge;
   cfg.render(wrap);
+  resetExpFilter();
+  populateExpFilters(expTableData);
   renderExpTable(expTableData);
   ov.classList.add('open');
   document.body.style.overflow='hidden';
@@ -656,19 +658,74 @@ function closeExpBtn(){
   if(expChartInst){try{expChartInst.destroy();}catch(e){}expChartInst=null;}
 }
 
-function filterExpTable(){
+function populateExpFilters(data){
+  const uq=(key)=>[...new Set(data.map(r=>r[key]).filter(Boolean))].sort();
+  const fill=(id,vals,lbl)=>{
+    const el=document.getElementById(id),cur=el.value;
+    el.innerHTML=`<option value="all">All ${lbl}</option>`+vals.map(v=>`<option value="${v}">${v}</option>`).join('');
+    if(vals.includes(cur))el.value=cur;
+  };
+  fill('expFDept',uq('dept'),'Dept');
+  fill('expFMachine',uq('machine'),'Machine');
+  fill('expFCause',uq('cause'),'Cause');
+  const months=[...new Set(data.map(r=>r.month).filter(Boolean))].sort((a,b)=>a-b);
+  const mEl=document.getElementById('expFMonth');
+  mEl.innerHTML=`<option value="all">All Month</option>`+months.map(m=>`<option value="${m}">${MN[m]}</option>`).join('');
+}
+
+function getExpFiltered(){
   const q=document.getElementById('expSearch').value.toLowerCase();
-  const filtered=q?expTableData.filter(r=>[r.jo,r.compnt,r.machine,r.cause,r.dept].some(v=>String(v||'').toLowerCase().includes(q))):expTableData;
-  renderExpTable(filtered);
+  const dept=document.getElementById('expFDept').value;
+  const machine=document.getElementById('expFMachine').value;
+  const cause=document.getElementById('expFCause').value;
+  const month=document.getElementById('expFMonth').value;
+  return expTableData.filter(r=>{
+    if(dept!=='all'&&r.dept!==dept)return false;
+    if(machine!=='all'&&r.machine!==machine)return false;
+    if(cause!=='all'&&r.cause!==cause)return false;
+    if(month!=='all'&&String(r.month)!==month)return false;
+    if(q&&![r.jo,r.compnt,r.machine,r.cause,r.dept].some(v=>String(v||'').toLowerCase().includes(q)))return false;
+    return true;
+  });
+}
+
+function applyExpFilter(){
+  renderExpFilterChips();
+  renderExpTable(getExpFiltered());
+}
+
+function filterExpTable(){applyExpFilter();}
+
+function resetExpFilter(){
+  ['expFDept','expFMachine','expFCause','expFMonth'].forEach(id=>document.getElementById(id).value='all');
+  document.getElementById('expSearch').value='';
+  applyExpFilter();
+}
+
+function renderExpFilterChips(){
+  const chips=document.getElementById('expFilterChips');
+  const dept=document.getElementById('expFDept').value;
+  const machine=document.getElementById('expFMachine').value;
+  const cause=document.getElementById('expFCause').value;
+  const month=document.getElementById('expFMonth').value;
+  const active=[];
+  if(dept!=='all')active.push({l:`Dept: ${dept}`,clr:"document.getElementById('expFDept').value='all';applyExpFilter()"});
+  if(machine!=='all')active.push({l:`Machine: ${machine}`,clr:"document.getElementById('expFMachine').value='all';applyExpFilter()"});
+  if(cause!=='all')active.push({l:`Cause: ${cause}`,clr:"document.getElementById('expFCause').value='all';applyExpFilter()"});
+  if(month!=='all')active.push({l:`Month: ${MN[month]||month}`,clr:"document.getElementById('expFMonth').value='all';applyExpFilter()"});
+  if(active.length){
+    chips.style.display='flex';
+    chips.innerHTML=active.map(c=>`<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(245,166,35,.15);color:var(--accent);border:1px solid rgba(245,166,35,.3);border-radius:20px;padding:2px 9px;font-size:10px;cursor:pointer">${c.l}<span onclick="${c.clr}" style="font-size:13px;line-height:1;margin-left:2px">×</span></span>`).join('');
+  }else{chips.style.display='none';chips.innerHTML='';}
 }
 
 function renderExpTable(data){
   const tbl=document.getElementById('expTable');
   const sorted=[...data].sort((a,b)=>b.val-a.val);
   document.getElementById('expRowCount').textContent=sorted.length.toLocaleString()+' rows';
-  tbl.querySelector('thead').innerHTML=`<tr>${['JO','Component','Machine','Cause','Dept','Month','Value (THB)'].map(h=>`<th>${h}</th>`).join('')}</tr>`;
+  tbl.querySelector('thead').innerHTML=`<tr>${['JO','Component','Machine','Cause','Dept','Month','Value (THB)'].map(h=>`<th style="background:var(--surface2);color:var(--text2);padding:6px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);white-space:nowrap;">${h}</th>`).join('')}</tr>`;
   tbl.querySelector('tbody').innerHTML=sorted.slice(0,800).map(r=>`
-    <tr class="${r.val>=5000?'hi5k':''}">
+    <tr class="${r.val>=5000?'hi5k':''}" style="cursor:pointer" onclick="this.classList.toggle('sel')">
       <td>${r.jo||''}</td><td>${r.compnt||''}</td><td>${r.machine||''}</td>
       <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${r.cause||''}">${r.cause||''}</td>
       <td>${r.dept||''}</td><td>${MN[r.month]||''} ${r.year||''}</td>
@@ -945,8 +1002,31 @@ function renderRows(key,src,tbody,foot,cnt,search,isNew=false){
     <div class="exp-body">
       <div class="exp-chart-wrap" id="expChartWrap"></div>
       <div class="exp-table-wrap">
-        <div class="exp-search"><input id="expSearch" placeholder="🔍 ค้นหาในตาราง..." oninput="filterExpTable()"></div>
-        <div class="exp-table-hdr"><span>รายละเอียด</span><span id="expRowCount" style="color:var(--accent);font-family:'IBM Plex Mono',monospace"></span></div>
+        <div class="exp-search">
+          <input id="expSearch" placeholder="🔍 ค้นหาในตาราง..." oninput="filterExpTable()">
+        </div>
+        <!-- Active filter chips -->
+        <div id="expFilterChips" style="display:none;padding:6px 12px;gap:5px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--surface2);"></div>
+        <!-- Filter dropdowns -->
+        <div style="display:flex;gap:6px;padding:7px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center;flex-shrink:0;">
+          <select id="expFDept" onchange="applyExpFilter()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 7px;border-radius:5px;font-size:11px;font-family:inherit;outline:none;cursor:pointer;">
+            <option value="all">All Dept</option>
+          </select>
+          <select id="expFMachine" onchange="applyExpFilter()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 7px;border-radius:5px;font-size:11px;font-family:inherit;outline:none;cursor:pointer;">
+            <option value="all">All Machine</option>
+          </select>
+          <select id="expFCause" onchange="applyExpFilter()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 7px;border-radius:5px;font-size:11px;font-family:inherit;outline:none;cursor:pointer;">
+            <option value="all">All Cause</option>
+          </select>
+          <select id="expFMonth" onchange="applyExpFilter()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 7px;border-radius:5px;font-size:11px;font-family:inherit;outline:none;cursor:pointer;">
+            <option value="all">All Month</option>
+          </select>
+          <button onclick="resetExpFilter()" style="background:none;border:1px solid var(--border);color:var(--text2);padding:3px 9px;border-radius:5px;font-size:11px;cursor:pointer;">↺ Reset</button>
+        </div>
+        <div class="exp-table-hdr">
+          <span>รายละเอียด</span>
+          <span id="expRowCount" style="color:var(--accent);font-family:'IBM Plex Mono',monospace"></span>
+        </div>
         <div class="exp-table-scroll"><table id="expTable"><thead></thead><tbody></tbody></table></div>
       </div>
     </div>
