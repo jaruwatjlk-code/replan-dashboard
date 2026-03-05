@@ -185,7 +185,7 @@ body.light .gs-bar-fill{box-shadow:0 0 8px rgba(26,111,212,.3);}
 @media(max-width:700px){.krow{grid-template-columns:repeat(2,1fr);}}
 </style>
 </head>
-<body>
+<body class="light">
 
 <!-- HEADER -->
 <div class="hdr">
@@ -319,7 +319,7 @@ let allData=[],filteredData=[],targetData={};
 let selDepts=new Set(['__all__']),allDeptList=[];
 
 // ═══ THEME ═══
-let isDark=true;
+let isDark=false;
 const cssVar=v=>getComputedStyle(document.body).getPropertyValue(v).trim();
 function toggleTheme(){
   isDark=!isDark;
@@ -328,7 +328,13 @@ function toggleTheme(){
   try{localStorage.setItem('theme',isDark?'dark':'light');}catch(e){}
   if(allData.length)applyFilters();
 }
-(()=>{try{const s=localStorage.getItem('theme');if(s==='light'){isDark=false;document.body.classList.add('light');document.getElementById('themeBtn').textContent='☀️';}}catch(e){}})();
+(()=>{
+  try{
+    const s=localStorage.getItem('theme');
+    if(s==='dark'){isDark=true;}
+    else{isDark=false;document.body.classList.add('light');document.getElementById('themeBtn').textContent='☀️';}
+  }catch(e){document.body.classList.add('light');}
+})();
 let sortM={col:'val',dir:'desc'},sortN={col:'val',dir:'desc'};
 let gsr={field:'all',query:''};
 const MN=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
