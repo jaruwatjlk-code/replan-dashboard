@@ -124,16 +124,18 @@ table{width:100%;border-collapse:collapse;font-size:11px;}
 th{background:var(--surface2);color:var(--text2);padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.04em;position:sticky;top:0;cursor:pointer;user-select:none;border-bottom:1px solid var(--border);white-space:nowrap;}
 th:hover{color:var(--accent);}
 th.sa::after{content:' ↑';color:var(--accent);}th.sd::after{content:' ↓';color:var(--accent);}
-td{padding:5px 8px;border-bottom:1px solid rgba(42,48,69,.4);white-space:nowrap;}
+td{padding:5px 8px;border-bottom:1px solid var(--border);white-space:nowrap;color:var(--text);}
 tr.hi5k td{background:transparent;}
 tr.hi5k:hover td{background:rgba(59,142,243,.05);}
 tr.hi5k .val5k{font-size:13px;font-weight:700;color:var(--accent2);}
 .badge-hot{display:inline-block;background:rgba(231,76,60,.2);color:var(--accent2);border:1px solid rgba(231,76,60,.5);border-radius:5px;font-size:9px;font-weight:700;padding:1px 6px;margin-left:4px;vertical-align:middle;letter-spacing:.03em;}
 .val-normal{color:var(--yellow);}
+body.light .val-normal{color:#b06000;}
 tr.nr td{background:rgba(255,224,102,.06);}
+body.light tr.nr td{background:rgba(180,120,0,.07);}
 tr.sel td{background:rgba(245,166,35,.1);}
 .tr{text-align:right;font-family:'IBM Plex Mono',monospace;}
-tfoot td{font-weight:700;background:var(--surface2);border-top:1px solid var(--border);}
+tfoot td{font-weight:700;background:var(--surface2);border-top:1px solid var(--border);color:var(--text);}
 .ntag{display:inline-block;background:var(--yellow);color:#000;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;}
 .ts2{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:5px;font-size:11px;width:145px;outline:none;}
 .ts2:focus{border-color:var(--accent);}
@@ -178,9 +180,26 @@ body.light .kc:hover{box-shadow:0 6px 20px rgba(0,0,0,.12);}
 body.light mark.hl{background:rgba(224,138,0,.25);color:var(--text);}
 body.light tr:hover td{background:rgba(26,111,212,.05);}
 body.light tr.sel td{background:rgba(224,138,0,.1);}
-body.light .overlay,.light .exp-overlay{background:rgba(0,0,0,.5);}
+body.light .overlay,body.light .exp-overlay{background:rgba(0,0,0,.5);}
 body.light .modal,body.light .exp-modal{box-shadow:0 8px 40px rgba(0,0,0,.2);}
 body.light .gs-bar-fill{box-shadow:0 0 8px rgba(26,111,212,.3);}
+body.light .chip{background:rgba(224,138,0,.12);color:var(--text);border-color:rgba(224,138,0,.3);}
+body.light .sfI,.light .ts2{background:var(--surface2)!important;}
+body.light input,body.light select{color:var(--text)!important;background:var(--surface2)!important;}
+body.light .msp{background:var(--surface);border-color:var(--border);}
+body.light .msp-item:hover{background:var(--surface2);}
+body.light .sc{background:var(--surface2);color:var(--text2);}
+body.light code{background:var(--surface2);color:var(--text);}
+body.light .gsh{background:var(--surface2);color:var(--text);}
+body.light .kv{filter:brightness(.85);}
+body.light .cb3{color:var(--text2);}
+body.light .ks{color:var(--text2);}
+body.light .upd{color:var(--text2);}
+body.light .ttl p{color:var(--text2);}
+body.light .exp-table-hdr{color:var(--text2);}
+body.light .exp-title{color:var(--text);}
+body.light .exp-badge{color:var(--text2);}
+body.light .kl{opacity:1!important;}
 @media(max-width:1200px){.krow{grid-template-columns:repeat(3,1fr);}.g2{grid-template-columns:1fr;}.exp-body{grid-template-columns:1fr;}}
 @media(max-width:700px){.krow{grid-template-columns:repeat(2,1fr);}}
 </style>
@@ -932,7 +951,7 @@ function buildMonthlyChart(cv,coreData){
       const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.font='bold 9px IBM Plex Mono,monospace';c2.textAlign='center';
       ch.data.datasets[0].data.forEach((v,i)=>{if(v>0){const m=ch.getDatasetMeta(0);if(m.data[i]){const b=m.data[i].getProps(['x','y'],true);
         const isHl=selM==='all'||String(i+1)===selM;
-        c2.fillStyle=isHl?'#e8ecf4':'rgba(232,236,244,.3)';c2.fillText(fB(v),b.x,b.y-5);
+        c2.fillStyle=isHl?cssVar('--text'):'rgba(128,130,140,.35)';c2.fillText(fB(v),b.x,b.y-5);
       }}});c2.restore();
     }}
   }});
@@ -985,7 +1004,7 @@ function buildDeptChart(cv){
       const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.font='9px IBM Plex Mono,monospace';c2.textAlign='center';
       ch.data.datasets[0].data.forEach((v,i)=>{if(v>0){const mm=ch.getDatasetMeta(0);if(mm.data[i]){const b=mm.data[i].getProps(['x','y'],true);
         const isHl=da||selDepts.has(depts[i]);
-        c2.fillStyle=isHl?'#e8ecf4':'rgba(232,236,244,.3)';c2.fillText(fB(v),b.x,b.y-4);
+        c2.fillStyle=isHl?cssVar('--text'):'rgba(128,130,140,.35)';c2.fillText(fB(v),b.x,b.y-4);
       }}});c2.restore();
     }}
   }});
@@ -1014,7 +1033,7 @@ function buildProductChart(cv,data){
     scales:{x:{grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:9},callback:v=>fB(v)}},y:{grid:{display:false},ticks:{color:()=>cssVar('--text'),font:{size:10}}}},
     layout:{padding:{right:60}},
     animation:{onComplete(ctx){
-      const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.font='9px IBM Plex Mono,monospace';c2.fillStyle='#e8ecf4';c2.textAlign='left';
+      const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.font='9px IBM Plex Mono,monospace';c2.fillStyle=cssVar('--text');c2.textAlign='left';
       ch.data.datasets[0].data.forEach((v,i)=>{if(v>0){const m=ch.getDatasetMeta(0);if(m.data[i]){const b=m.data[i].getProps(['x','y','height'],true);c2.fillText(fB(v),b.x+5,b.y+(b.height||0)/2+4);}}});
       c2.restore();
     }}
@@ -1096,7 +1115,7 @@ function buildParetoChart(cv,data,mode){
       y2:{position:'right',min:0,max:100,grid:{display:false},ticks:{color:'#ffe066',font:{size:9},callback:v=>v+'%'}}
     },
     animation:{onComplete(ctx){
-      const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.font='8px IBM Plex Mono,monospace';c2.fillStyle='#e8ecf4';c2.textAlign='center';
+      const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.font='8px IBM Plex Mono,monospace';c2.fillStyle=cssVar('--text');c2.textAlign='center';
       ch.data.datasets[0].data.forEach((v,i)=>{const mm=ch.getDatasetMeta(0);if(mm.data[i]){const b=mm.data[i].getProps(['x','y'],true);c2.fillText(mode==='count'?v:fB(v),b.x,b.y-5);}});
       c2.restore();
     }}
