@@ -135,7 +135,31 @@ tfoot td{font-weight:700;background:var(--surface2);border-top:1px solid var(--b
 .ts2{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:5px;font-size:11px;width:145px;outline:none;}
 .ts2:focus{border-color:var(--accent);}
 
-@media(max-width:1200px){.krow{grid-template-columns:repeat(3,1fr);}.g2{grid-template-columns:1fr;}}
+/* EXPAND MODAL */
+.exp-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:none;backdrop-filter:blur(6px);}
+.exp-overlay.open{display:flex;}
+.exp-modal{display:flex;flex-direction:column;width:96vw;height:92vh;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin:auto;box-shadow:0 24px 80px rgba(0,0,0,.7);}
+.exp-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.exp-title{font-size:14px;font-weight:700;}
+.exp-badge{font-size:10px;color:var(--text2);background:var(--surface2);padding:2px 9px;border-radius:8px;}
+.exp-close{background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.exp-close:hover{border-color:var(--accent2);color:var(--accent2);}
+.exp-body{display:grid;grid-template-columns:1.4fr 1fr;flex:1;overflow:hidden;gap:0;}
+.exp-chart-wrap{padding:18px;display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden;}
+.exp-chart-wrap canvas{flex:1;}
+.exp-table-wrap{display:flex;flex-direction:column;overflow:hidden;}
+.exp-table-hdr{padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;font-weight:600;color:var(--text2);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.exp-table-scroll{overflow:auto;flex:1;}
+.exp-table-scroll::-webkit-scrollbar{width:4px;height:4px;}.exp-table-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.exp-search{padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.exp-search input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:6px;font-size:11px;font-family:inherit;outline:none;}
+.exp-search input:focus{border-color:var(--accent);}
+
+/* expand btn on card */
+.exp-btn{background:none;border:1px solid var(--border);color:var(--text2);padding:2px 7px;border-radius:5px;font-size:10px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.exp-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+@media(max-width:1200px){.krow{grid-template-columns:repeat(3,1fr);}.g2{grid-template-columns:1fr;}.exp-body{grid-template-columns:1fr;}}
 @media(max-width:700px){.krow{grid-template-columns:repeat(2,1fr);}}
 </style>
 </head>
@@ -275,6 +299,13 @@ let gsr={field:'all',query:''};
 const MN=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const fmt=n=>isNaN(n)?'-':Math.round(n).toLocaleString('en-US');
 const fB=n=>{if(isNaN(n))return'-';const a=Math.abs(n);if(a>=1e6)return(n/1e6).toFixed(2)+'M';if(a>=1e3)return(n/1e3).toFixed(1)+'K';return Math.round(n).toLocaleString();};
+
+// ── ไล่สีแบบ Pareto: index 0 = ฟ้า, index N-1 = แดง ──
+const rankColor=(i,total,alpha=0.85)=>{
+  const t=total<=1?0:i/(total-1);
+  const r=Math.round(59+t*(231-59)),g=Math.round(142+t*(76-142)),b=Math.round(243+t*(60-243));
+  return `rgba(${r},${g},${b},${alpha})`;
+};
 
 // Dept ที่ถูกยกเว้นจาก KPI / Monthly / Gauge (แต่ยังโชว์ใน Dept chart, Top10, ตาราง)
 const EXCL_DEPTS=new Set(['MAT','OTHER','OUTWORK','CUTOUT','cutout']);
@@ -522,18 +553,18 @@ function renderAll(){
 
   const ks=document.createElement('div');ks.className='krow';c.appendChild(ks);renderKPIs(ks,coreData);
   const g1=document.createElement('div');g1.className='g2';c.appendChild(g1);
-  const mC=mkCard('📅 Monthly Value (THB)','ไม่รวม MAT/OTHER/OUTWORK/CUTOUT');g1.appendChild(mC);
-  const dC=mkCard('🏭 Department Value','แสดงทุก Dept • กรองเฉพาะวันที่/ปี');g1.appendChild(dC);
+  const mC=mkCard('📅 Monthly Value (THB)','ไม่รวม MAT/OTHER/OUTWORK/CUTOUT','monthly');g1.appendChild(mC);
+  const dC=mkCard('🏭 Department Value','แสดงทุก Dept • กรองเฉพาะวันที่/ปี','dept');g1.appendChild(dC);
   const g2=document.createElement('div');g2.className='g2';c.appendChild(g2);
-  const pC=mkCard('📦 Top 10 Products by Value','รวมทุก Dept');g2.appendChild(pC);
+  const pC=mkCard('📦 Top 10 Products by Value','รวมทุก Dept','product');g2.appendChild(pC);
   const gC=mkCard('🎯 KPI vs Target','');g2.appendChild(gC);
   const t1=mkCard('📋 รายละเอียดทั้งหมด','');t1.id='tcMain';c.appendChild(t1);
   const t2=mkCard('🆕 รายการใหม่ (check = 0)',filteredData.filter(r=>r.isNew).length+' รายการ');t2.id='tcNew';c.appendChild(t2);
 
   // Pareto charts
   const g3=document.createElement('div');g3.className='g2';c.appendChild(g3);
-  const p1C=mkCard('📊 Pareto — สาเหตุ vs จำนวนครั้ง','Top 10 Causes by Count');g3.appendChild(p1C);
-  const p2C=mkCard('📊 Pareto — สาเหตุ vs มูลค่า','Top 10 Causes by Value');g3.appendChild(p2C);
+  const p1C=mkCard('📊 Pareto — สาเหตุ vs จำนวนครั้ง','Top 10 Causes by Count','pareto_count');g3.appendChild(p1C);
+  const p2C=mkCard('📊 Pareto — สาเหตุ vs มูลค่า','Top 10 Causes by Value','pareto_value');g3.appendChild(p2C);
 
   renderMonthly(mC.querySelector('.cbody'),coreData);
   renderDeptChart(dC.querySelector('.cbody'));
@@ -544,7 +575,90 @@ function renderAll(){
   renderPareto(p1C.querySelector('.cbody'),filteredData,'count');
   renderPareto(p2C.querySelector('.cbody'),filteredData,'value');
 }
-function mkCard(title,badge){const c=document.createElement('div');c.className='card';c.innerHTML=`<div class="ch2"><span class="ct2">${title}</span><span class="cb3">${badge}</span></div><div class="cbody"></div>`;return c;}
+function mkCard(title,badge,expKey){
+  const c=document.createElement('div');c.className='card';
+  const expBtn=expKey?`<button class="exp-btn" onclick="openExp('${expKey}')">⤢ ขยาย</button>`:'';
+  c.innerHTML=`<div class="ch2"><span class="ct2">${title}</span><div style="display:flex;align-items:center;gap:6px"><span class="cb3">${badge}</span>${expBtn}</div></div><div class="cbody"></div>`;
+  return c;
+}
+
+// ═══ EXPAND MODAL ═══
+let expChartInst=null;
+let expTableData=[];
+
+function openExp(key){
+  const ov=document.getElementById('expOverlay');
+  const wrap=document.getElementById('expChartWrap');
+  const title=document.getElementById('expTitle');
+  const badge=document.getElementById('expBadge');
+  wrap.innerHTML='';
+  if(expChartInst){try{expChartInst.destroy();}catch(e){}expChartInst=null;}
+  document.getElementById('expSearch').value='';
+
+  const coreData=filteredData.filter(r=>!isExcl(r));
+
+  const configs={
+    monthly:{title:'📅 Monthly Value (THB)',badge:'ไม่รวม MAT/OTHER/OUTWORK/CUTOUT',height:'100%',render:(w)=>{
+      const cv=document.createElement('canvas');cv.style.cssText='width:100%;height:100%';w.style.flex='1';w.appendChild(cv);
+      expChartInst=buildMonthlyChart(cv,coreData);
+      expTableData=coreData;
+    }},
+    dept:{title:'🏭 Department Value',badge:'แสดงทุก Dept • กรองเฉพาะวันที่/ปี',render:(w)=>{
+      const cv=document.createElement('canvas');cv.style.cssText='width:100%;height:100%';w.style.flex='1';w.appendChild(cv);
+      expChartInst=buildDeptChart(cv);
+      expTableData=filteredData;
+    }},
+    product:{title:'📦 Top 10 Products by Value',badge:'รวมทุก Dept',render:(w)=>{
+      const cv=document.createElement('canvas');cv.style.cssText='width:100%;height:100%';w.style.flex='1';w.appendChild(cv);
+      expChartInst=buildProductChart(cv,filteredData);
+      expTableData=filteredData;
+    }},
+    pareto_count:{title:'📊 Pareto — สาเหตุ vs จำนวนครั้ง',badge:'Top 10 Causes by Count',render:(w)=>{
+      const cv=document.createElement('canvas');cv.style.cssText='width:100%;height:100%';w.style.flex='1';w.appendChild(cv);
+      expChartInst=buildParetoChart(cv,filteredData,'count');
+      expTableData=filteredData;
+    }},
+    pareto_value:{title:'📊 Pareto — สาเหตุ vs มูลค่า',badge:'Top 10 Causes by Value',render:(w)=>{
+      const cv=document.createElement('canvas');cv.style.cssText='width:100%;height:100%';w.style.flex='1';w.appendChild(cv);
+      expChartInst=buildParetoChart(cv,filteredData,'value');
+      expTableData=filteredData;
+    }},
+  };
+
+  const cfg=configs[key];if(!cfg)return;
+  title.textContent=cfg.title;badge.textContent=cfg.badge;
+  cfg.render(wrap);
+  renderExpTable(expTableData);
+  ov.classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function closeExp(e){if(e.target===document.getElementById('expOverlay'))closeExpBtn();}
+function closeExpBtn(){
+  document.getElementById('expOverlay').classList.remove('open');
+  document.body.style.overflow='';
+  if(expChartInst){try{expChartInst.destroy();}catch(e){}expChartInst=null;}
+}
+
+function filterExpTable(){
+  const q=document.getElementById('expSearch').value.toLowerCase();
+  const filtered=q?expTableData.filter(r=>[r.jo,r.compnt,r.machine,r.cause,r.dept].some(v=>String(v||'').toLowerCase().includes(q))):expTableData;
+  renderExpTable(filtered);
+}
+
+function renderExpTable(data){
+  const tbl=document.getElementById('expTable');
+  const sorted=[...data].sort((a,b)=>b.val-a.val);
+  document.getElementById('expRowCount').textContent=sorted.length.toLocaleString()+' rows';
+  tbl.querySelector('thead').innerHTML=`<tr>${['JO','Component','Machine','Cause','Dept','Month','Value (THB)'].map(h=>`<th>${h}</th>`).join('')}</tr>`;
+  tbl.querySelector('tbody').innerHTML=sorted.slice(0,800).map(r=>`
+    <tr class="${r.val>=5000?'hi5k':''}">
+      <td>${r.jo||''}</td><td>${r.compnt||''}</td><td>${r.machine||''}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${r.cause||''}">${r.cause||''}</td>
+      <td>${r.dept||''}</td><td>${MN[r.month]||''} ${r.year||''}</td>
+      <td class="tr ${r.val>=5000?'val5k':'val-normal'}">${fmt(r.val)}${r.val>=5000?'<span class="badge-hot">⚠ HIGH</span>':''}</td>
+    </tr>`).join('');
+}
 
 // ═══ KPIs (ไม่นับ MAT/OTHER/OUTWORK/CUTOUT) ═══
 function renderKPIs(el,coreData){
@@ -567,42 +681,43 @@ function renderKPIs(el,coreData){
 // ═══ MONTHLY (ไม่นับ MAT/OTHER/OUTWORK/CUTOUT) ═══
 function renderMonthly(con,coreData){
   con.innerHTML='';
+  const w=document.createElement('div');w.style.cssText='position:relative;height:230px';con.appendChild(w);
+  const cv=document.createElement('canvas');w.appendChild(cv);
+  expChartInst=null;
+  buildMonthlyChart(cv,coreData);
+}
+
+function buildMonthlyChart(cv,coreData){
   const yr=document.getElementById('fY').value;
-  const selM=document.getElementById('fM').value; // เดือนที่ filter อยู่
-  const years=[...new Set(coreData.map(r=>r.year).filter(Boolean))].sort();
-  const src=yr!=='all'?coreData:(years.length?coreData.filter(r=>r.year===Math.max(...years)):coreData);
+  const selM=document.getElementById('fM').value;
+  const mc=document.getElementById('fMc').value;
+  const da=selDepts.has('__all__')||selDepts.size===0;
+  const allMonthsData=allData.filter(r=>{
+    if(isExcl(r))return false;
+    if(yr!=='all'&&String(r.year)!==yr)return false;
+    if(mc!=='all'&&r.machine!==mc)return false;
+    if(!da&&!selDepts.has(r.dept))return false;
+    return true;
+  });
+  const years=[...new Set(allMonthsData.map(r=>r.year).filter(Boolean))].sort();
+  const src=yr!=='all'?allMonthsData:(years.length?allMonthsData.filter(r=>r.year===Math.max(...years)):allMonthsData);
   const vals=Array.from({length:12},(_,i)=>src.filter(r=>r.month===i+1).reduce((a,r)=>a+r.val,0));
   const tA=targetData['All']||targetData['all']||0,tAv=targetData['Avg.']||targetData['avg']||0;
   const ref=tA||tAv||0;
-
-  // ฟังก์ชันไล่สี: ฟ้า→ส้ม→แดง→แดงเข้ม ตาม ratio vs target
-  function barColor(v,isSelected){
-    if(ref===0) return isSelected?'rgba(59,142,243,1)':'rgba(59,142,243,.55)';
-    const ratio=v/ref;
-    let r,g,b;
-    if(ratio<=0.5){r=59;g=142;b=243;}                          // ฟ้า
-    else if(ratio<=0.8){const t=(ratio-.5)/.3;r=Math.round(59+t*(245-59));g=Math.round(142+t*(166-142));b=Math.round(243+t*(35-243));}  // ฟ้า→ส้ม
-    else if(ratio<=1){const t=(ratio-.8)/.2;r=Math.round(245+t*(231-245));g=Math.round(166+t*(76-166));b=Math.round(35+t*(60-35));}     // ส้ม→แดง
-    else{const t=Math.min((ratio-1)/.5,1);r=Math.round(231+t*(160-231));g=Math.round(76+t*(20-76));b=Math.round(60+t*(20-60));}        // แดง→แดงเข้ม
-    const alpha=isSelected?1:.5;
-    return `rgba(${r},${g},${b},${alpha})`;
-  }
-
-  const bgColors=vals.map((v,i)=>barColor(v,selM==='all'||String(i+1)===selM));
-  const borderColors=vals.map((v,i)=>selM!=='all'&&String(i+1)!==selM?'transparent':barColor(v,true).replace(/,[^,]+\)$/,',1)'));
-
-  const w=document.createElement('div');w.style.cssText='position:relative;height:230px';con.appendChild(w);
-  const cv=document.createElement('canvas');w.appendChild(cv);
-  const ds=[{
-    label:'Value (THB)',data:vals,type:'bar',
-    backgroundColor:bgColors,
-    borderColor:borderColors,
-    borderWidth:vals.map((_,i)=>selM!=='all'&&String(i+1)===selM?2:0),
-    borderRadius:4,order:3
-  }];
+  // เรียง rank ตามค่า (มากสุด = rank 0 = ฟ้า, น้อยสุด = rank N-1 = แดง)
+  // แต่ถ้าเกิน target ให้ rank ที่สูงกว่า target ขึ้นก่อน
+  const nonZero=vals.map((v,i)=>({v,i})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
+  const rankMap=new Map();nonZero.forEach((x,ri)=>rankMap.set(x.i,ri));
+  const bgColors=vals.map((v,i)=>{
+    const isHl=selM==='all'||String(i+1)===selM;
+    if(v===0)return`rgba(42,48,69,${isHl?.6:.2})`;
+    const ri=rankMap.get(i)??0;
+    return rankColor(ri,nonZero.length,isHl?.88:.2);
+  });
+  const ds=[{label:'Value (THB)',data:vals,type:'bar',backgroundColor:bgColors,borderRadius:4,order:3}];
   if(tAv)ds.push({label:`Avg. ${fB(tAv)}`,data:Array(12).fill(tAv),type:'line',borderColor:'#f5a623',borderWidth:2,borderDash:[8,5],pointRadius:0,fill:false,order:1});
   if(tA)ds.push({label:`Target ${fB(tA)}`,data:Array(12).fill(tA),type:'line',borderColor:'#e74c3c',borderWidth:2.5,pointRadius:0,fill:false,order:0});
-  new Chart(cv,{type:'bar',data:{labels:MN.slice(1),datasets:ds},options:{
+  return new Chart(cv,{type:'bar',data:{labels:MN.slice(1),datasets:ds},options:{
     responsive:true,maintainAspectRatio:false,
     onClick:(e,els)=>{if(els.length){document.getElementById('fM').value=String(els[0].index+1);applyFilters();}},
     plugins:{legend:{labels:{color:'#8a93a8',font:{size:10},boxWidth:20}},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.parsed.y)+' THB'}}},
@@ -611,16 +726,21 @@ function renderMonthly(con,coreData){
       const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.font='bold 9px IBM Plex Mono,monospace';c2.textAlign='center';
       ch.data.datasets[0].data.forEach((v,i)=>{if(v>0){const m=ch.getDatasetMeta(0);if(m.data[i]){const b=m.data[i].getProps(['x','y'],true);
         const isHl=selM==='all'||String(i+1)===selM;
-        c2.fillStyle=isHl?'#e8ecf4':'rgba(232,236,244,.45)';
-        c2.fillText(fB(v),b.x,b.y-5);
+        c2.fillStyle=isHl?'#e8ecf4':'rgba(232,236,244,.3)';c2.fillText(fB(v),b.x,b.y-5);
       }}});c2.restore();
     }}
   }});
 }
 
-// ═══ DEPT CHART — กรองแค่ Year/Month ไม่กรอง Dept ═══
+// ═══ DEPT CHART ═══
 function renderDeptChart(con){
   con.innerHTML='';
+  const w=document.createElement('div');w.style.cssText='position:relative;height:230px';con.appendChild(w);
+  const cv=document.createElement('canvas');w.appendChild(cv);
+  buildDeptChart(cv);
+}
+
+function buildDeptChart(cv){
   const y=document.getElementById('fY').value;
   const m=document.getElementById('fM').value;
   const deptData=allData.filter(r=>{
@@ -633,34 +753,21 @@ function renderDeptChart(con){
   const depts=[...DEPT_ORDER.filter(d=>allDepts.includes(d)),...allDepts.filter(d=>!DEPT_ORDER.includes(d)).sort()];
   const vals=depts.map(d=>deptData.filter(r=>r.dept===d).reduce((a,r)=>a+r.val,0));
   const tgts=depts.map(d=>targetData[d]||0);
-
-  // dept ที่ถูกเลือก
   const da=selDepts.has('__all__')||selDepts.size===0;
 
-  // ฟังก์ชันไล่สี Actual ตาม ratio vs dept target
-  function deptColor(v,tgt,isSelected){
-    const ref=tgt||0;
-    let r,g,b;
-    if(ref===0||v===0){r=59;g=142;b=243;}
-    else{
-      const ratio=v/ref;
-      if(ratio<=0.5){r=59;g=142;b=243;}
-      else if(ratio<=0.8){const t=(ratio-.5)/.3;r=Math.round(59+t*(245-59));g=Math.round(142+t*(166-142));b=Math.round(243+t*(35-243));}
-      else if(ratio<=1){const t=(ratio-.8)/.2;r=Math.round(245+t*(231-245));g=Math.round(166+t*(76-166));b=Math.round(35+t*(60-35));}
-      else{const t=Math.min((ratio-1)/.5,1);r=Math.round(231+t*(160-231));g=Math.round(76+t*(20-76));b=Math.round(60+t*(20-60));}
-    }
-    const alpha=isSelected?0.9:0.4;
-    return `rgba(${r},${g},${b},${alpha})`;
-  }
+  // rank ตามค่า Actual (มากสุด = rank 0 = ฟ้า)
+  const deptWithVal=depts.map((d,i)=>({d,v:vals[i],i})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
+  const deptRankMap=new Map();deptWithVal.forEach((x,ri)=>deptRankMap.set(x.i,ri));
 
-  const bgColors=vals.map((v,i)=>deptColor(v,tgts[i],da||selDepts.has(depts[i])));
-  const tgtColors=depts.map(d=>(da||selDepts.has(d))?'rgba(245,166,35,.55)':'rgba(245,166,35,.2)');
-
-  const w=document.createElement('div');w.style.cssText='position:relative;height:230px';con.appendChild(w);
-  const cv=document.createElement('canvas');w.appendChild(cv);
-  new Chart(cv,{type:'bar',data:{labels:depts,datasets:[
-    {label:'Actual',data:vals,backgroundColor:bgColors,borderRadius:3,
-     borderColor:depts.map(d=>(da||selDepts.has(d))?'transparent':'transparent'),borderWidth:0},
+  const bgColors=vals.map((v,i)=>{
+    const isHl=da||selDepts.has(depts[i]);
+    if(v===0)return`rgba(42,48,69,${isHl?.5:.15})`;
+    const ri=deptRankMap.get(i)??0;
+    return rankColor(ri,deptWithVal.length,isHl?.88:.22);
+  });
+  const tgtColors=depts.map(d=>(da||selDepts.has(d))?'rgba(245,166,35,.55)':'rgba(245,166,35,.15)');
+  return new Chart(cv,{type:'bar',data:{labels:depts,datasets:[
+    {label:'Actual',data:vals,backgroundColor:bgColors,borderRadius:3},
     {label:'Target',data:tgts,backgroundColor:tgtColors,borderRadius:3}
   ]},options:{
     responsive:true,maintainAspectRatio:false,
@@ -671,21 +778,25 @@ function renderDeptChart(con){
       const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.font='9px IBM Plex Mono,monospace';c2.textAlign='center';
       ch.data.datasets[0].data.forEach((v,i)=>{if(v>0){const mm=ch.getDatasetMeta(0);if(mm.data[i]){const b=mm.data[i].getProps(['x','y'],true);
         const isHl=da||selDepts.has(depts[i]);
-        c2.fillStyle=isHl?'#e8ecf4':'rgba(232,236,244,.4)';
-        c2.fillText(fB(v),b.x,b.y-4);
+        c2.fillStyle=isHl?'#e8ecf4':'rgba(232,236,244,.3)';c2.fillText(fB(v),b.x,b.y-4);
       }}});c2.restore();
     }}
   }});
 }
 
-// ═══ PRODUCT CHART (รวมทุก dept) ═══
+// ═══ PRODUCT CHART ═══
 function renderProduct(con,data){
   con.innerHTML='';
-  const grp={};data.forEach(r=>{const k=`${r.compnt} ${r.dept||''}`.trim();grp[k]=(grp[k]||0)+r.val;});
-  const sorted=Object.entries(grp).sort((a,b)=>b[1]-a[1]).slice(0,10);
   const w=document.createElement('div');w.style.cssText='position:relative;height:260px';con.appendChild(w);
   const cv=document.createElement('canvas');w.appendChild(cv);
-  new Chart(cv,{type:'bar',data:{labels:sorted.map(([k])=>k.length>26?k.slice(0,26)+'…':k),datasets:[{label:'Value',data:sorted.map(([,v])=>v),backgroundColor:'rgba(59,142,243,.85)',borderRadius:3}]},options:{
+  buildProductChart(cv,data);
+}
+
+function buildProductChart(cv,data){
+  const grp={};data.forEach(r=>{const k=`${r.compnt} ${r.dept||''}`.trim();grp[k]=(grp[k]||0)+r.val;});
+  const sorted=Object.entries(grp).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const colors=sorted.map((_,i)=>rankColor(i,sorted.length,.88));
+  return new Chart(cv,{type:'bar',data:{labels:sorted.map(([k])=>k.length>26?k.slice(0,26)+'…':k),datasets:[{label:'Value',data:sorted.map(([,v])=>v),backgroundColor:colors,borderRadius:3}]},options:{
     indexAxis:'y',responsive:true,maintainAspectRatio:false,
     plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fB(ctx.parsed.x)+' THB'}}},
     scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8a93a8',font:{size:9},callback:v=>fB(v)}},y:{grid:{display:false},ticks:{color:'#e8ecf4',font:{size:10}}}},
@@ -741,94 +852,39 @@ function renderGauge(con,coreData){
 // ═══ PARETO CHART ═══
 function renderPareto(con,data,mode){
   con.innerHTML='';
-  // รวม cause
-  const grp={};
-  data.forEach(r=>{
-    const k=(r.cause||'ไม่ระบุ').trim();
-    if(!grp[k])grp[k]={count:0,val:0};
-    grp[k].count++;grp[k].val+=r.val;
-  });
-  const sorted=Object.entries(grp)
-    .map(([k,v])=>({cause:k,...v}))
-    .sort((a,b)=>mode==='count'?b.count-a.count:b.val-a.val)
-    .slice(0,10);
+  const w=document.createElement('div');w.style.cssText='position:relative;height:280px';con.appendChild(w);
+  const cv=document.createElement('canvas');w.appendChild(cv);
+  buildParetoChart(cv,data,mode);
+}
 
+function buildParetoChart(cv,data,mode){
+  const grp={};
+  data.forEach(r=>{const k=(r.cause||'ไม่ระบุ').trim();if(!grp[k])grp[k]={count:0,val:0};grp[k].count++;grp[k].val+=r.val;});
+  const sorted=Object.entries(grp).map(([k,v])=>({cause:k,...v})).sort((a,b)=>mode==='count'?b.count-a.count:b.val-a.val).slice(0,10);
   const labels=sorted.map(s=>s.cause.length>22?s.cause.slice(0,22)+'…':s.cause);
   const barVals=sorted.map(s=>mode==='count'?s.count:s.val);
   const total=barVals.reduce((a,v)=>a+v,0);
-
-  // cumulative %
   let cum=0;
   const cumPct=barVals.map(v=>{cum+=v;return total>0?parseFloat((cum/total*100).toFixed(1)):0;});
-
-  // ไล่สี ฟ้า→แดง ตาม rank
-  const barColors=barVals.map((_,i)=>{
-    const t=i/(sorted.length-1||1);
-    const r=Math.round(59+t*(231-59)),g=Math.round(142+t*(76-142)),b=Math.round(243+t*(60-243));
-    return `rgba(${r},${g},${b},.82)`;
-  });
-
-  const w=document.createElement('div');w.style.cssText='position:relative;height:280px';con.appendChild(w);
-  const cv=document.createElement('canvas');w.appendChild(cv);
-
-  new Chart(cv,{
-    type:'bar',
-    data:{
-      labels,
-      datasets:[
-        {
-          label:mode==='count'?'จำนวนครั้ง':'มูลค่า (THB)',
-          data:barVals,
-          backgroundColor:barColors,
-          borderRadius:3,
-          yAxisID:'y',
-          order:2
-        },
-        {
-          label:'Cumulative %',
-          data:cumPct,
-          type:'line',
-          borderColor:'#ffe066',
-          borderWidth:2,
-          pointBackgroundColor:'#ffe066',
-          pointRadius:4,
-          pointHoverRadius:6,
-          fill:false,
-          yAxisID:'y2',
-          order:1
-        }
-      ]
+  const barColors=barVals.map((_,i)=>{const t=i/(sorted.length-1||1);const r=Math.round(59+t*(231-59)),g=Math.round(142+t*(76-142)),b=Math.round(243+t*(60-243));return `rgba(${r},${g},${b},.82)`;});
+  return new Chart(cv,{type:'bar',data:{labels,datasets:[
+    {label:mode==='count'?'จำนวนครั้ง':'มูลค่า (THB)',data:barVals,backgroundColor:barColors,borderRadius:3,yAxisID:'y',order:2},
+    {label:'Cumulative %',data:cumPct,type:'line',borderColor:'#ffe066',borderWidth:2,pointBackgroundColor:'#ffe066',pointRadius:4,pointHoverRadius:6,fill:false,yAxisID:'y2',order:1}
+  ]},options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{color:'#8a93a8',font:{size:10},boxWidth:14}},tooltip:{callbacks:{label:ctx=>ctx.datasetIndex===0?(mode==='count'?` ${ctx.parsed.y} ครั้ง`:` ${fmt(ctx.parsed.y)} THB`):` ${ctx.parsed.y}%`}}},
+    scales:{
+      x:{grid:{display:false},ticks:{color:'#8a93a8',font:{size:9},maxRotation:35}},
+      y:{position:'left',grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8a93a8',font:{size:9},callback:v=>mode==='count'?v:fB(v)}},
+      y2:{position:'right',min:0,max:100,grid:{display:false},ticks:{color:'#ffe066',font:{size:9},callback:v=>v+'%'}}
     },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{
-        legend:{labels:{color:'#8a93a8',font:{size:10},boxWidth:14}},
-        tooltip:{callbacks:{
-          label:ctx=>{
-            if(ctx.datasetIndex===0)return mode==='count'?` ${ctx.parsed.y} ครั้ง`:` ${fmt(ctx.parsed.y)} THB`;
-            return ` ${ctx.parsed.y}%`;
-          }
-        }}
-      },
-      scales:{
-        x:{grid:{display:false},ticks:{color:'#8a93a8',font:{size:9},maxRotation:35}},
-        y:{position:'left',grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8a93a8',font:{size:9},callback:v=>mode==='count'?v:fB(v)}},
-        y2:{position:'right',min:0,max:100,grid:{display:false},ticks:{color:'#ffe066',font:{size:9},callback:v=>v+'%'}}
-      },
-      animation:{onComplete(ctx){
-        const ch=ctx.chart,{ctx:c2}=ch;c2.save();
-        c2.font='8px IBM Plex Mono,monospace';c2.fillStyle='#e8ecf4';c2.textAlign='center';
-        ch.data.datasets[0].data.forEach((v,i)=>{
-          const mm=ch.getDatasetMeta(0);
-          if(mm.data[i]){const b=mm.data[i].getProps(['x','y'],true);
-            c2.fillText(mode==='count'?v:fB(v),b.x,b.y-5);
-          }
-        });c2.restore();
-      }}
-    }
-  });
+    animation:{onComplete(ctx){
+      const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.font='8px IBM Plex Mono,monospace';c2.fillStyle='#e8ecf4';c2.textAlign='center';
+      ch.data.datasets[0].data.forEach((v,i)=>{const mm=ch.getDatasetMeta(0);if(mm.data[i]){const b=mm.data[i].getProps(['x','y'],true);c2.fillText(mode==='count'?v:fB(v),b.x,b.y-5);}});
+      c2.restore();
+    }}
+  }});
 }
-
 
 function renderTable(card,data,key,isNew=false){
   const body=card.querySelector('.cbody');body.innerHTML='';
@@ -870,5 +926,26 @@ function renderRows(key,src,tbody,foot,cnt,search,isNew=false){
   foot.innerHTML=`<tr><td colspan="${isNew?8:7}"><strong>Total (${data.length.toLocaleString()} rows)</strong></td><td class="tr"><strong>${fmt(data.reduce((a,r)=>a+r.val,0))}</strong></td>${isNew?'<td></td>':''}</tr>`;
 }
 </script>
+<!-- EXPAND MODAL -->
+<div class="exp-overlay" id="expOverlay" onclick="closeExp(event)">
+  <div class="exp-modal" id="expModal">
+    <div class="exp-hdr">
+      <span class="exp-title" id="expTitle">—</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="exp-badge" id="expBadge"></span>
+        <button class="exp-close" onclick="closeExpBtn()">✕</button>
+      </div>
+    </div>
+    <div class="exp-body">
+      <div class="exp-chart-wrap" id="expChartWrap"></div>
+      <div class="exp-table-wrap">
+        <div class="exp-search"><input id="expSearch" placeholder="🔍 ค้นหาในตาราง..." oninput="filterExpTable()"></div>
+        <div class="exp-table-hdr"><span>รายละเอียด</span><span id="expRowCount" style="color:var(--accent);font-family:'IBM Plex Mono',monospace"></span></div>
+        <div class="exp-table-scroll"><table id="expTable"><thead></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
