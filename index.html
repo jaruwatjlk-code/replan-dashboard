@@ -300,11 +300,27 @@ const MN=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','
 const fmt=n=>isNaN(n)?'-':Math.round(n).toLocaleString('en-US');
 const fB=n=>{if(isNaN(n))return'-';const a=Math.abs(n);if(a>=1e6)return(n/1e6).toFixed(2)+'M';if(a>=1e3)return(n/1e3).toFixed(1)+'K';return Math.round(n).toLocaleString();};
 
-// ── ไล่สีแบบ Pareto: index 0 = ฟ้า, index N-1 = แดง ──
-const rankColor=(i,total,alpha=0.85)=>{
-  const t=total<=1?0:i/(total-1);
-  const r=Math.round(59+t*(231-59)),g=Math.round(142+t*(76-142)),b=Math.round(243+t*(60-243));
-  return `rgba(${r},${g},${b},${alpha})`;
+// ── ไล่สีตาม ratio vs Target: น้อย=ฟ้า, ใกล้Target=ม่วง, เกิน=แดง, เกิน120%=แดงเข้ม ──
+const targetRatioColor=(v,target,alpha=0.88)=>{
+  if(!target||target===0)return`rgba(59,142,243,${alpha})`;
+  const r=v/target; // ratio
+  let rr,g,b;
+  if(r<=0.5){                          // 0–50%: ฟ้าสด
+    rr=59;g=142;b=243;
+  } else if(r<=0.8){                   // 50–80%: ฟ้า→ม่วง
+    const t=(r-0.5)/0.3;
+    rr=Math.round(59+t*(120-59));g=Math.round(142+t*(80-142));b=Math.round(243+t*(220-243));
+  } else if(r<=1.0){                   // 80–100%: ม่วง→แดงอ่อน
+    const t=(r-0.8)/0.2;
+    rr=Math.round(120+t*(220-120));g=Math.round(80+t*(80-80));b=Math.round(220+t*(100-220));
+  } else if(r<=1.2){                   // 100–120%: แดงอ่อน→แดง
+    const t=(r-1.0)/0.2;
+    rr=Math.round(220+t*(231-220));g=Math.round(80+t*(50-80));b=Math.round(100+t*(50-100));
+  } else {                             // >120%: แดงเข้มมาก
+    const t=Math.min((r-1.2)/0.3,1);
+    rr=Math.round(231+t*(160-231));g=Math.round(50+t*(10-50));b=Math.round(50+t*(10-50));
+  }
+  return`rgba(${rr},${g},${b},${alpha})`;
 };
 
 // Dept ที่ถูกยกเว้นจาก KPI / Monthly / Gauge (แต่ยังโชว์ใน Dept chart, Top10, ตาราง)
@@ -704,15 +720,11 @@ function buildMonthlyChart(cv,coreData){
   const vals=Array.from({length:12},(_,i)=>src.filter(r=>r.month===i+1).reduce((a,r)=>a+r.val,0));
   const tA=targetData['All']||targetData['all']||0,tAv=targetData['Avg.']||targetData['avg']||0;
   const ref=tA||tAv||0;
-  // เรียง rank ตามค่า (มากสุด = rank 0 = ฟ้า, น้อยสุด = rank N-1 = แดง)
-  // แต่ถ้าเกิน target ให้ rank ที่สูงกว่า target ขึ้นก่อน
-  const nonZero=vals.map((v,i)=>({v,i})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
-  const rankMap=new Map();nonZero.forEach((x,ri)=>rankMap.set(x.i,ri));
+  const nonZero=vals.map((v,i)=>({v,i})).filter(x=>x.v>0);
   const bgColors=vals.map((v,i)=>{
     const isHl=selM==='all'||String(i+1)===selM;
-    if(v===0)return`rgba(42,48,69,${isHl?.6:.2})`;
-    const ri=rankMap.get(i)??0;
-    return rankColor(ri,nonZero.length,isHl?.88:.2);
+    if(v===0)return`rgba(42,48,69,${isHl?.5:.2})`;
+    return targetRatioColor(v,ref,isHl?.88:.2);
   });
   const ds=[{label:'Value (THB)',data:vals,type:'bar',backgroundColor:bgColors,borderRadius:4,order:3}];
   if(tAv)ds.push({label:`Avg. ${fB(tAv)}`,data:Array(12).fill(tAv),type:'line',borderColor:'#f5a623',borderWidth:2,borderDash:[8,5],pointRadius:0,fill:false,order:1});
@@ -755,15 +767,10 @@ function buildDeptChart(cv){
   const tgts=depts.map(d=>targetData[d]||0);
   const da=selDepts.has('__all__')||selDepts.size===0;
 
-  // rank ตามค่า Actual (มากสุด = rank 0 = ฟ้า)
-  const deptWithVal=depts.map((d,i)=>({d,v:vals[i],i})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
-  const deptRankMap=new Map();deptWithVal.forEach((x,ri)=>deptRankMap.set(x.i,ri));
-
   const bgColors=vals.map((v,i)=>{
     const isHl=da||selDepts.has(depts[i]);
     if(v===0)return`rgba(42,48,69,${isHl?.5:.15})`;
-    const ri=deptRankMap.get(i)??0;
-    return rankColor(ri,deptWithVal.length,isHl?.88:.22);
+    return targetRatioColor(v,tgts[i]||0,isHl?.88:.22);
   });
   const tgtColors=depts.map(d=>(da||selDepts.has(d))?'rgba(245,166,35,.55)':'rgba(245,166,35,.15)');
   return new Chart(cv,{type:'bar',data:{labels:depts,datasets:[
@@ -795,8 +802,7 @@ function renderProduct(con,data){
 function buildProductChart(cv,data){
   const grp={};data.forEach(r=>{const k=`${r.compnt} ${r.dept||''}`.trim();grp[k]=(grp[k]||0)+r.val;});
   const sorted=Object.entries(grp).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  const colors=sorted.map((_,i)=>rankColor(i,sorted.length,.88));
-  return new Chart(cv,{type:'bar',data:{labels:sorted.map(([k])=>k.length>26?k.slice(0,26)+'…':k),datasets:[{label:'Value',data:sorted.map(([,v])=>v),backgroundColor:colors,borderRadius:3}]},options:{
+  return new Chart(cv,{type:'bar',data:{labels:sorted.map(([k])=>k.length>26?k.slice(0,26)+'…':k),datasets:[{label:'Value',data:sorted.map(([,v])=>v),backgroundColor:'rgba(59,142,243,.85)',borderRadius:3}]},options:{
     indexAxis:'y',responsive:true,maintainAspectRatio:false,
     plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fB(ctx.parsed.x)+' THB'}}},
     scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8a93a8',font:{size:9},callback:v=>fB(v)}},y:{grid:{display:false},ticks:{color:'#e8ecf4',font:{size:10}}}},
