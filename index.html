@@ -831,7 +831,7 @@ function loadDemo(){
   const machs=['PRT16','PRT202','OUTPR','OUTWORK','CON2M','CUTM'];
   const causes=['SETOFF','ตัวหนังสือหาย','สีเพี้ยน','OUTWORKรอย','ตัวหนังสือบวม','งานเสีย','พิมพ์เบี้ยว'];
   const comps=['TEP(031R01)','TGT(644)','PNV(029R01)','MB(1330)','TCSB(061R01)','SCJ(030.D2)','MGTH(Z329)','LION(1692.F)','LION(1566)','TTW(Z635.F)'];
-  targetData={PR1:179990,CON1:45794,GL1:3445,PR2:120236,CON2:11164,PDTN:43776,'Avg.':539207,All:404405};
+  targetData={PR1:276114,PR2:117182,CON1:45794,GL1:3445,CON2:11164,PDTN:43776,'Avg.':550354,All:412765};
   const rows=[];
   [2025,2026].forEach(yr=>{for(let m=1;m<=12;m++){for(let i=0;i<Math.floor(Math.random()*18)+4;i++){rows.push({jo:70000+Math.floor(Math.random()*15000),compnt:comps[~~(Math.random()*comps.length)],jo_problem:70000+Math.floor(Math.random()*10000),machine:machs[~~(Math.random()*machs.length)],cause:causes[~~(Math.random()*causes.length)],dept:depts[~~(Math.random()*depts.length)],year:yr,month:m,val:Math.floor(Math.random()*35000)+500,check:Math.random()<.2?0:1});}}});
   allData=rows.map(r=>({...r,isNew:r.check===0}));
@@ -1420,7 +1420,11 @@ function buildMonthlyChart(cv,coreData){
       const mi=els[0].index+1;
       if(document.getElementById('expOverlay').classList.contains('open')){
         setExpFilter('month',mi,MN[mi]);
-      }else{document.getElementById('fM').value=String(mi);applyFilters();}
+      }else{
+        const fM=document.getElementById('fM');
+        if(fM.value===String(mi)){fM.value='all';}else{fM.value=String(mi);}
+        applyFilters();
+      }
     },
     plugins:{legend:{labels:{color:()=>cssVar('--text2'),font:{size:10},boxWidth:20}},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.parsed.y)+' THB'}}},
     scales:{x:{grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:10}}},y:{grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:10},callback:v=>fB(v)}}},
@@ -1473,7 +1477,22 @@ function buildDeptChart(cv){
       const d=depts[els[0].index];
       if(document.getElementById('expOverlay').classList.contains('open')){
         setExpFilter('dept',d,d);
-      }else{selDepts=new Set([d]);updateMSBtn();renderMSItems();applyFilters();}
+      }else{
+        // toggle dept in multiselect — highlight only, don't remove bars
+        if(selDepts.has('__all__')){selDepts=new Set([d]);}
+        else if(selDepts.has(d)&&selDepts.size===1){selDepts=new Set(['__all__']);}
+        else if(selDepts.has(d)){selDepts.delete(d);}
+        else{selDepts.add(d);}
+        updateMSBtn();renderMSItems();
+        // rebuild only charts that use selDepts, without full re-render
+        const dCb=document.getElementById('cardDept')?.querySelector('.cbody');
+        if(dCb){dCb.innerHTML='';const w=document.createElement('div');w.style.cssText='position:relative;height:230px';dCb.appendChild(w);const cv=document.createElement('canvas');w.appendChild(cv);if(charts.dept){try{charts.dept.destroy();}catch(e){}}charts.dept=buildDeptChart(cv);}
+        const mCb=document.getElementById('cardMonthly')?.querySelector('.cbody');
+        if(mCb){mCb.innerHTML='';const w=document.createElement('div');w.style.cssText='position:relative;height:230px';mCb.appendChild(w);const cv=document.createElement('canvas');w.appendChild(cv);if(charts.monthly){try{charts.monthly.destroy();}catch(e){}}charts.monthly=buildMonthlyChart(cv,filteredData.filter(r=>!isExcl(r)));}
+        const gCb=document.getElementById('cardGauge')?.querySelector('.cbody');
+        if(gCb)renderGauge(gCb,filteredData.filter(r=>!isExcl(r)));
+        updateFbarBadge();renderChips();
+      }
     },
     plugins:{legend:{labels:{color:()=>cssVar('--text2'),font:{size:10},boxWidth:16}},tooltip:{callbacks:{label:ctx=>' '+fB(ctx.parsed.y)+' THB'}}},
     scales:{x:{grid:{display:false},ticks:{color:()=>cssVar('--text2'),font:{size:10}}},y:{grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:10},callback:v=>fB(v)}}},
@@ -1720,13 +1739,17 @@ function exportExcel(data){
 // ═══ KPI CLICKABLE FILTER ═══
 let kpiActiveFilter=null;
 function renderKPIsClickable(el){
-  // add click handlers after render
   const cards=el.querySelectorAll('.kc');
-  const defs=[null,null,null,null,'high5k','new'];// indices match cards array
+  const defs=[null,null,null,null,'high5k','new'];
   cards.forEach((c,i)=>{
     if(!defs[i])return;
     c.classList.add('kc-click');
+    c.style.cursor='pointer';
     c.onclick=()=>toggleKpiFilter(defs[i],c);
+    // add hint
+    if(!c.querySelector('.kc-filt-hint')){
+      const hint=document.createElement('div');hint.className='kc-filt-hint';hint.textContent='▼ คลิกกรอง';c.appendChild(hint);
+    }
   });
 }
 function toggleKpiFilter(type,cardEl){
@@ -2586,7 +2609,15 @@ function buildAPMonthlyChart(cv,data){
   });
   return new Chart(cv,{type:'bar',data:{labels:MN.slice(1),datasets:[{label:'Value (THB)',data:vals,backgroundColor:bgColors,borderRadius:4}]},options:{
     responsive:true,maintainAspectRatio:false,
-    onClick:(e,els)=>{if(!els.length)return;const mi=els[0].index+1;if(document.getElementById('apFM'))document.getElementById('apFM').value=String(mi);applyAPFilters();},
+    onClick:(e,els)=>{
+      if(!els.length)return;
+      const mi=els[0].index+1;
+      const apFM=document.getElementById('apFM');
+      if(!apFM)return;
+      // toggle month: click same = reset to all
+      if(apFM.value===String(mi)){apFM.value='all';}else{apFM.value=String(mi);}
+      applyAPFilters();
+    },
     plugins:{legend:{labels:{color:()=>cssVar('--text2'),font:{size:10},boxWidth:20}},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.parsed.y)+' THB'}}},
     scales:{x:{grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:10}}},y:{grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:10},callback:v=>fB(v)}}},
     animation:{onComplete(ctx){
@@ -2619,7 +2650,26 @@ function buildAPDeptChart(cv){
   });
   return new Chart(cv,{type:'bar',data:{labels:depts,datasets:[{label:'Actual',data:vals,backgroundColor:bgColors,borderRadius:3}]},options:{
     responsive:true,maintainAspectRatio:false,
-    onClick:(e,els)=>{if(!els.length)return;const d=depts[els[0].index];apSelDepts=new Set([d]);updateAPMSBtn();renderAPMSItems();applyAPFilters();},
+    onClick:(e,els)=>{
+      if(!els.length)return;
+      const d=depts[els[0].index];
+      if(document.getElementById('apExpOverlay')?.classList.contains('open')){
+        setAPExpFilter('dept',d,d);
+      }else{
+        if(apSelDepts.has('__all__')){apSelDepts=new Set([d]);}
+        else if(apSelDepts.has(d)&&apSelDepts.size===1){apSelDepts=new Set(['__all__']);}
+        else if(apSelDepts.has(d)){apSelDepts.delete(d);}
+        else{apSelDepts.add(d);}
+        updateAPMSBtn();renderAPMSItems();
+        const dCb=document.getElementById('apCardDept')?.querySelector('.cbody');
+        if(dCb){dCb.innerHTML='';const ww=document.createElement('div');ww.style.cssText='position:relative;height:230px';dCb.appendChild(ww);const cv=document.createElement('canvas');ww.appendChild(cv);if(apCharts.dept){try{apCharts.dept.destroy();}catch(e){}}apCharts.dept=buildAPDeptChart(cv);}
+        const mCb=document.getElementById('apCardMonthly')?.querySelector('.cbody');
+        if(mCb){mCb.innerHTML='';const ww=document.createElement('div');ww.style.cssText='position:relative;height:230px';mCb.appendChild(ww);const cv=document.createElement('canvas');ww.appendChild(cv);if(apCharts.monthly){try{apCharts.monthly.destroy();}catch(e){}}apCharts.monthly=buildAPMonthlyChart(cv,apFilteredData);}
+        const gCb=document.getElementById('apCardGauge')?.querySelector('.cbody');
+        if(gCb)renderAPGauge(gCb,apFilteredData);
+        updateAPFbarBadge();renderAPChips();
+      }
+    },
     plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fB(ctx.parsed.y)+' THB'}}},
     scales:{x:{grid:{display:false},ticks:{color:()=>cssVar('--text2'),font:{size:10}}},y:{grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:10},callback:v=>fB(v)}}},
     animation:{onComplete(ctx){
