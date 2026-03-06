@@ -504,108 +504,6 @@ body.present-mode .present-btn{background:var(--accent2);color:#fff;border-color
 .kc::after{content:'';position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.04) 0%,transparent 70%);opacity:0;transition:opacity .3s;pointer-events:none;}
 .kc:hover::after{opacity:1;}
 
-
-/* ══ WOW: Animated Counter ══ */
-@keyframes countUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-.kv.animating{animation:countUp .45s var(--ease) both;}
-
-/* ══ WOW: Trend badge ══ */
-.trend{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;font-size:9px;font-weight:700;margin-top:5px;font-family:'IBM Plex Mono',monospace;letter-spacing:.02em;}
-.trend.up{background:rgba(231,76,60,.13);color:var(--accent2);}
-.trend.down{background:rgba(46,204,113,.15);color:var(--green);}
-.trend.flat{background:rgba(138,147,168,.1);color:var(--text2);}
-body.light .trend.up{background:rgba(192,57,43,.09);}
-body.light .trend.down{background:rgba(26,158,82,.09);}
-
-/* ══ WOW: AI Panel ══ */
-.ai-wrap{margin:0 0 14px;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:var(--surface);transition:all .3s var(--ease);}
-.ai-bar{display:flex;align-items:center;gap:10px;padding:11px 16px;background:linear-gradient(135deg,rgba(59,142,243,.07),rgba(155,89,182,.07));border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
-.ai-bar:hover{background:linear-gradient(135deg,rgba(59,142,243,.12),rgba(155,89,182,.12));}
-.ai-bar-left{flex:1;display:flex;align-items:center;gap:10px;}
-.ai-bar-icon{font-size:18px;}
-.ai-bar-title{font-size:12px;font-weight:700;color:var(--text);}
-.ai-bar-sub{font-size:10px;color:var(--text2);margin-top:1px;}
-.ai-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .2s var(--ease);}
-.ai-btn.start{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;box-shadow:0 3px 12px rgba(59,142,243,.35);}
-.ai-btn.start:hover{filter:brightness(1.12);transform:translateY(-1px);box-shadow:0 5px 18px rgba(59,142,243,.45);}
-.ai-btn.start:active{transform:translateY(0);}
-.ai-btn.stop{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
-.ai-btn.stop:hover{border-color:var(--accent2);color:var(--accent2);}
-.ai-body{padding:14px 16px 16px;font-size:12.5px;line-height:1.8;color:var(--text);display:none;}
-.ai-body.open{display:block;}
-.ai-body strong{color:var(--accent);}
-.ai-em-up{color:var(--accent2);font-weight:600;}
-.ai-em-dn{color:var(--green);font-weight:600;}
-.ai-cursor::after{content:'▋';animation:blink .65s infinite;color:var(--accent);}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-.ai-footer-bar{display:flex;align-items:center;justify-content:space-between;padding:7px 16px;background:var(--surface2);border-top:1px solid var(--border);font-size:10px;color:var(--text2);}
-.ai-spin{display:inline-block;animation:spin .7s linear infinite;font-style:normal;}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* ══ WOW: Auto-refresh ══ */
-.refresh-row{display:flex;align-items:center;gap:8px;}
-.refresh-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;}
-.refresh-dot.live{animation:livePulse 1.8s infinite;}
-.refresh-dot.idle{background:var(--border);}
-@keyframes livePulse{0%,100%{box-shadow:0 0 0 0 rgba(46,204,113,.5)}60%{box-shadow:0 0 0 5px rgba(46,204,113,0)}}
-.refresh-sel{background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:10px;padding:3px 7px;border-radius:5px;font-family:inherit;cursor:pointer;outline:none;}
-.refresh-sel:focus{border-color:var(--accent);}
-.refresh-lbl{font-size:10px;color:var(--text2);}
-
-/* ══ WOW: Presentation Mode ══ */
-body.pm .hdr{display:none!important;}
-body.pm .page-tabs{top:0!important;z-index:300;}
-body.pm #rpFilters,body.pm #apFilters{display:none!important;}
-body.pm .chips,body.pm .sbar,body.pm #apSbar{display:none!important;}
-body.pm .upd{display:none!important;}
-body.pm .ai-wrap{display:none!important;}
-body.pm .kv{font-size:clamp(22px,2.8vw,34px)!important;}
-body.pm .kl{font-size:12px!important;letter-spacing:.1em!important;}
-body.pm .ks{font-size:11px!important;}
-body.pm .kc{padding:20px 18px 16px!important;}
-body.pm .sec-label-txt{font-size:15px!important;font-weight:700!important;}
-body.pm #scrollTop,body.pm .present-exit{display:block!important;}
-.present-exit{display:none;position:fixed;top:12px;right:16px;z-index:9999;background:var(--accent2);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(231,76,60,.4);font-family:inherit;animation:fadeUp .3s var(--ease);}
-.present-exit:hover{filter:brightness(1.1);}
-
-/* ══ WOW: Compare Tab ══ */
-.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.cmp-side{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
-.cmp-side-hdr{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:12px;font-weight:700;border-bottom:1px solid var(--border);}
-.cmp-rp-hdr{background:rgba(59,142,243,.08);color:var(--blue);border-bottom-color:var(--blue);}
-.cmp-ap-hdr{background:rgba(155,89,182,.08);color:var(--purple);border-bottom-color:var(--purple);}
-.cmp-krow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px;}
-.cmp-k{background:var(--surface2);border-radius:7px;padding:10px 12px;}
-.cmp-kl{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
-.cmp-kv{font-size:15px;font-weight:700;font-family:'IBM Plex Mono',monospace;}
-.cmp-combined{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;}
-.cmp-combined-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
-.cmp-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
-.cmp-bar-label{font-size:10px;color:var(--text2);width:60px;flex-shrink:0;text-align:right;}
-.cmp-bar-track{flex:1;height:10px;background:var(--surface2);border-radius:5px;overflow:hidden;}
-.cmp-bar-fill{height:100%;border-radius:5px;transition:width .8s var(--ease);}
-.cmp-bar-val{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text);width:68px;flex-shrink:0;}
-@media(max-width:800px){.cmp-grid{grid-template-columns:1fr;}.cmp-krow{grid-template-columns:repeat(2,1fr);}}
-
-/* ══ WOW: Mobile Bottom Nav ══ */
-.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:700;background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -2px 20px rgba(0,0,0,.18);}
-.mob-nav-inner{display:flex;padding-bottom:env(safe-area-inset-bottom);}
-.mob-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px 6px;border:none;background:none;cursor:pointer;color:var(--text2);font-size:9px;font-weight:600;letter-spacing:.04em;font-family:inherit;transition:color .15s;-webkit-tap-highlight-color:transparent;}
-.mob-nav-btn.active{color:var(--accent);}
-.mob-nav-btn .mni{font-size:20px;line-height:1.1;}
-.mob-nav-sep{width:1px;background:var(--border);align-self:stretch;margin:8px 0;}
-@media(max-width:700px){
-  .mob-nav{display:block;}
-  .page-tabs{display:none!important;}
-  body{padding-bottom:58px;}
-  #scrollTop{bottom:72px!important;}
-  .present-exit{top:auto;bottom:72px;right:12px;}
-}
-
-/* ══ KPI mouse-glow effect ══ */
-.kc{isolation:isolate;}
-.kc .kc-glow{position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.05) 0%,transparent 65%);opacity:0;transition:opacity .3s;pointer-events:none;}
-.kc:hover .kc-glow{opacity:1;}
 </style>
 </head>
 <body class="light">
@@ -668,7 +566,6 @@ body.pm #scrollTop,body.pm .present-exit{display:block!important;}
       <button class="btn pri" onclick="openAPModal()">📁 อัปเดตข้อมูล</button>
     </div>
     <!-- Shared -->
-    <div id="rfWrap"></div>
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="เปลี่ยน Theme">🌙</button>
   </div>
   <button class="fbar-toggle" id="fbarToggle" onclick="toggleFbar()">⚙ Filter <span id="fbarCnt"></span><span id="apFbarCnt" style="display:none"></span><span id="fbarArrow" style="font-size:8px;margin-left:2px">▼</span></button>
@@ -744,10 +641,9 @@ body.pm #scrollTop,body.pm .present-exit{display:block!important;}
 </div>
 
 <!-- PAGE TABS -->
-<div class="page-tabs" id="pageTabs">
-  <div class="page-tab active" id="tabReplan" onclick="switchPage('replan')">📋 Replan</div>
+<div class="page-tabs">
+  <div class="page-tab active" id="tabReplan" onclick="switchPage('replan')">📋 Replan Loss</div>
   <div class="page-tab" id="tabAddpaper" onclick="switchPage('addpaper')">📄 Add Paper</div>
-  <div class="page-tab" id="tabCompare" onclick="switchPage('compare')">🆚 Compare</div>
   <button class="copy-filter-btn" id="copyFilterBtn" onclick="handleCopyFilter()" title="คัดลอก filter ไปอีกหน้า">
     <span id="copyFilterIcon">⇄</span> <span id="copyFilterLabel">Copy filter → AP</span>
   </button>
@@ -773,25 +669,15 @@ body.pm #scrollTop,body.pm .present-exit{display:block!important;}
     </div>
     <div class="sc" id="sc">พบ <span id="sN">0</span> จาก <span id="sT">0</span></div>
   </div>
-  <!-- AI SUMMARY PANEL (Replan) -->
-  <div class="ai-wrap" id="aiPanelRP">
-    <div class="ai-bar" onclick="toggleAIPanel('rp')">
-      <div class="ai-bar-left">
-        <span class="ai-bar-icon">🤖</span>
-        <div><div class="ai-bar-title">AI Analysis — Replan Loss</div>
-          <div class="ai-bar-sub">Claude วิเคราะห์ข้อมูลให้อัตโนมัติ ภาษาไทย + English</div>
-        </div>
-      </div>
-      <button class="ai-btn start" id="aiBtnRP" onclick="event.stopPropagation();runAISummary('rp')">✨ วิเคราะห์</button>
-    </div>
-    <div class="ai-body" id="aiBodyRP"></div>
-    <div class="ai-footer-bar" id="aiFootRP" style="display:none">
-      <span id="aiTimeRP" style="color:var(--text2)"></span>
-      <button class="ai-btn stop" onclick="document.getElementById('aiBodyRP').innerHTML='';document.getElementById('aiBodyRP').classList.remove('open');document.getElementById('aiFootRP').style.display='none'">✕ ปิด</button>
+  <!-- MAIN CONTENT -->
+  <div class="con" id="con">
+    <div class="nd">
+      📂 กรุณาอัปโหลดไฟล์ Excel หรือเชื่อมต่อ Google Sheets<br>
+      <button class="btn pri" onclick="openModal()" style="padding:7px 18px;font-size:13px">📁 อัปเดตข้อมูล</button>
+      &nbsp;
+      <button class="btn" onclick="loadDemo()" style="padding:7px 18px;font-size:13px">🎮 Demo</button>
     </div>
   </div>
-  <!-- MAIN CONTENT -->
-  <div class="con" id="con"></div>
 </div>
 
 <!-- ADDPAPER PAGE -->
@@ -814,55 +700,13 @@ body.pm #scrollTop,body.pm .present-exit{display:block!important;}
     </div>
     <div class="sc" id="apSc">พบ <span id="apSN">0</span> จาก <span id="apST">0</span></div>
   </div>
-  <!-- AI SUMMARY PANEL (AP) -->
-  <div class="ai-wrap" id="aiPanelAP">
-    <div class="ai-bar" onclick="toggleAIPanel('ap')">
-      <div class="ai-bar-left">
-        <span class="ai-bar-icon">🤖</span>
-        <div><div class="ai-bar-title">AI Analysis — Add Paper</div>
-          <div class="ai-bar-sub">Claude วิเคราะห์ข้อมูล Add Paper ให้อัตโนมัติ</div>
-        </div>
-      </div>
-      <button class="ai-btn start" id="aiBtnAP" onclick="event.stopPropagation();runAISummary('ap')">✨ วิเคราะห์</button>
-    </div>
-    <div class="ai-body" id="aiBodyAP"></div>
-    <div class="ai-footer-bar" id="aiFootAP" style="display:none">
-      <span id="aiTimeAP" style="color:var(--text2)"></span>
-      <button class="ai-btn stop" onclick="document.getElementById('aiBodyAP').innerHTML='';document.getElementById('aiBodyAP').classList.remove('open');document.getElementById('aiFootAP').style.display='none'">✕ ปิด</button>
-    </div>
-  </div>
   <!-- AP CONTENT -->
-  <div class="con" id="apCon"></div>
-</div>
-
-<!-- COMPARE PAGE -->
-<div class="page-panel" id="pageCompare">
-  <div class="con" id="cmpCon">
-    <div class="nd" id="cmpEmpty">📊 โหลดข้อมูลทั้ง Replan และ Add Paper ก่อนดู Compare<br>
-      <small style="color:var(--text2);font-size:11px">ใช้ปุ่ม 🎮 Demo ทั้งสองหน้าเพื่อทดสอบ</small>
-    </div>
-    <div id="cmpContent" style="display:none">
-      <!-- Combined stats -->
-      <div class="cmp-combined" id="cmpCombined"></div>
-      <!-- Side by side -->
-      <div class="cmp-grid">
-        <div class="cmp-side">
-          <div class="cmp-side-hdr cmp-rp-hdr">📋 Replan Loss</div>
-          <div class="cmp-krow" id="cmpRpKpi"></div>
-          <div style="padding:0 12px 12px"><div style="position:relative;height:220px"><canvas id="cmpRpChart"></canvas></div></div>
-        </div>
-        <div class="cmp-side">
-          <div class="cmp-side-hdr cmp-ap-hdr">📄 Add Paper</div>
-          <div class="cmp-krow" id="cmpApKpi"></div>
-          <div style="padding:0 12px 12px"><div style="position:relative;height:220px"><canvas id="cmpApChart"></canvas></div></div>
-        </div>
-      </div>
-      <!-- Combined Monthly Chart -->
-      <div class="card" style="margin-top:14px">
-        <div class="cbody"><div style="padding:12px 14px 4px;font-size:11px;font-weight:700;color:var(--text2)">📅 MONTHLY — REPLAN vs ADD PAPER (COMBINED)</div>
-          <div style="position:relative;height:240px;padding:0 8px 8px"><canvas id="cmpMonthChart"></canvas></div>
-        </div>
-      </div>
+  <div class="con" id="apCon">
+    <div class="nd">
+      📂 กรุณาอัปโหลดไฟล์ Excel หรือเชื่อมต่อ Google Sheets<br>
+      <button class="btn pri" onclick="openAPModal()" style="padding:7px 18px;font-size:13px">📁 อัปเดตข้อมูล</button>
+      &nbsp;
+      <button class="btn" onclick="loadDemoAP()" style="padding:7px 18px;font-size:13px">🎮 Demo AP</button>
     </div>
   </div>
 </div>
@@ -1000,23 +844,41 @@ const GS_URL='https://script.google.com/macros/s/AKfycbxWa1KbIgjV-Xv7bO42twWh_f1
 const AP_GS_URL='https://script.google.com/macros/s/AKfycbxjjdPA-6sQxKydBN52nDY0llOaLOZU8xWMNw3zdk7qasaQAc6WDsDYI_2oWkdrqEiJ/exec';
 
 window.addEventListener('DOMContentLoaded',()=>{
+  // ── Replan auto-load ──
   const params=new URLSearchParams(window.location.search);
   const url=params.get('gs')||GS_URL||localStorage.getItem('gsUrl')||'';
   if(url){
     try{document.getElementById('gsUrl').value=url;localStorage.setItem('gsUrl',url);}catch(e){}
     showAutoLoading();autoGS(url);
   }else{
-    // No URL: show upload prompt
-    const c=document.getElementById('con');
-    if(c)c.innerHTML=`<div class="nd">📂 กรุณาเชื่อมต่อ Google Sheets หรืออัปโหลดไฟล์<br><button class="btn pri" onclick="openModal()" style="padding:7px 18px;font-size:13px">📁 อัปเดตข้อมูล</button>&nbsp;<button class="btn" onclick="loadDemo()" style="padding:7px 18px;font-size:13px">🎮 Demo</button></div>`;
+    document.getElementById('con').innerHTML='<div class="nd">📂 ไม่พบ GS URL<br><button class="btn pri" onclick="openModal()" style="padding:7px 18px;font-size:13px">📁 ตั้งค่า</button>&nbsp;<button class="btn" onclick="loadDemo()" style="padding:7px 18px;font-size:13px">🎮 Demo</button></div>';
   }
+  // ── Scroll button ──
+  updateScrollBtn();
+  // ── Present btn ──
+  if(window.innerWidth>700){
+    const tabs=document.getElementById('pageTabs');
+    if(tabs&&!tabs.querySelector('.present-mode-btn')){
+      const pb=document.createElement('button');
+      pb.className='ai-btn stop present-mode-btn';pb.style.cssText='margin-left:8px;padding:4px 10px;font-size:10px;';
+      pb.innerHTML='🖥️ Present';pb.title='Presentation Mode (P)';
+      pb.onclick=togglePresentMode;tabs.appendChild(pb);
+    }
+  }
+  // ── Refresh row ──
+  const rfWrap=document.getElementById('rfWrap');
+  if(rfWrap)setupAutoRefresh(rfWrap);
 });
 function showAutoLoading(){
-  const c=document.getElementById('con');if(!c)return;
-  c.innerHTML=`<div class="nd" style="flex-direction:column;gap:16px;align-items:center;text-align:center;">
+  const c=document.getElementById('con');
+  c.innerHTML=`
+  <div class="nd" style="flex-direction:column;gap:20px;align-items:center;justify-content:center;width:100%;text-align:center;">
     <div style="font-size:14px;color:var(--text)">⏳ กำลังโหลดข้อมูลจาก Google Sheets...</div>
     <div class="gs-loader">
-      <div class="gs-bar-wrap"><div class="gs-bar-track"><div class="gs-bar-fill" id="gsBarFill" style="width:0%"></div></div><span class="gs-bar-pct" id="gsBarPct">0%</span></div>
+      <div class="gs-bar-wrap">
+        <div class="gs-bar-track"><div class="gs-bar-fill" id="gsBarFill"></div></div>
+        <span class="gs-bar-pct" id="gsBarPct">0%</span>
+      </div>
       <div class="gs-dots"><span></span><span></span><span></span></div>
     </div>
     <div id="gsLoadMsg" style="font-size:11px;color:var(--text2)">กำลังเชื่อมต่อ...</div>
@@ -1154,7 +1016,6 @@ function applyFilters(){
     });
     renderChips();renderAll();
     if(con)requestAnimationFrame(()=>{con.style.transition='opacity .15s';con.style.opacity='1';});
-    if(currentPage==='compare')setTimeout(renderCompare,150);
   },80);
 }
 function resetFilters(){document.getElementById('fY').value='all';document.getElementById('fM').value='all';document.getElementById('fMc').value='all';msAll();}
@@ -1199,68 +1060,6 @@ function refreshTbls(data){
 function hl(txt,q){
   if(!q)return String(txt||'');const s=String(txt||''),i=s.toLowerCase().indexOf(q.toLowerCase());
   if(i===-1)return s;return s.slice(0,i)+`<mark class="hl">${s.slice(i,i+q.length)}</mark>`+s.slice(i+q.length);
-}
-
-// ═══ ANIMATED COUNTER ═══
-function animateCount(el,endVal,duration=700,isCurrency=true){
-  const start=performance.now();
-  const startVal=0;
-  el.classList.add('animating');
-  function step(now){
-    const p=Math.min((now-start)/duration,1);
-    const ease=1-Math.pow(1-p,3);// easeOutCubic
-    const cur=Math.round(startVal+(endVal-startVal)*ease);
-    el.textContent=isCurrency?fB(cur):fmt(cur);
-    if(p<1)requestAnimationFrame(step);
-    else{el.textContent=isCurrency?fB(endVal):fmt(endVal);el.classList.remove('animating');}
-  }
-  requestAnimationFrame(step);
-}
-function animateAllKpis(rowId){
-  const row=document.getElementById(rowId);if(!row)return;
-  row.querySelectorAll('.kv[data-raw]').forEach(el=>{
-    const raw=parseFloat(el.dataset.raw)||0;
-    const isCurr=el.dataset.type!=='count';
-    animateCount(el,raw,650,isCurr);
-  });
-}
-
-// ═══ TREND CALCULATOR ═══
-function calcTrend(data,prevData){
-  if(!data||!prevData||!prevData.length)return null;
-  const curr=data.reduce((a,r)=>a+r.val,0);
-  const prev=prevData.reduce((a,r)=>a+r.val,0);
-  if(!prev)return null;
-  return((curr-prev)/prev*100);
-}
-function getTrendData(allD,yr,mo){
-  // get previous month data
-  let pYr=parseInt(yr),pMo=parseInt(mo)-1;
-  if(mo==='all'||yr==='all')return null;
-  if(pMo<1){pMo=12;pYr--;}
-  return allD.filter(r=>r.year===pYr&&r.month===pMo);
-}
-function trendBadge(pct){
-  if(pct===null)return'';
-  if(Math.abs(pct)<0.5)return`<div class="trend flat">→ 0%</div>`;
-  // For Loss: down = good (green), up = bad (red)
-  const dir=pct>0?'up':'down';
-  const icon=pct>0?'↑':'↓';
-  const label=`${icon} ${Math.abs(pct).toFixed(1)}%`;
-  return`<div class="trend ${dir}">${label} vs prev month</div>`;
-}
-// Mouse-glow effect on KPI cards
-function initKcGlow(rowEl){
-  rowEl.querySelectorAll('.kc').forEach(card=>{
-    if(card.querySelector('.kc-glow'))return;
-    const glow=document.createElement('div');glow.className='kc-glow';card.appendChild(glow);
-    card.addEventListener('mousemove',e=>{
-      const r=card.getBoundingClientRect();
-      const x=((e.clientX-r.left)/r.width*100).toFixed(1);
-      const y=((e.clientY-r.top)/r.height*100).toFixed(1);
-      card.style.setProperty('--mx',x+'%');card.style.setProperty('--my',y+'%');
-    });
-  });
 }
 
 // ═══ SKELETON LOADING ═══
@@ -1679,29 +1478,24 @@ function renderKPIs(el,coreData){
   const ni=coreData.filter(r=>r.isNew);
   const tA=targetData['All']||targetData['all']||0,tAv=targetData['Avg.']||targetData['avg']||0;
   const pct=tA?(tv-tA)/tA*100:null,pass=pct!==null?tv<=tA:null;
+  // breakdown tooltip
   const depts=[...new Set(coreData.map(r=>r.dept).filter(Boolean))];
   const topDept=depts.map(d=>({d,v:coreData.filter(r=>r.dept===d).reduce((a,r)=>a+r.val,0)})).sort((a,b)=>b.v-a.v).slice(0,3).map(x=>`${x.d}: ${fB(x.v)}`).join(' / ');
-  // Trend
-  const yr=document.getElementById('fY')?.value||'all';
-  const mo=document.getElementById('fM')?.value||'all';
-  const prevD=getTrendData(allData.filter(r=>!isExcl(r)),yr,mo);
-  const trend=calcTrend(coreData,prevD);
   const cards=[
-    {l:'Total Value (THB)',raw:tv,v:fB(tv),c:'cb',cls:'b',sub:tA?`Target: ${fB(tA)} THB`:'รวมทั้งหมด',tip:`Top Dept: ${topDept||'—'}`,bx:(pct!==null?`<span class="badge ${pass?'bg':'br'}">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ต่ำกว่า':'เกิน'}เป้า</span>`:'')+(mo!=='all'&&yr!=='all'?trendBadge(trend):''),isCurr:true},
-    {l:'Target All (THB)',raw:tA,v:tA?fB(tA):'—',c:'co',cls:'o',sub:'เป้าหมายรวม',tip:tAv?`Avg. Baseline: ${fB(tAv)} THB`:'',isCurr:true},
-    {l:'Baseline Avg (THB)',raw:tAv,v:tAv?fB(tAv):'—',c:'cp',cls:'p',sub:'ค่าเฉลี่ย Baseline',tip:tA&&tAv?`ต่างจาก Target: ${fB(Math.abs(tA-tAv))} THB`:'',isCurr:true},
-    {l:'Total Jobs',raw:filteredData.length,v:fmt(filteredData.length),c:'cg',cls:'g',sub:'จำนวนรายการทั้งหมด',tip:`ค่าเฉลี่ยต่อ Job: ${filteredData.length?fB(tv/filteredData.length)+' THB':'—'}`,isCurr:false},
-    {l:'Jobs > 5,000 THB',raw:j5.length,v:fmt(j5.length),c:'cr',cls:'r',sub:`มูลค่ารวม: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,tip:`คิดเป็น ${filteredData.length?((j5.length/filteredData.length)*100).toFixed(1)+'%':'-'} ของ jobs ทั้งหมด`,isCurr:false},
-    {l:'รายการใหม่ (check=0)',raw:ni.length,v:fmt(ni.length),c:'cy',cls:'y',sub:`มูลค่ารวม: ${fB(ni.reduce((a,r)=>a+r.val,0))} THB`,tip:`คิดเป็น ${filteredData.length?((ni.length/filteredData.length)*100).toFixed(1)+'%':'-'} ของ jobs ทั้งหมด`,isCurr:false},
+    {l:'Total Value (THB)',v:fB(tv),c:'cb',cls:'b',sub:tA?`Target: ${fB(tA)} THB`:'รวมทั้งหมด',tip:`Top Dept: ${topDept||'—'}`,bx:pct!==null?`<span class="badge ${pass?'bg':'br'}">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ต่ำกว่า':'เกิน'}เป้า</span>`:''},
+    {l:'Target All (THB)',v:tA?fB(tA):'—',c:'co',cls:'o',sub:'เป้าหมายรวม',tip:tAv?`Avg. Baseline: ${fB(tAv)} THB`:''},
+    {l:'Baseline Avg (THB)',v:tAv?fB(tAv):'—',c:'cp',cls:'p',sub:'ค่าเฉลี่ย Baseline',tip:tA&&tAv?`ต่างจาก Target: ${fB(Math.abs(tA-tAv))} THB`:''},
+    {l:'Total Jobs',v:fmt(filteredData.length),c:'cg',cls:'g',sub:'จำนวนรายการทั้งหมด',tip:`ค่าเฉลี่ยต่อ Job: ${filteredData.length?fB(tv/filteredData.length)+' THB':'—'}`},
+    {l:'Jobs > 5,000 THB',v:fmt(j5.length),c:'cr',cls:'r',sub:`มูลค่ารวม: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,tip:`คิดเป็น ${filteredData.length?((j5.length/filteredData.length)*100).toFixed(1)+'%':'-'} ของ jobs ทั้งหมด`},
+    {l:'รายการใหม่ (check=0)',v:fmt(ni.length),c:'cy',cls:'y',sub:`มูลค่ารวม: ${fB(ni.reduce((a,r)=>a+r.val,0))} THB`,tip:`คิดเป็น ${filteredData.length?((ni.length/filteredData.length)*100).toFixed(1)+'%':'-'} ของ jobs ทั้งหมด`},
   ];
   el.innerHTML=cards.map(c=>`
-    <div class="kc ${c.c}" ${c.tip?`data-tip="${c.tip}"`:''}>
+    <div class="kc ${c.c}" ${c.tip?`data-tip="${c.tip}"`:''}> 
       <div class="kl">${c.l}</div>
-      <div class="kv ${c.cls}" data-raw="${c.raw}" data-type="${c.isCurr?'currency':'count'}">${c.v}</div>
+      <div class="kv ${c.cls}">${c.v}</div>
       <div class="ks">${c.sub}</div>
       ${c.bx||''}
     </div>`).join('');
-  requestAnimationFrame(()=>{animateAllKpis('kpiRow');initKcGlow(el);});
 }
 
 // ═══ MONTHLY (ไม่นับ MAT/OTHER/OUTWORK/CUTOUT) ═══
@@ -2101,38 +1895,30 @@ function toggleKpiFilter(type,cardEl){
 let currentPage='replan';
 function switchPage(page){
   currentPage=page;
-  const isRP=page==='replan',isAP=page==='addpaper',isCMP=page==='compare';
-  document.getElementById('pageReplan').classList.toggle('active',isRP);
+  const isAP=page==='addpaper';
+  document.getElementById('pageReplan').classList.toggle('active',!isAP);
   document.getElementById('pageAddpaper').classList.toggle('active',isAP);
-  document.getElementById('pageCompare').classList.toggle('active',isCMP);
-  ['tabReplan','tabAddpaper','tabCompare'].forEach(id=>{
-    const el=document.getElementById(id);if(el)el.classList.toggle('active',id.includes(page.charAt(0).toUpperCase()+page.slice(1)));
-  });
-  // filter sets — hide on compare
+  document.getElementById('tabReplan').classList.toggle('active',!isAP);
+  document.getElementById('tabAddpaper').classList.toggle('active',isAP);
+  // swap filter sets
   const rpF=document.getElementById('rpFilters');
   const apF=document.getElementById('apFilters');
-  if(rpF)rpF.style.display=isRP?'contents':'none';
+  if(rpF)rpF.style.display=isAP?'none':'contents';
   if(apF)apF.style.display=isAP?'contents':'none';
-  // updDate
-  if(document.getElementById('updDate'))document.getElementById('updDate').style.display=isRP?'':'none';
-  if(document.getElementById('apUpdDate'))document.getElementById('apUpdDate').style.display=isAP?'':'none';
-  // fbarCnt
+  // swap updDate
+  const rpUpd=document.getElementById('updDate');
+  const apUpd=document.getElementById('apUpdDate');
+  if(rpUpd)rpUpd.style.display=isAP?'none':'';
+  if(apUpd)apUpd.style.display=isAP?'':'none';
+  // swap fbarCnt badge
   const rpCnt=document.getElementById('fbarCnt');
   const apCnt=document.getElementById('apFbarCnt');
-  if(rpCnt)rpCnt.style.display=isRP&&rpCnt.textContent?'inline-block':'none';
-  if(apCnt)apCnt.style.display=isAP&&apCnt.textContent?'inline-block':'none';
-  // close dropdowns
+  if(rpCnt)rpCnt.style.display=isAP?'none':(rpCnt.textContent?'inline-block':'none');
+  if(apCnt)apCnt.style.display=isAP?(apCnt.textContent?'inline-block':'none'):'none';
+  // close any open MS dropdowns
   document.getElementById('msp')?.classList.remove('open');
   document.getElementById('apMsp')?.classList.remove('open');
   updateCopyFilterBtn();
-  // mobile nav
-  ['Replan','Addpaper','Compare'].forEach(n=>{
-    const b=document.getElementById('mobBtn'+n);
-    if(b)b.classList.toggle('active',n.toLowerCase()===page);
-  });
-  // render compare when switching to it
-  if(isCMP)setTimeout(renderCompare,60);
-  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 // ═══ GAUGE (no needle, clean arc) ═══
@@ -2486,10 +2272,10 @@ async function autoAPGS(url){
 
 function showAPAutoLoading(){
   const c=document.getElementById('apCon');if(!c)return;
-  c.innerHTML=`<div class="nd" style="flex-direction:column;gap:16px;align-items:center;text-align:center;">
+  c.innerHTML=`<div class="nd" style="flex-direction:column;gap:20px;align-items:center;justify-content:center;width:100%;text-align:center;">
     <div style="font-size:14px;color:var(--text)">⏳ กำลังโหลด Add Paper จาก Google Sheets...</div>
     <div class="gs-loader">
-      <div class="gs-bar-wrap"><div class="gs-bar-track"><div class="gs-bar-fill" id="apBarFill" style="width:0%"></div></div><span class="gs-bar-pct" id="apBarPct">0%</span></div>
+      <div class="gs-bar-wrap"><div class="gs-bar-track"><div class="gs-bar-fill" id="apBarFill"></div></div><span class="gs-bar-pct" id="apBarPct">0%</span></div>
       <div class="gs-dots"><span></span><span></span><span></span></div>
     </div>
     <div id="apLoadMsg" style="font-size:11px;color:var(--text2)">กำลังเชื่อมต่อ...</div>
@@ -2503,6 +2289,7 @@ function setAPSt(id,msg,neutral){
   if(el){el.textContent=msg;el.style.color=neutral?'var(--text2)':msg.startsWith('✅')?'var(--green)':'var(--accent2)';}
 }
 
+// AP file upload listeners (attached on first DOMContentLoaded above)
 document.addEventListener('DOMContentLoaded',()=>{
   const apFi=document.getElementById('apFi');
   if(apFi)apFi.addEventListener('change',e=>{if(e.target.files[0])loadAPFile(e.target.files[0]);});
@@ -2512,12 +2299,13 @@ document.addEventListener('DOMContentLoaded',()=>{
     apDz.addEventListener('dragleave',()=>apDz.classList.remove('ov'));
     apDz.addEventListener('drop',e=>{e.preventDefault();apDz.classList.remove('ov');if(e.dataTransfer.files[0])loadAPFile(e.dataTransfer.files[0]);});
   }
-  // Auto-load AP GS — show loading screen immediately
+  // AP auto-load
   const savedAPUrl=localStorage.getItem('apGsUrl')||AP_GS_URL||'';
   if(savedAPUrl){
     try{document.getElementById('apGsUrl').value=savedAPUrl;localStorage.setItem('apGsUrl',savedAPUrl);}catch(e){}
-    showAPAutoLoading();
     autoAPGS(savedAPUrl);
+  }else{
+    document.getElementById('apCon').innerHTML='<div class="nd">📂 ไม่พบ GS URL (AP)<br><button class="btn pri" onclick="openAPModal()" style="padding:7px 18px;font-size:13px">📁 ตั้งค่า</button>&nbsp;<button class="btn" onclick="loadDemoAP()" style="padding:7px 18px;font-size:13px">🎮 Demo AP</button></div>';
   }
 });
 
@@ -2834,20 +2622,15 @@ function renderAPKPIs(el,data){
   const ni=data.filter(r=>r.isNew);
   const depts=[...new Set(data.map(r=>r.dept).filter(Boolean))];
   const topDept=depts.map(d=>({d,v:data.filter(r=>r.dept===d).reduce((a,r)=>a+r.val,0)})).sort((a,b)=>b.v-a.v).slice(0,3).map(x=>`${x.d}: ${fB(x.v)}`).join(' / ');
-  const yr=document.getElementById('apFY')?.value||'all';
-  const mo=document.getElementById('apFM')?.value||'all';
-  const prevD=getTrendData(apAllData,yr,mo);
-  const trend=calcTrend(data,prevD);
   const cards=[
-    {l:'Total Value (THB)',raw:tv,v:fB(tv),c:'cb',cls:'b',sub:'มูลค่ารวม Add Paper',tip:`Top Dept: ${topDept||'—'}`,bx:mo!=='all'&&yr!=='all'?trendBadge(trend):'',isCurr:true},
-    {l:'Total Sheet',raw:tSh,v:fmt(Math.round(tSh))+' sh',c:'cp',cls:'p',sub:'จำนวนชีทรวมทั้งหมด',tip:`ค่าเฉลี่ย: ${data.length?fmt(Math.round(tSh/data.length))+' sh/job':'—'}`,isCurr:false},
-    {l:'Total Jobs',raw:data.length,v:fmt(data.length),c:'cg',cls:'g',sub:'จำนวนรายการทั้งหมด',tip:`ค่าเฉลี่ย: ${data.length?fB(tv/data.length)+' THB/job':'—'}`,isCurr:false},
-    {l:'Jobs > 5,000 THB',raw:j5.length,v:fmt(j5.length),c:'cr',cls:'r',sub:`มูลค่ารวม: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,tip:`คิดเป็น ${data.length?((j5.length/data.length)*100).toFixed(1)+'%':'-'} ของ jobs`,isCurr:false},
-    {l:'รายการใหม่ (check=0)',raw:ni.length,v:fmt(ni.length),c:'cy',cls:'y',sub:`มูลค่ารวม: ${fB(ni.reduce((a,r)=>a+r.val,0))} THB`,tip:`คิดเป็น ${data.length?((ni.length/data.length)*100).toFixed(1)+'%':'-'} ของ jobs`,isCurr:false},
-    {l:'Avg Value / Job',raw:data.length?tv/data.length:0,v:fB(data.length?tv/data.length:0),c:'co',cls:'o',sub:'ค่าเฉลี่ยต่อรายการ',tip:'คำนวณจากทุกรายการใน filter',isCurr:true},
+    {l:'Total Value (THB)',v:fB(tv),c:'cb',cls:'b',sub:'มูลค่ารวม Add Paper',tip:`Top Dept: ${topDept||'—'}`},
+    {l:'Total Sheet',v:fmt(Math.round(tSh))+' sh',c:'cp',cls:'p',sub:'จำนวนชีทรวมทั้งหมด',tip:`ค่าเฉลี่ย: ${data.length?fmt(Math.round(tSh/data.length))+' sh/job':'—'}`},
+    {l:'Total Jobs',v:fmt(data.length),c:'cg',cls:'g',sub:'จำนวนรายการทั้งหมด',tip:`ค่าเฉลี่ย: ${data.length?fB(tv/data.length)+' THB/job':'—'}`},
+    {l:'Jobs > 5,000 THB',v:fmt(j5.length),c:'cr',cls:'r',sub:`มูลค่ารวม: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,tip:`คิดเป็น ${data.length?((j5.length/data.length)*100).toFixed(1)+'%':'-'} ของ jobs ทั้งหมด`},
+    {l:'รายการใหม่ (check=0)',v:fmt(ni.length),c:'cy',cls:'y',sub:`มูลค่ารวม: ${fB(ni.reduce((a,r)=>a+r.val,0))} THB`,tip:`คิดเป็น ${data.length?((ni.length/data.length)*100).toFixed(1)+'%':'-'} ของ jobs ทั้งหมด`},
+    {l:'Avg Value / Job',v:fB(data.length?tv/data.length:0),c:'co',cls:'o',sub:'ค่าเฉลี่ยต่อรายการ',tip:'คำนวณจากทุกรายการใน filter'},
   ];
-  el.innerHTML=cards.map(c=>`<div class="kc ${c.c}" ${c.tip?`data-tip="${c.tip}"`:''}><div class="kl">${c.l}</div><div class="kv ${c.cls}" data-raw="${c.raw}" data-type="${c.isCurr?'currency':'count'}">${c.v}</div><div class="ks">${c.sub}</div>${c.bx?c.bx:''}</div>`).join('');
-  requestAnimationFrame(()=>{animateAllKpis('apKpiRow');initKcGlow(el);});
+  el.innerHTML=cards.map(c=>`<div class="kc ${c.c}" ${c.tip?`data-tip="${c.tip}"`:''}><div class="kl">${c.l}</div><div class="kv ${c.cls}">${c.v}</div><div class="ks">${c.sub}</div></div>`).join('');
 }
 
 // AP KPI clickable filter
@@ -2994,14 +2777,21 @@ function buildAPDeptChart(cv){
       if(!els.length)return;
       const d=depts[els[0].index];
       if(document.getElementById('apExpOverlay')?.classList.contains('open')){
-        setAPExpFilter('dept',d,d);return;
+        setAPExpFilter('dept',d,d);
+      }else{
+        if(apSelDepts.has('__all__')){apSelDepts=new Set([d]);}
+        else if(apSelDepts.has(d)&&apSelDepts.size===1){apSelDepts=new Set(['__all__']);}
+        else if(apSelDepts.has(d)){apSelDepts.delete(d);}
+        else{apSelDepts.add(d);}
+        updateAPMSBtn();renderAPMSItems();
+        const dCb=document.getElementById('apCardDept')?.querySelector('.cbody');
+        if(dCb){dCb.innerHTML='';const ww=document.createElement('div');ww.style.cssText='position:relative;height:230px';dCb.appendChild(ww);const cv=document.createElement('canvas');ww.appendChild(cv);if(apCharts.dept){try{apCharts.dept.destroy();}catch(e){}}apCharts.dept=buildAPDeptChart(cv);}
+        const mCb=document.getElementById('apCardMonthly')?.querySelector('.cbody');
+        if(mCb){mCb.innerHTML='';const ww=document.createElement('div');ww.style.cssText='position:relative;height:230px';mCb.appendChild(ww);const cv=document.createElement('canvas');ww.appendChild(cv);if(apCharts.monthly){try{apCharts.monthly.destroy();}catch(e){}}apCharts.monthly=buildAPMonthlyChart(cv,apFilteredData);}
+        const gCb=document.getElementById('apCardGauge')?.querySelector('.cbody');
+        if(gCb)renderAPGauge(gCb,apFilteredData);
+        updateAPFbarBadge();renderAPChips();
       }
-      if(apSelDepts.has('__all__')){apSelDepts=new Set([d]);}
-      else if(apSelDepts.has(d)&&apSelDepts.size===1){apSelDepts=new Set(['__all__']);}
-      else if(apSelDepts.has(d)){apSelDepts.delete(d);}
-      else{apSelDepts.add(d);}
-      updateAPMSBtn();renderAPMSItems();
-      applyAPFilters();
     },
     plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fB(ctx.parsed.y)+' THB'}}},
     scales:{x:{grid:{display:false},ticks:{color:()=>cssVar('--text2'),font:{size:10}}},y:{grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:10},callback:v=>fB(v)}}},
@@ -3438,287 +3228,6 @@ async function exportAPPDF(){
   doc.save(`addpaper_report_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 
-
-// ══════════════════════════════════════════════════════
-// 🤖 AI SUMMARY
-// ══════════════════════════════════════════════════════
-function toggleAIPanel(side){
-  const body=document.getElementById(`aiBody${side==='rp'?'RP':'AP'}`);
-  if(body&&body.innerHTML)body.classList.toggle('open');
-}
-
-async function runAISummary(side){
-  const isRP=side==='rp';
-  const btnId=isRP?'aiBtnRP':'aiBtnAP';
-  const bodyId=isRP?'aiBodyRP':'aiBodyAP';
-  const footId=isRP?'aiFootRP':'aiFootAP';
-  const timeId=isRP?'aiTimeRP':'aiTimeAP';
-  const btn=document.getElementById(btnId);
-  const bodyEl=document.getElementById(bodyId);
-  const footEl=document.getElementById(footId);
-  if(!btn||!bodyEl)return;
-
-  const data=isRP?filteredData:apFilteredData;
-  if(!data||data.length===0){bodyEl.innerHTML='<span style="color:var(--text2)">⚠ ไม่มีข้อมูล — กรุณาโหลดข้อมูลก่อน</span>';bodyEl.classList.add('open');return;}
-
-  btn.innerHTML='<span class="ai-spin">⟳</span> กำลังวิเคราะห์…';btn.disabled=true;
-  bodyEl.classList.add('open');
-  bodyEl.innerHTML='<span style="color:var(--text2);font-size:11px">🤖 Claude กำลังอ่านข้อมูล…</span>';
-
-  // Build data summary for prompt
-  const tv=data.reduce((a,r)=>a+r.val,0);
-  const deptMap={};data.forEach(r=>{deptMap[r.dept]=(deptMap[r.dept]||0)+r.val;});
-  const topDepts=Object.entries(deptMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([d,v])=>`${d}: ${fB(v)} THB`).join(', ');
-  const causeField=isRP?'cause':'cause';
-  const causeMap={};data.forEach(r=>{const c=r[causeField]||'Unknown';causeMap[c]=(causeMap[c]||0)+r.val;});
-  const topCauses=Object.entries(causeMap).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([c,v])=>`${c}: ${fB(v)} THB`).join(', ');
-  const j5=data.filter(r=>r.val>5000);
-  const ni=data.filter(r=>r.isNew);
-  const tA=isRP?targetData['All']||targetData['all']||0:0;
-  const pctVsTarget=tA?((tv-tA)/tA*100):null;
-  const yr=isRP?document.getElementById('fY')?.value:document.getElementById('apFY')?.value;
-  const mo=isRP?document.getElementById('fM')?.value:document.getElementById('apFM')?.value;
-  const MNth=['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-  const period=yr==='all'?'ทุกปี':`ปี ${yr}${mo!=='all'?' เดือน '+MNth[parseInt(mo)]:''}`;
-
-  const type=isRP?'Replan Loss':'Add Paper Loss';
-  const prompt=`You are a manufacturing quality analyst. Analyze this ${type} dashboard data and provide insights in BOTH Thai and English.
-
-Data Summary:
-- Period: ${period}
-- Total Loss Value: ${fB(tv)} THB
-- Total Jobs: ${data.length}
-- Jobs > 5,000 THB: ${j5.length} (${data.length?(j5.length/data.length*100).toFixed(1):0}%)
-- New Items (check=0): ${ni.length}
-- Top Departments by value: ${topDepts}
-- Top Causes by value: ${topCauses}
-${tA?`- Target: ${fB(tA)} THB | Variance: ${pctVsTarget!==null?(pctVsTarget>0?'+':'')+pctVsTarget.toFixed(1)+'%':'N/A'}`:''}
-
-Write a concise analysis (4-6 sentences) with:
-1. Key finding (สรุปภาพรวม)
-2. Top concern (จุดเสี่ยง) 
-3. Recommendation (ข้อแนะนำ)
-
-Format: Write each point in Thai first, then English in parentheses. Use **bold** for key numbers. Keep it sharp and actionable for a factory manager.`;
-
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:600,
-        messages:[{role:'user',content:prompt}]
-      })
-    });
-    const json=await res.json();
-    const text=json.content?.[0]?.text||'ไม่สามารถวิเคราะห์ได้';
-    // Stream-like typewriter effect
-    bodyEl.innerHTML='';
-    bodyEl.classList.add('ai-cursor');
-    const html=text
-      .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
-      .replace(/
-
-/g,'<br><br>')
-      .replace(/
-/g,'<br>');
-    let i=0;
-    const chars=html.split('');
-    function typeNext(){
-      if(i<chars.length){
-        bodyEl.innerHTML=html.slice(0,i+1);
-        i+=Math.floor(Math.random()*3)+1;
-        setTimeout(typeNext,12);
-      }else{
-        bodyEl.innerHTML=html;
-        bodyEl.classList.remove('ai-cursor');
-        footEl.style.display='flex';
-        document.getElementById(timeId).textContent='วิเคราะห์เมื่อ: '+new Date().toLocaleTimeString('th-TH');
-      }
-    }
-    typeNext();
-  }catch(e){
-    bodyEl.innerHTML=`<span style="color:var(--accent2)">⚠ Error: ${e.message}</span>`;
-  }finally{
-    btn.innerHTML='✨ วิเคราะห์อีกครั้ง';btn.disabled=false;
-  }
-}
-
-// ══════════════════════════════════════════════════════
-// 🔄 AUTO-REFRESH
-// ══════════════════════════════════════════════════════
-let refreshTimer=null,refreshInterval=0,refreshRemain=0;
-function setupAutoRefresh(el){
-  el.innerHTML=`
-    <div class="refresh-row">
-      <span class="refresh-dot idle" id="rfDot"></span>
-      <select class="refresh-sel" id="rfSel" onchange="setRefreshInterval(this.value)">
-        <option value="0">⏸ ปิด Auto-refresh</option>
-        <option value="300">🔄 ทุก 5 นาที</option>
-        <option value="900">🔄 ทุก 15 นาที</option>
-        <option value="1800">🔄 ทุก 30 นาที</option>
-        <option value="3600">🔄 ทุก 1 ชั่วโมง</option>
-      </select>
-      <span class="refresh-lbl" id="rfLbl">ปิดอยู่</span>
-    </div>`;
-}
-function setRefreshInterval(val){
-  clearInterval(refreshTimer);refreshInterval=parseInt(val)||0;refreshRemain=refreshInterval;
-  const dot=document.getElementById('rfDot'),lbl=document.getElementById('rfLbl');
-  if(!refreshInterval){
-    if(dot){dot.className='refresh-dot idle';}
-    if(lbl)lbl.textContent='ปิดอยู่';return;
-  }
-  if(dot)dot.className='refresh-dot live';
-  function tick(){
-    refreshRemain--;
-    if(lbl)lbl.textContent=`อีก ${refreshRemain<60?refreshRemain+'s':Math.ceil(refreshRemain/60)+'m'}`;
-    if(refreshRemain<=0){
-      refreshRemain=refreshInterval;
-      if(lbl)lbl.textContent='กำลังโหลด…';
-      const rpUrl=localStorage.getItem('gsUrl');
-      const apUrl=localStorage.getItem('apGsUrl');
-      if(rpUrl){try{autoGS(rpUrl);}catch(e){}}
-      if(apUrl){try{autoAPGS(apUrl);}catch(e){}}
-      setTimeout(()=>{if(lbl)lbl.textContent=`อีก ${refreshInterval<60?refreshInterval+'s':Math.ceil(refreshInterval/60)+'m'}`;},2000);
-    }
-  }
-  tick();refreshTimer=setInterval(tick,1000);
-}
-
-// ══════════════════════════════════════════════════════
-// 🖥️ PRESENTATION MODE
-// ══════════════════════════════════════════════════════
-function togglePresentMode(){
-  const pm=document.body.classList.toggle('pm');
-  const exitBtn=document.getElementById('presentExit');
-  if(exitBtn)exitBtn.style.display=pm?'block':'none';
-  if(pm){
-    // store scroll and go top
-    document.body._pmScroll=window.scrollY;
-    window.scrollTo({top:0,behavior:'smooth'});
-    // Re-render KPIs bigger
-    if(allData.length)setTimeout(()=>{const el=document.getElementById('kpiRow');if(el)initKcGlow(el);},300);
-    if(apAllData.length)setTimeout(()=>{const el=document.getElementById('apKpiRow');if(el)initKcGlow(el);},300);
-  }else{
-    // restore scroll
-    window.scrollTo({top:document.body._pmScroll||0,behavior:'smooth'});
-  }
-}
-// Keyboard shortcut: F11 or P
-document.addEventListener('keydown',e=>{
-  if((e.key==='F11'||e.key==='p')&&!e.ctrlKey&&!e.metaKey&&e.target.tagName!=='INPUT'&&e.target.tagName!=='TEXTAREA'){
-    e.preventDefault();togglePresentMode();
-  }
-  if(e.key==='Escape'&&document.body.classList.contains('pm')){
-    togglePresentMode();
-  }
-});
-
-// ══════════════════════════════════════════════════════
-// 🆚 COMPARE TAB
-// ══════════════════════════════════════════════════════
-let cmpCharts={rp:null,ap:null,month:null};
-function renderCompare(){
-  const haRP=allData&&allData.length>0;
-  const haAP=apAllData&&apAllData.length>0;
-  const empty=document.getElementById('cmpEmpty');
-  const content=document.getElementById('cmpContent');
-  if(!haRP&&!haAP){
-    if(empty)empty.style.display='block';
-    if(content)content.style.display='none';return;
-  }
-  if(empty)empty.style.display='none';
-  if(content)content.style.display='block';
-
-  const rpData=filteredData;
-  const apData=apFilteredData;
-  const rpTV=rpData.reduce((a,r)=>a+r.val,0);
-  const apTV=apData.reduce((a,r)=>a+r.val,0);
-  const total=rpTV+apTV;
-
-  // Combined stats bar
-  const comb=document.getElementById('cmpCombined');
-  if(comb){
-    comb.innerHTML=`<div class="cmp-combined-title">📊 Combined Loss Overview</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
-      ${[
-        {l:'Total Combined',v:fB(total)+' THB',col:'var(--text)'},
-        {l:'Replan Loss',v:fB(rpTV)+' THB',col:'var(--blue)'},
-        {l:'Add Paper Loss',v:fB(apTV)+' THB',col:'var(--purple)'},
-        {l:'AP / RP Ratio',v:rpTV?((apTV/rpTV)*100).toFixed(1)+'%':'—',col:'var(--accent)'},
-      ].map(s=>`<div class="cmp-k"><div class="cmp-kl">${s.l}</div><div class="cmp-kv" style="color:${s.col}">${s.v}</div></div>`).join('')}
-    </div>
-    ${[{l:'Replan',v:rpTV,col:'#3b8ef3'},{l:'Add Paper',v:apTV,col:'#9b59b6'}].map(s=>`
-    <div class="cmp-bar-row">
-      <div class="cmp-bar-label">${s.l}</div>
-      <div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:${total?(s.v/total*100).toFixed(1):0}%;background:${s.col}"></div></div>
-      <div class="cmp-bar-val">${fB(s.v)}</div>
-    </div>`).join('')}`;
-  }
-
-  // Side KPIs
-  function mkCmpKpi(id,data,col){
-    const el=document.getElementById(id);if(!el)return;
-    const tv=data.reduce((a,r)=>a+r.val,0);
-    const j5=data.filter(r=>r.val>5000).length;
-    const ni=data.filter(r=>r.isNew).length;
-    el.innerHTML=[
-      {l:'Total Value',v:fB(tv)+' THB',c:col},
-      {l:'Total Jobs',v:fmt(data.length),c:'var(--green)'},
-      {l:'Jobs > 5K',v:fmt(j5),c:'var(--accent2)'},
-      {l:'New Items',v:fmt(ni),c:'var(--yellow)'},
-      {l:'Avg/Job',v:fB(data.length?tv/data.length:0),c:'var(--text2)'},
-    ].map(k=>`<div class="cmp-k"><div class="cmp-kl">${k.l}</div><div class="cmp-kv" style="color:${k.c}">${k.v}</div></div>`).join('');
-  }
-  mkCmpKpi('cmpRpKpi',rpData,'var(--blue)');
-  mkCmpKpi('cmpApKpi',apData,'var(--purple)');
-
-  // Dept bar charts side by side
-  function mkCmpDeptChart(canvasId,data,color){
-    const cv=document.getElementById(canvasId);if(!cv)return;
-    if(cmpCharts[canvasId]){try{cmpCharts[canvasId].destroy();}catch(e){}}
-    const deptMap={};data.forEach(r=>{deptMap[r.dept]=(deptMap[r.dept]||0)+r.val;});
-    const sorted=Object.entries(deptMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
-    cmpCharts[canvasId]=new Chart(cv,{type:'bar',data:{
-      labels:sorted.map(([d])=>d),
-      datasets:[{label:'Value',data:sorted.map(([,v])=>v),backgroundColor:color+'cc',borderRadius:4}]
-    },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fB(ctx.parsed.y)+' THB'}}},
-      scales:{x:{grid:{display:false},ticks:{color:()=>cssVar('--text2'),font:{size:9}}},y:{grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:9},callback:v=>fB(v)}}}}});
-  }
-  mkCmpDeptChart('cmpRpChart',rpData,'rgba(59,142,243,');
-  mkCmpDeptChart('cmpApChart',apData,'rgba(155,89,182,');
-
-  // Combined monthly
-  const monthCv=document.getElementById('cmpMonthChart');
-  if(monthCv){
-    if(cmpCharts.month){try{cmpCharts.month.destroy();}catch(e){}}
-    const months=Array.from({length:12},(_,i)=>i+1);
-    const rpMo=months.map(m=>rpData.filter(r=>r.month===m).reduce((a,r)=>a+r.val,0));
-    const apMo=months.map(m=>apData.filter(r=>r.month===m).reduce((a,r)=>a+r.val,0));
-    const MNs=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-    cmpCharts.month=new Chart(monthCv,{type:'bar',data:{
-      labels:MNs,
-      datasets:[
-        {label:'Replan',data:rpMo,backgroundColor:'rgba(59,142,243,.7)',borderRadius:4,stack:'s'},
-        {label:'Add Paper',data:apMo,backgroundColor:'rgba(155,89,182,.7)',borderRadius:4,stack:'s'},
-      ]
-    },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:()=>cssVar('--text2'),font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:ctx=>' '+fB(ctx.parsed.y)+' THB'}}},
-      scales:{x:{grid:{display:false},stacked:true,ticks:{color:()=>cssVar('--text2'),font:{size:10}}},y:{grid:{color:()=>cssVar('--border')},stacked:true,ticks:{color:()=>cssVar('--text2'),font:{size:9},callback:v=>fB(v)}}}}});
-  }
-}
-
-// ══════════════════════════════════════════════════════
-// 📱 MOBILE NAV sync
-// ══════════════════════════════════════════════════════
-function updateMobNav(page){
-  ['replan','addpaper','compare'].forEach(p=>{
-    const btn=document.getElementById('mobBtn'+p.charAt(0).toUpperCase()+p.slice(1));
-    if(btn)btn.classList.toggle('active',p===page);
-  });
-}
-
 // ═══ SCROLL LISTENER ═══
 function updateScrollBtn(){
   const btn=document.getElementById('scrollTop');
@@ -3728,28 +3237,7 @@ function updateScrollBtn(){
 }
 window.addEventListener('scroll',updateScrollBtn,{passive:true});
 // trigger once on load in case page is pre-scrolled
-document.addEventListener('DOMContentLoaded',()=>{
-  updateScrollBtn();
-  // Setup refresh row
-  const rfWrap=document.getElementById('rfWrap');
-  if(rfWrap)setupAutoRefresh(rfWrap);
-  // Make scroll btn visible trigger
-  const scrollBtn=document.getElementById('scrollTop');
-  if(scrollBtn)scrollBtn.style.display='flex';
-  // Present btn shortcut hint on desktop
-  if(window.innerWidth>700){
-    const pBtn=document.querySelector('.present-exit');
-    // add present btn to page tabs
-    const tabs=document.getElementById('pageTabs');
-    if(tabs){
-      const pb=document.createElement('button');
-      pb.className='ai-btn stop';pb.style.cssText='margin-left:8px;padding:4px 10px;font-size:10px;';
-      pb.innerHTML='🖥️ Present';pb.title='Presentation Mode (P)';
-      pb.onclick=togglePresentMode;
-      tabs.appendChild(pb);
-    }
-  }
-});
+// scroll btn init merged into main DOMContentLoaded
 
 // ═══ COPY FILTER between pages ═══
 function handleCopyFilter(){
@@ -3945,31 +3433,6 @@ function copyFilterToRP(){
     </div>
   </div>
 </div>
-
-
-<!-- MOBILE BOTTOM NAV -->
-<nav class="mob-nav" id="mobNav">
-  <div class="mob-nav-inner">
-    <button class="mob-nav-btn active" id="mobBtnReplan" onclick="switchPage('replan')">
-      <span class="mni">📋</span>Replan
-    </button>
-    <div class="mob-nav-sep"></div>
-    <button class="mob-nav-btn" id="mobBtnAddpaper" onclick="switchPage('addpaper')">
-      <span class="mni">📄</span>Add Paper
-    </button>
-    <div class="mob-nav-sep"></div>
-    <button class="mob-nav-btn" id="mobBtnCompare" onclick="switchPage('compare')">
-      <span class="mni">🆚</span>Compare
-    </button>
-    <div class="mob-nav-sep"></div>
-    <button class="mob-nav-btn" onclick="togglePresentMode()">
-      <span class="mni">🖥️</span>Present
-    </button>
-  </div>
-</nav>
-
-<!-- PRESENTATION EXIT BUTTON -->
-<button class="present-exit" id="presentExit" onclick="togglePresentMode()">✕ Exit Present</button>
 
 
 </body>
