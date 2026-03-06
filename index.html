@@ -791,16 +791,7 @@ body.pm #scrollTop,body.pm .present-exit{display:block!important;}
     </div>
   </div>
   <!-- MAIN CONTENT -->
-  <div class="con" id="con">
-    <div class="nd" style="flex-direction:column;gap:16px;align-items:center;text-align:center;">
-      <div style="font-size:14px;color:var(--text)">⏳ กำลังโหลดข้อมูลจาก Google Sheets...</div>
-      <div class="gs-loader">
-        <div class="gs-bar-wrap"><div class="gs-bar-track"><div class="gs-bar-fill" id="gsBarFill"></div></div><span class="gs-bar-pct" id="gsBarPct">0%</span></div>
-        <div class="gs-dots"><span></span><span></span><span></span></div>
-      </div>
-      <div id="gsLoadMsg" style="font-size:11px;color:var(--text2)">กำลังเชื่อมต่อ...</div>
-    </div>
-  </div>
+  <div class="con" id="con"></div>
 </div>
 
 <!-- ADDPAPER PAGE -->
@@ -841,16 +832,7 @@ body.pm #scrollTop,body.pm .present-exit{display:block!important;}
     </div>
   </div>
   <!-- AP CONTENT -->
-  <div class="con" id="apCon">
-    <div class="nd" style="flex-direction:column;gap:16px;align-items:center;text-align:center;">
-      <div style="font-size:14px;color:var(--text)">⏳ กำลังโหลด Add Paper จาก Google Sheets...</div>
-      <div class="gs-loader">
-        <div class="gs-bar-wrap"><div class="gs-bar-track"><div class="gs-bar-fill" id="apBarFill"></div></div><span class="gs-bar-pct" id="apBarPct">0%</span></div>
-        <div class="gs-dots"><span></span><span></span><span></span></div>
-      </div>
-      <div id="apLoadMsg" style="font-size:11px;color:var(--text2)">กำลังเชื่อมต่อ...</div>
-    </div>
-  </div>
+  <div class="con" id="apCon"></div>
 </div>
 
 <!-- COMPARE PAGE -->
@@ -1030,11 +1012,18 @@ window.addEventListener('DOMContentLoaded',()=>{
   }
 });
 function showAutoLoading(){
-  // HTML loading bar is already in #con by default — just reset progress
-  const f=document.getElementById('gsBarFill'),p=document.getElementById('gsBarPct'),m=document.getElementById('gsLoadMsg');
-  if(f)f.style.width='0%';if(p)p.textContent='0%';if(m)m.textContent='กำลังเชื่อมต่อ...';
+  const c=document.getElementById('con');if(!c)return;
+  c.innerHTML=`<div class="nd" style="flex-direction:column;gap:16px;align-items:center;text-align:center;">
+    <div style="font-size:14px;color:var(--text)">⏳ กำลังโหลดข้อมูลจาก Google Sheets...</div>
+    <div class="gs-loader">
+      <div class="gs-bar-wrap"><div class="gs-bar-track"><div class="gs-bar-fill" id="gsBarFill" style="width:0%"></div></div><span class="gs-bar-pct" id="gsBarPct">0%</span></div>
+      <div class="gs-dots"><span></span><span></span><span></span></div>
+    </div>
+    <div id="gsLoadMsg" style="font-size:11px;color:var(--text2)">กำลังเชื่อมต่อ...</div>
+  </div>`;
 }
 async function autoGS(url){
+  showAutoLoading();
   const setP=(pct,msg)=>{
     const f=document.getElementById('gsBarFill'),p=document.getElementById('gsBarPct'),m=document.getElementById('gsLoadMsg');
     if(f)f.style.width=pct+'%';if(p)p.textContent=Math.round(pct)+'%';if(m&&msg)m.textContent=msg;
@@ -2471,6 +2460,7 @@ async function loadAPGS(){
 }
 
 async function autoAPGS(url){
+  showAPAutoLoading();
   const setP=(pct,msg)=>{
     const f=document.getElementById('apBarFill'),p=document.getElementById('apBarPct'),m=document.getElementById('apLoadMsg');
     if(f)f.style.width=pct+'%';if(p)p.textContent=Math.round(pct)+'%';if(m&&msg)m.textContent=msg;
@@ -2495,8 +2485,15 @@ async function autoAPGS(url){
 }
 
 function showAPAutoLoading(){
-  const f=document.getElementById('apBarFill'),p=document.getElementById('apBarPct'),m=document.getElementById('apLoadMsg');
-  if(f)f.style.width='0%';if(p)p.textContent='0%';if(m)m.textContent='กำลังเชื่อมต่อ...';
+  const c=document.getElementById('apCon');if(!c)return;
+  c.innerHTML=`<div class="nd" style="flex-direction:column;gap:16px;align-items:center;text-align:center;">
+    <div style="font-size:14px;color:var(--text)">⏳ กำลังโหลด Add Paper จาก Google Sheets...</div>
+    <div class="gs-loader">
+      <div class="gs-bar-wrap"><div class="gs-bar-track"><div class="gs-bar-fill" id="apBarFill" style="width:0%"></div></div><span class="gs-bar-pct" id="apBarPct">0%</span></div>
+      <div class="gs-dots"><span></span><span></span><span></span></div>
+    </div>
+    <div id="apLoadMsg" style="font-size:11px;color:var(--text2)">กำลังเชื่อมต่อ...</div>
+  </div>`;
 }
 
 function retryAPGS(){try{const s=localStorage.getItem('apGsUrl')||AP_GS_URL;if(s)autoAPGS(s);}catch(e){openAPModal();}}
