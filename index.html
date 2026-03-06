@@ -792,11 +792,13 @@ body.pm #scrollTop,body.pm .present-exit{display:block!important;}
   </div>
   <!-- MAIN CONTENT -->
   <div class="con" id="con">
-    <div class="nd">
-      📂 กรุณาอัปโหลดไฟล์ Excel หรือเชื่อมต่อ Google Sheets<br>
-      <button class="btn pri" onclick="openModal()" style="padding:7px 18px;font-size:13px">📁 อัปเดตข้อมูล</button>
-      &nbsp;
-      <button class="btn" onclick="loadDemo()" style="padding:7px 18px;font-size:13px">🎮 Demo</button>
+    <div class="nd" style="flex-direction:column;gap:16px;align-items:center;text-align:center;">
+      <div style="font-size:14px;color:var(--text)">⏳ กำลังโหลดข้อมูลจาก Google Sheets...</div>
+      <div class="gs-loader">
+        <div class="gs-bar-wrap"><div class="gs-bar-track"><div class="gs-bar-fill" id="gsBarFill"></div></div><span class="gs-bar-pct" id="gsBarPct">0%</span></div>
+        <div class="gs-dots"><span></span><span></span><span></span></div>
+      </div>
+      <div id="gsLoadMsg" style="font-size:11px;color:var(--text2)">กำลังเชื่อมต่อ...</div>
     </div>
   </div>
 </div>
@@ -840,11 +842,13 @@ body.pm #scrollTop,body.pm .present-exit{display:block!important;}
   </div>
   <!-- AP CONTENT -->
   <div class="con" id="apCon">
-    <div class="nd">
-      📂 กรุณาอัปโหลดไฟล์ Excel หรือเชื่อมต่อ Google Sheets<br>
-      <button class="btn pri" onclick="openAPModal()" style="padding:7px 18px;font-size:13px">📁 อัปเดตข้อมูล</button>
-      &nbsp;
-      <button class="btn" onclick="loadDemoAP()" style="padding:7px 18px;font-size:13px">🎮 Demo AP</button>
+    <div class="nd" style="flex-direction:column;gap:16px;align-items:center;text-align:center;">
+      <div style="font-size:14px;color:var(--text)">⏳ กำลังโหลด Add Paper จาก Google Sheets...</div>
+      <div class="gs-loader">
+        <div class="gs-bar-wrap"><div class="gs-bar-track"><div class="gs-bar-fill" id="apBarFill"></div></div><span class="gs-bar-pct" id="apBarPct">0%</span></div>
+        <div class="gs-dots"><span></span><span></span><span></span></div>
+      </div>
+      <div id="apLoadMsg" style="font-size:11px;color:var(--text2)">กำลังเชื่อมต่อ...</div>
     </div>
   </div>
 </div>
@@ -1019,22 +1023,16 @@ window.addEventListener('DOMContentLoaded',()=>{
   if(url){
     try{document.getElementById('gsUrl').value=url;localStorage.setItem('gsUrl',url);}catch(e){}
     showAutoLoading();autoGS(url);
-  }else openModal();
+  }else{
+    // No URL: show upload prompt
+    const c=document.getElementById('con');
+    if(c)c.innerHTML=`<div class="nd">📂 กรุณาเชื่อมต่อ Google Sheets หรืออัปโหลดไฟล์<br><button class="btn pri" onclick="openModal()" style="padding:7px 18px;font-size:13px">📁 อัปเดตข้อมูล</button>&nbsp;<button class="btn" onclick="loadDemo()" style="padding:7px 18px;font-size:13px">🎮 Demo</button></div>`;
+  }
 });
 function showAutoLoading(){
-  const c=document.getElementById('con');
-  c.innerHTML=`
-  <div class="nd" style="flex-direction:column;gap:20px;align-items:center;justify-content:center;width:100%;text-align:center;">
-    <div style="font-size:14px;color:var(--text)">⏳ กำลังโหลดข้อมูลจาก Google Sheets...</div>
-    <div class="gs-loader">
-      <div class="gs-bar-wrap">
-        <div class="gs-bar-track"><div class="gs-bar-fill" id="gsBarFill"></div></div>
-        <span class="gs-bar-pct" id="gsBarPct">0%</span>
-      </div>
-      <div class="gs-dots"><span></span><span></span><span></span></div>
-    </div>
-    <div id="gsLoadMsg" style="font-size:11px;color:var(--text2)">กำลังเชื่อมต่อ...</div>
-  </div>`;
+  // HTML loading bar is already in #con by default — just reset progress
+  const f=document.getElementById('gsBarFill'),p=document.getElementById('gsBarPct'),m=document.getElementById('gsLoadMsg');
+  if(f)f.style.width='0%';if(p)p.textContent='0%';if(m)m.textContent='กำลังเชื่อมต่อ...';
 }
 async function autoGS(url){
   const setP=(pct,msg)=>{
@@ -2473,7 +2471,6 @@ async function loadAPGS(){
 }
 
 async function autoAPGS(url){
-  showAPAutoLoading();
   const setP=(pct,msg)=>{
     const f=document.getElementById('apBarFill'),p=document.getElementById('apBarPct'),m=document.getElementById('apLoadMsg');
     if(f)f.style.width=pct+'%';if(p)p.textContent=Math.round(pct)+'%';if(m&&msg)m.textContent=msg;
@@ -2498,15 +2495,8 @@ async function autoAPGS(url){
 }
 
 function showAPAutoLoading(){
-  const c=document.getElementById('apCon');if(!c)return;
-  c.innerHTML=`<div class="nd" style="flex-direction:column;gap:20px;align-items:center;justify-content:center;width:100%;text-align:center;">
-    <div style="font-size:14px;color:var(--text)">⏳ กำลังโหลด Add Paper จาก Google Sheets...</div>
-    <div class="gs-loader">
-      <div class="gs-bar-wrap"><div class="gs-bar-track"><div class="gs-bar-fill" id="apBarFill"></div></div><span class="gs-bar-pct" id="apBarPct">0%</span></div>
-      <div class="gs-dots"><span></span><span></span><span></span></div>
-    </div>
-    <div id="apLoadMsg" style="font-size:11px;color:var(--text2)">กำลังเชื่อมต่อ...</div>
-  </div>`;
+  const f=document.getElementById('apBarFill'),p=document.getElementById('apBarPct'),m=document.getElementById('apLoadMsg');
+  if(f)f.style.width='0%';if(p)p.textContent='0%';if(m)m.textContent='กำลังเชื่อมต่อ...';
 }
 
 function retryAPGS(){try{const s=localStorage.getItem('apGsUrl')||AP_GS_URL;if(s)autoAPGS(s);}catch(e){openAPModal();}}
@@ -2525,10 +2515,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     apDz.addEventListener('dragleave',()=>apDz.classList.remove('ov'));
     apDz.addEventListener('drop',e=>{e.preventDefault();apDz.classList.remove('ov');if(e.dataTransfer.files[0])loadAPFile(e.dataTransfer.files[0]);});
   }
-  // Auto-load AP GS
+  // Auto-load AP GS — show loading screen immediately
   const savedAPUrl=localStorage.getItem('apGsUrl')||AP_GS_URL||'';
   if(savedAPUrl){
     try{document.getElementById('apGsUrl').value=savedAPUrl;localStorage.setItem('apGsUrl',savedAPUrl);}catch(e){}
+    showAPAutoLoading();
     autoAPGS(savedAPUrl);
   }
 });
