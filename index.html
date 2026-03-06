@@ -6,6 +6,8 @@
 <title>Replan Performance & Loss Overview</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0f1117;--surface:#181c27;--surface2:#1e2334;--border:#2a3045;--accent:#f5a623;--accent2:#e74c3c;--blue:#3b8ef3;--green:#2ecc71;--purple:#9b59b6;--text:#e8ecf4;--text2:#8a93a8;--yellow:#ffe066;--ease:cubic-bezier(.25,.46,.45,.94);--ease-out:cubic-bezier(0,.55,.45,1);}
@@ -366,6 +368,25 @@ body.light .kl{opacity:1!important;}
 .exp-action-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;transition:all .18s var(--ease);display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
 .exp-action-btn:hover{border-color:var(--accent);color:var(--accent);}
 .exp-action-btn:active{transform:scale(.96);}
+
+/* ── PAGE TABS ── */
+.page-tabs{display:flex;align-items:center;gap:2px;background:var(--surface2);border-bottom:1px solid var(--border);padding:0 20px;position:sticky;top:52px;z-index:250;}
+.page-tab{padding:8px 20px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;transition:all .2s var(--ease);white-space:nowrap;user-select:none;}
+.page-tab:hover{color:var(--text);}
+.page-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.page-panel{display:none;}.page-panel.active{display:block;}
+
+/* ── ADDPAPER accent color override (blue theme) ── */
+.page-panel.ap .pareto-insight{background:linear-gradient(135deg,rgba(155,89,182,.08),rgba(59,142,243,.06));border-color:rgba(155,89,182,.2);}
+.page-panel.ap .pareto-insight strong{color:var(--purple);}
+
+/* ── PDF EXPORT button ── */
+.exp-dditem.pdf{border-top:1px solid var(--border);}
+
+/* ── SNAPSHOT button feedback ── */
+@keyframes snapFlash{0%{opacity:1}50%{opacity:.3}100%{opacity:1}}
+.snap-flash{animation:snapFlash .35s var(--ease);}
+
 </style>
 </head>
 <body class="light">
@@ -396,8 +417,7 @@ body.light .kl{opacity:1!important;}
     <div class="exp-wrap" id="exportWrap">
       <button class="btn" id="exportBtn" onclick="toggleExportMenu(event)">⬇ Export ▾</button>
       <div class="exp-ddmenu" id="exportMenu">
-        <div class="exp-dditem" onclick="exportData('csv-filtered')">📋 CSV — ข้อมูลที่ filter</div>
-        <div class="exp-dditem" onclick="exportData('csv-all')">📄 CSV — ทั้งหมด</div>
+        <div class="exp-dditem" onclick="exportPDF()">📑 PDF — กราฟ + KPI</div>
         <div class="exp-dditem" onclick="exportData('xlsx')">📊 Excel (.xlsx)</div>
       </div>
     </div>
@@ -476,32 +496,69 @@ body.light .kl{opacity:1!important;}
   </div>
 </div>
 
-<!-- CHIPS + SEARCH -->
-<div class="chips" id="chips"></div>
-<div class="sbar" id="sbar">
-  <div class="sw2">
-    <select class="sf-s" id="sfSel" onchange="onSearch()">
-      <option value="all">🔍 ทุก Field</option>
-      <option value="jo">JO</option>
-      <option value="compnt">Component</option>
-      <option value="jo_problem">JO Problem</option>
-      <option value="machine">Machine</option>
-      <option value="cause">Cause</option>
-      <option value="dept">Department</option>
-    </select>
-    <input class="sf-i" id="sfI" placeholder="พิมพ์เพื่อค้นหา real-time…" oninput="onSearch()" autocomplete="off">
-    <button class="sf-x" id="sfX" onclick="clearSearch()">×</button>
-  </div>
-  <div class="sc" id="sc">พบ <span id="sN">0</span> จาก <span id="sT">0</span></div>
+<!-- PAGE TABS -->
+<div class="page-tabs">
+  <div class="page-tab active" id="tabReplan" onclick="switchPage('replan')">📋 Replan Loss</div>
+  <div class="page-tab" id="tabAddpaper" onclick="switchPage('addpaper')">📄 Add Paper</div>
 </div>
 
-<!-- MAIN CONTENT -->
-<div class="con" id="con">
-  <div class="nd">
-    📂 กรุณาอัปโหลดไฟล์ Excel หรือเชื่อมต่อ Google Sheets<br>
-    <button class="btn pri" onclick="openModal()" style="padding:7px 18px;font-size:13px">📁 อัปเดตข้อมูล</button>
-    &nbsp;
-    <button class="btn" onclick="loadDemo()" style="padding:7px 18px;font-size:13px">🎮 Demo</button>
+<!-- REPLAN PAGE -->
+<div class="page-panel active" id="pageReplan">
+  <!-- CHIPS + SEARCH -->
+  <div class="chips" id="chips"></div>
+  <div class="sbar" id="sbar">
+    <div class="sw2">
+      <select class="sf-s" id="sfSel" onchange="onSearch()">
+        <option value="all">🔍 ทุก Field</option>
+        <option value="jo">JO</option>
+        <option value="compnt">Component</option>
+        <option value="jo_problem">JO Problem</option>
+        <option value="machine">Machine</option>
+        <option value="cause">Cause</option>
+        <option value="dept">Department</option>
+      </select>
+      <input class="sf-i" id="sfI" placeholder="พิมพ์เพื่อค้นหา real-time…" oninput="onSearch()" autocomplete="off">
+      <button class="sf-x" id="sfX" onclick="clearSearch()">×</button>
+    </div>
+    <div class="sc" id="sc">พบ <span id="sN">0</span> จาก <span id="sT">0</span></div>
+  </div>
+  <!-- MAIN CONTENT -->
+  <div class="con" id="con">
+    <div class="nd">
+      📂 กรุณาอัปโหลดไฟล์ Excel หรือเชื่อมต่อ Google Sheets<br>
+      <button class="btn pri" onclick="openModal()" style="padding:7px 18px;font-size:13px">📁 อัปเดตข้อมูล</button>
+      &nbsp;
+      <button class="btn" onclick="loadDemo()" style="padding:7px 18px;font-size:13px">🎮 Demo</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADDPAPER PAGE -->
+<div class="page-panel ap" id="pageAddpaper">
+  <!-- CHIPS AP + SEARCH AP -->
+  <div class="chips" id="apChips"></div>
+  <div class="sbar" id="apSbar">
+    <div class="sw2">
+      <select class="sf-s" id="apSfSel" onchange="onSearchAP()">
+        <option value="all">🔍 ทุก Field</option>
+        <option value="jo">JO</option>
+        <option value="code">Code</option>
+        <option value="cause">Cause</option>
+        <option value="dept">Dept</option>
+        <option value="mc">MC</option>
+      </select>
+      <input class="sf-i" id="apSfI" placeholder="พิมพ์เพื่อค้นหา…" oninput="onSearchAP()" autocomplete="off">
+      <button class="sf-x" id="apSfX" onclick="clearSearchAP()">×</button>
+    </div>
+    <div class="sc" id="apSc">พบ <span id="apSN">0</span> จาก <span id="apST">0</span></div>
+  </div>
+  <div class="con" id="apCon">
+    <div class="nd">
+      📂 กรุณาอัปโหลดไฟล์ Add Paper Excel<br>
+      <button class="btn pri" onclick="openAPModal()" style="padding:7px 18px;font-size:13px">📁 อัปโหลด Add Paper</button>
+      &nbsp;
+      <button class="btn" onclick="loadDemoAP()" style="padding:7px 18px;font-size:13px">🎮 Demo AP</button>
+    </div>
   </div>
 </div>
 
@@ -635,6 +692,7 @@ async function loadGS(){
   }catch(e){setSt('gsSt','❌ '+e.message,false);}
 }
 const GS_URL='https://script.google.com/macros/s/AKfycbxWa1KbIgjV-Xv7bO42twWh_f1FAH5d0BZTBNMykRZTzReNFG949J3VHLGPkNWy21vK/exec';
+const AP_GS_URL='https://script.google.com/macros/s/AKfycbxjjdPA-6sQxKydBN52nDY0llOaLOZU8xWMNw3zdk7qasaQAc6WDsDYI_2oWkdrqEiJ/exec';
 
 window.addEventListener('DOMContentLoaded',()=>{
   const params=new URLSearchParams(window.location.search);
@@ -1642,28 +1700,17 @@ function toggleKpiFilter(type,cardEl){
   }
 }
 
-// ═══ SCREENSHOT ═══
-function saveChartImg(){
-  const inner=document.getElementById('expChartInner');
-  if(!inner)return;
-  const cv=inner.querySelector('canvas');
-  if(!cv){alert('ไม่พบกราฟ');return;}
-  // build download
-  const title=document.getElementById('expTitle')?.textContent||'chart';
-  const a=document.createElement('a');
-  a.download=`${title.replace(/[^a-zA-Z0-9ก-๙]/g,'_').slice(0,40)}_${new Date().toISOString().slice(0,10)}.png`;
-  // create composite with white/dark bg
-  const bg=document.createElement('canvas');
-  bg.width=cv.width;bg.height=cv.height;
-  const ctx=bg.getContext('2d');
-  ctx.fillStyle=document.body.classList.contains('light')?'#ffffff':'#181c27';
-  ctx.fillRect(0,0,bg.width,bg.height);
-  ctx.drawImage(cv,0,0);
-  a.href=bg.toDataURL('image/png');
-  a.click();
+// ═══ PAGE SWITCHING ═══
+let currentPage='replan';
+function switchPage(page){
+  currentPage=page;
+  document.getElementById('pageReplan').classList.toggle('active',page==='replan');
+  document.getElementById('pageAddpaper').classList.toggle('active',page==='addpaper');
+  document.getElementById('tabReplan').classList.toggle('active',page==='replan');
+  document.getElementById('tabAddpaper').classList.toggle('active',page==='addpaper');
 }
 
-// ═══ GAUGE — smooth gradient arc ═══
+// ═══ GAUGE (no needle, clean arc) ═══
 function renderGauge(con,coreData){
   con.innerHTML='';
   const tv=coreData.reduce((a,r)=>a+r.val,0);
@@ -1677,67 +1724,54 @@ function renderGauge(con,coreData){
   const w=document.createElement('div');w.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center';con.appendChild(w);
   const left=document.createElement('div');left.style.cssText='display:flex;flex-direction:column;align-items:center';
 
-  // Canvas gauge
-  const cv=document.createElement('canvas');cv.width=220;cv.height=140;left.appendChild(cv);
+  const cv=document.createElement('canvas');cv.width=220;cv.height=130;left.appendChild(cv);
   const c2=cv.getContext('2d');
-  const cx=110,cy=125,r=90,lw=16;
+  const cx=110,cy=118,r=88,lw=20;
 
-  // Background arc (theme-aware)
-  const bgColor=document.body.classList.contains('light')?'rgba(0,0,0,.08)':'rgba(255,255,255,.07)';
+  // BG track
+  const bgColor=document.body.classList.contains('light')?'rgba(0,0,0,.07)':'rgba(255,255,255,.06)';
   c2.beginPath();c2.arc(cx,cy,r,Math.PI,2*Math.PI);
-  c2.lineWidth=lw;c2.strokeStyle=bgColor;c2.lineCap='round';c2.stroke();
+  c2.lineWidth=lw;c2.strokeStyle=bgColor;c2.lineCap='butt';c2.stroke();
 
-  // Gradient arc cool→warm based on ratio
+  // Gradient fill arc
   const arcEnd=Math.PI+Math.min(pct,1.5)*Math.PI;
   const grad=c2.createLinearGradient(cx-r,cy,cx+r,cy);
   if(pass===null){
-    // no target — blue gradient
-    grad.addColorStop(0,'#3b8ef3');grad.addColorStop(1,'#a78bf6');
+    grad.addColorStop(0,'#3b8ef3');grad.addColorStop(1,'#9b59b6');
   }else if(pass){
-    // under target — cool: teal→green
     grad.addColorStop(0,'#3b8ef3');grad.addColorStop(0.5,'#2ec4b6');grad.addColorStop(1,'#2ecc71');
   }else{
-    // over target — warm: yellow→orange→red based on how far over
-    const excess=Math.min((pct-1)/0.5,1); // 0=just over 1=very over
-    grad.addColorStop(0,'#ffe066');
-    grad.addColorStop(0.4+excess*0.2,'#f5a623');
-    grad.addColorStop(1,'#e74c3c');
+    const ex=Math.min((pct-1)/0.5,1);
+    grad.addColorStop(0,'#ffe066');grad.addColorStop(0.35+ex*0.15,'#f5a623');grad.addColorStop(1,'#e74c3c');
   }
   c2.beginPath();c2.arc(cx,cy,r,Math.PI,arcEnd);
   c2.lineWidth=lw;c2.strokeStyle=grad;c2.lineCap='round';c2.stroke();
 
-  // Tick marks
-  c2.strokeStyle=document.body.classList.contains('light')?'rgba(0,0,0,.12)':'rgba(255,255,255,.1)';
-  c2.lineWidth=1.5;
-  for(let i=0;i<=10;i++){
-    const a=Math.PI+i*Math.PI/10;
-    const r1=r-lw/2-2,r2=r+lw/2+2;
-    c2.beginPath();c2.moveTo(cx+Math.cos(a)*r1,cy+Math.sin(a)*r1);c2.lineTo(cx+Math.cos(a)*r2,cy+Math.sin(a)*r2);c2.stroke();
-  }
+  // End dot glow
+  const endX=cx+Math.cos(arcEnd)*r, endY=cy+Math.sin(arcEnd)*r;
+  const glow=c2.createRadialGradient(endX,endY,0,endX,endY,lw*0.8);
+  const glowCol=pass===false?'rgba(231,76,60,.6)':pass===true?'rgba(46,204,113,.6)':'rgba(59,142,243,.6)';
+  glow.addColorStop(0,glowCol);glow.addColorStop(1,'rgba(0,0,0,0)');
+  c2.beginPath();c2.arc(endX,endY,lw*0.8,0,Math.PI*2);
+  c2.fillStyle=glow;c2.fill();
 
-  // Needle
-  const needleAngle=Math.PI+Math.min(pct,1.5)*Math.PI;
-  c2.save();c2.translate(cx,cy);c2.rotate(needleAngle);
-  c2.beginPath();c2.moveTo(-4,0);c2.lineTo(0,-r+8);c2.lineTo(4,0);c2.closePath();
-  c2.fillStyle=pass===false?'#e74c3c':pass===true?'#2ecc71':'#3b8ef3';
-  c2.fill();
-  c2.beginPath();c2.arc(0,0,5,0,Math.PI*2);
-  c2.fillStyle=document.body.classList.contains('light')?'#fff':'#181c27';
-  c2.fill();c2.restore();
+  // Min/Max labels
+  c2.font='10px IBM Plex Mono,monospace';
+  c2.fillStyle=document.body.classList.contains('light')?'rgba(0,0,0,.35)':'rgba(255,255,255,.3)';
+  c2.textAlign='left';c2.fillText('0',cx-r-4,cy+16);
+  c2.textAlign='right';c2.fillText(tA?fB(tA):'—',cx+r+4,cy+16);
 
-  // Value display
+  // Value
   const gv=document.createElement('div');
-  gv.style.cssText=`font-size:24px;font-weight:700;font-family:'IBM Plex Mono',monospace;margin-top:-10px;color:${pass===false?'var(--accent2)':pass===true?'var(--green)':'var(--blue)'};transition:color .3s;`;
+  gv.style.cssText=`font-size:26px;font-weight:700;font-family:'IBM Plex Mono',monospace;margin-top:-6px;color:${pass===false?'var(--accent2)':pass===true?'var(--green)':'var(--blue)'};transition:color .3s;`;
   gv.textContent=fB(tv);left.appendChild(gv);
-  const pctTxt=tA?`${(pct*100).toFixed(1)}% ของ Target`:'';
   const gs=document.createElement('div');gs.style.cssText='font-size:10px;color:var(--text2);margin-top:2px';
   gs.textContent=tA?(ds.length>0?`Dept Target: ${fB(tA)} THB`:`Target: ${fB(tA)} THB`):'ยังไม่มีข้อมูล Target';
   left.appendChild(gs);
-  if(tA){const pg=document.createElement('div');pg.style.cssText='font-size:9px;color:var(--text2);opacity:.7;margin-top:1px';pg.textContent=pctTxt;left.appendChild(pg);}
+  if(tA){const pg=document.createElement('div');pg.style.cssText='font-size:9px;color:var(--text2);opacity:.7;margin-top:1px';pg.textContent=`${(pct*100).toFixed(1)}% ของ Target`;left.appendChild(pg);}
   if(pass!==null){const b=document.createElement('div');b.className=`badge ${pass?'bg':'br'}`;b.style.marginTop='5px';b.textContent=pass?'✓ ผ่านเป้าหมาย':'⚠ เกินเป้าหมาย';left.appendChild(b);}
   w.appendChild(left);
 
-  // Right stat cards
   const right=document.createElement('div');right.style.cssText='display:flex;flex-direction:column;gap:8px';
   const dt=ds.length>0?ds.reduce((a,d)=>a+(targetData[d]||0),0):0;
   const deptLabel=ds.length===0?'—':ds.length===1?fB(dt)+' THB':`${ds.length} depts = ${fB(dt)} THB`;
@@ -1746,22 +1780,729 @@ function renderGauge(con,coreData){
    {l:'Value Jobs > 5K',v:fB(coreData.filter(r=>r.val>5000).reduce((a,r)=>a+r.val,0))+' THB',col:'var(--blue)'},
    {l:'รายการใหม่',v:fmt(coreData.filter(r=>r.isNew).length)+' items',col:'var(--yellow)'}
   ].forEach(s=>{
-    const b=document.createElement('div');b.style.cssText='background:var(--surface2);border-radius:6px;padding:8px 10px;transition:background .25s,border-color .25s;';
-    b.innerHTML=`<div style="font-size:9px;color:var(--text2)">${s.l}</div><div style="font-size:14px;font-weight:700;color:${s.col};font-family:'IBM Plex Mono',monospace;transition:color .3s">${s.v}</div>`;
+    const b=document.createElement('div');b.style.cssText='background:var(--surface2);border-radius:6px;padding:8px 10px;';
+    b.innerHTML=`<div style="font-size:9px;color:var(--text2)">${s.l}</div><div style="font-size:14px;font-weight:700;color:${s.col};font-family:'IBM Plex Mono',monospace">${s.v}</div>`;
     right.appendChild(b);
   });
   w.appendChild(right);
 }
 
-// Scroll + header shadow listener
-window.addEventListener('scroll',()=>{
-  const btn=document.getElementById('scrollTop');
-  if(btn)btn.classList.toggle('show',window.scrollY>400);
-  const hdr=document.querySelector('.hdr');
-  if(hdr)hdr.classList.toggle('scrolled',window.scrollY>10);
-},{passive:true});
+// ═══ SCREENSHOT — capture whole expand modal ═══
+async function saveChartImg(){
+  const modal=document.getElementById('expModal');
+  if(!modal){alert('ไม่พบ popup');return;}
+  const btn=document.querySelector('.exp-ss-btn');
+  if(btn){btn.classList.add('snap-flash');}
+  try{
+    const canvas=await html2canvas(modal,{
+      backgroundColor:document.body.classList.contains('light')?'#ffffff':'#181c27',
+      scale:2,useCORS:true,logging:false,
+      ignoreElements:el=>el.classList&&el.classList.contains('exp-ss-btn')
+    });
+    const a=document.createElement('a');
+    const title=document.getElementById('expTitle')?.textContent||'popup';
+    a.download=`${title.replace(/[^a-zA-Z0-9ก-๙]/g,'_').slice(0,40)}_${new Date().toISOString().slice(0,10)}.png`;
+    a.href=canvas.toDataURL('image/png');
+    a.click();
+  }catch(e){
+    // fallback: chart only
+    const cv=document.querySelector('#expChartInner canvas');
+    if(cv){
+      const bg=document.createElement('canvas');bg.width=cv.width;bg.height=cv.height;
+      const ctx=bg.getContext('2d');
+      ctx.fillStyle=document.body.classList.contains('light')?'#ffffff':'#181c27';
+      ctx.fillRect(0,0,bg.width,bg.height);ctx.drawImage(cv,0,0);
+      const a=document.createElement('a');a.href=bg.toDataURL('image/png');
+      a.download='chart.png';a.click();
+    }
+  }
+  setTimeout(()=>btn?.classList.remove('snap-flash'),400);
+}
+
+// ═══ PDF EXPORT — KPI + Monthly + Dept + Gauge ═══
+async function exportPDF(){
+  document.getElementById('exportMenu')?.classList.remove('open');
+  const {jsPDF}=window.jspdf;
+  if(!jsPDF){alert('jsPDF ไม่พร้อม กรุณารอสักครู่แล้วลองใหม่');return;}
+  const isLight=document.body.classList.contains('light');
+  const bg=isLight?'#f0f2f7':'#0f1117';
+  const surf=isLight?'#ffffff':'#181c27';
+  const textCol=isLight?[26,30,46]:[232,236,244];
+  const text2Col=isLight?[90,98,120]:[138,147,168];
+  const borderCol=isLight?[208,213,224]:[42,48,69];
+  const accentCol=isLight?[224,138,0]:[245,166,35];
+
+  const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const W=297,H=210,pad=12;
+  let y=pad;
+
+  // ── BG ──
+  pdf.setFillColor(...(isLight?[240,242,247]:[15,17,23]));
+  pdf.rect(0,0,W,H,'F');
+
+  // ── HEADER BAR ──
+  pdf.setFillColor(...(isLight?[255,255,255]:[24,28,39]));
+  pdf.rect(0,0,W,18,'F');
+  pdf.setFontSize(13);pdf.setTextColor(...textCol);pdf.setFont('helvetica','bold');
+  pdf.text('Replan Performance & Loss Overview',pad,11);
+  pdf.setFontSize(8);pdf.setTextColor(...text2Col);pdf.setFont('helvetica','normal');
+  const fY=document.getElementById('fY')?.value||'all';
+  const fM=document.getElementById('fM')?.value||'all';
+  const MNx=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const filterTxt=`Filter: Year=${fY} | Month=${fM==='all'?'All':MNx[parseInt(fM)]} | Records=${filteredData.length.toLocaleString()}`;
+  pdf.text(filterTxt,W-pad,11,{align:'right'});
+  pdf.text(`Generated: ${new Date().toLocaleDateString('th-TH')}`,W-pad,15,{align:'right'});
+  y=22;
+
+  // ── KPI CARDS row ──
+  const coreData=filteredData.filter(r=>!isExcl(r));
+  const tv=coreData.reduce((a,r)=>a+r.val,0);
+  const j5=coreData.filter(r=>r.val>5000);
+  const ni=coreData.filter(r=>r.isNew);
+  const tA=targetData['All']||targetData['all']||0;
+  const pct=tA?(tv-tA)/tA*100:null;
+  const pass=pct!==null?tv<=tA:null;
+  const kpis=[
+    {l:'Total Value (THB)',v:fB(tv),col:isLight?[26,111,212]:[59,142,243]},
+    {l:'Target (THB)',v:tA?fB(tA):'—',col:isLight?[224,138,0]:[245,166,35]},
+    {l:'Total Jobs',v:filteredData.length.toLocaleString(),col:isLight?[26,158,82]:[46,204,113]},
+    {l:'Jobs > 5K THB',v:j5.length.toLocaleString(),col:isLight?[192,57,43]:[231,76,60]},
+    {l:'New Items',v:ni.length.toLocaleString(),col:isLight?[200,146,10]:[255,224,102]},
+    {l:'vs Target',v:pct!==null?`${pass?'✓':''} ${Math.abs(pct).toFixed(1)}%`:'—',col:pass===false?[192,57,43]:pass===true?[26,158,82]:[90,90,90]},
+  ];
+  const kw=(W-pad*2-5*3)/6;
+  kpis.forEach((k,i)=>{
+    const kx=pad+i*(kw+3);
+    pdf.setFillColor(...(isLight?[255,255,255]:[24,28,39]));
+    pdf.setDrawColor(...borderCol);pdf.setLineWidth(.3);
+    pdf.roundedRect(kx,y,kw,16,2,2,'FD');
+    pdf.setFontSize(7);pdf.setTextColor(...text2Col);pdf.setFont('helvetica','normal');
+    pdf.text(k.l,kx+3,y+5);
+    pdf.setFontSize(11);pdf.setTextColor(...k.col);pdf.setFont('helvetica','bold');
+    pdf.text(k.v,kx+kw/2,y+13,{align:'center'});
+  });
+  y+=20;
+
+  // ── CHARTS: render off-screen canvases ──
+  // Monthly chart
+  const tmpDiv=document.createElement('div');tmpDiv.style.cssText='position:fixed;left:-9999px;top:-9999px;width:560px;height:220px;';document.body.appendChild(tmpDiv);
+  const mCv=document.createElement('canvas');mCv.width=560;mCv.height=220;tmpDiv.appendChild(mCv);
+  const mChart=buildMonthlyChart(mCv,coreData);
+
+  // Dept chart
+  const dCv=document.createElement('canvas');dCv.width=280;dCv.height=220;tmpDiv.appendChild(dCv);
+  let dChart=null;
+  try{dChart=buildDeptChart(dCv);}catch(e){}
+
+  // Gauge canvas (already rendered — capture from DOM)
+  const gaugeEl=document.getElementById('cardGauge');
+  let gaugeCanvas=null;
+  if(gaugeEl){gaugeCanvas=gaugeEl.querySelector('canvas');}
+
+  await new Promise(r=>setTimeout(r,300)); // wait for chart animation
+
+  // Monthly
+  const chartW=(W-pad*2-6)/2;
+  const chartH=65;
+  try{
+    const mImg=mCv.toDataURL('image/png');
+    pdf.setFillColor(...(isLight?[255,255,255]:[24,28,39]));
+    pdf.setDrawColor(...borderCol);pdf.setLineWidth(.3);
+    pdf.roundedRect(pad,y,chartW,chartH+8,2,2,'FD');
+    pdf.setFontSize(8);pdf.setTextColor(...textCol);pdf.setFont('helvetica','bold');
+    pdf.text('Monthly Value (THB)',pad+3,y+5);
+    pdf.addImage(mImg,'PNG',pad+2,y+7,chartW-4,chartH);
+  }catch(e){}
+
+  // Dept
+  try{
+    const dImg=dCv.toDataURL('image/png');
+    const dx=pad+chartW+6;
+    pdf.setFillColor(...(isLight?[255,255,255]:[24,28,39]));
+    pdf.setDrawColor(...borderCol);pdf.setLineWidth(.3);
+    pdf.roundedRect(dx,y,chartW,chartH+8,2,2,'FD');
+    pdf.setFontSize(8);pdf.setTextColor(...textCol);pdf.setFont('helvetica','bold');
+    pdf.text('Department Value',dx+3,y+5);
+    pdf.addImage(dImg,'PNG',dx+2,y+7,chartW-4,chartH);
+  }catch(e){}
+  y+=chartH+12;
+
+  // Gauge section
+  const gaugeW=90;
+  pdf.setFillColor(...(isLight?[255,255,255]:[24,28,39]));
+  pdf.setDrawColor(...borderCol);pdf.setLineWidth(.3);
+  pdf.roundedRect(pad,y,gaugeW,42,2,2,'FD');
+  pdf.setFontSize(8);pdf.setTextColor(...textCol);pdf.setFont('helvetica','bold');
+  pdf.text('KPI vs Target',pad+3,y+5);
+  if(gaugeCanvas){
+    try{
+      const gi=gaugeCanvas.toDataURL('image/png');
+      pdf.addImage(gi,'PNG',pad+2,y+7,40,28);
+    }catch(e){}
+  }
+  // Gauge stats
+  pdf.setFontSize(7);pdf.setTextColor(...text2Col);pdf.setFont('helvetica','normal');
+  const gstats=[
+    `Total: ${fB(tv)} THB`,
+    `Target: ${tA?fB(tA)+' THB':'—'}`,
+    `Jobs>5K: ${j5.length}`,
+    `Val>5K: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,
+  ];
+  gstats.forEach((s,i)=>pdf.text(s,pad+44,y+11+i*7));
+
+  // Summary text
+  const sx=pad+gaugeW+6;
+  const sw=W-pad-sx;
+  pdf.setFillColor(...(isLight?[255,255,255]:[24,28,39]));
+  pdf.setDrawColor(...borderCol);pdf.roundedRect(sx,y,sw,42,2,2,'FD');
+  pdf.setFontSize(8);pdf.setTextColor(...textCol);pdf.setFont('helvetica','bold');
+  pdf.text('Summary',sx+3,y+5);
+  pdf.setFontSize(7);pdf.setTextColor(...text2Col);pdf.setFont('helvetica','normal');
+  const sumLines=[
+    `• Total replan value: ${fB(tv)} THB  (${filteredData.length} jobs)`,
+    `• Jobs exceeding 5,000 THB: ${j5.length} jobs = ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,
+    `• New items (check=0): ${ni.length} items`,
+    pct!==null?`• vs Target: ${Math.abs(pct).toFixed(1)}% ${pass?'BELOW (PASS)':'ABOVE (FAIL)'}`:''
+  ].filter(Boolean);
+  sumLines.forEach((l,i)=>pdf.text(l,sx+3,y+11+i*7));
+
+  // cleanup
+  try{mChart.destroy();}catch(e){}
+  try{if(dChart)dChart.destroy();}catch(e){}
+  document.body.removeChild(tmpDiv);
+
+  // footer
+  pdf.setFontSize(7);pdf.setTextColor(...text2Col);
+  pdf.text('Replan Performance Dashboard',pad,H-5);
+  pdf.text(`Page 1 of 1`,W-pad,H-5,{align:'right'});
+
+  pdf.save(`replan_report_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+
+// ═══ ADDPAPER STATE ═══
+let apAllData=[],apFilteredData=[],apTargetData={};
+let apSelDepts=new Set(['__all__']),apAllDeptList=[];
+let apDomReady=false;
+const apCharts={monthly:null,dept:null,gauge:null,pareto_count:null,pareto_value:null,product:null};
+let apTblPage=0,ap_filterTimer=null;
+const AP_PAGE=100;
+let apGsr={field:'all',query:''};
+
+// ═══ ADDPAPER MODAL ═══
+function openAPModal(){document.getElementById('apOverlay').classList.remove('hidden');}
+function closeAPModal(){document.getElementById('apOverlay').classList.add('hidden');}
+
+// ── AP Tab switch ──
+function switchAPTab(t){
+  document.getElementById('apPXl').classList.toggle('on',t==='xl');
+  document.getElementById('apPGs').classList.toggle('on',t==='gs');
+  document.getElementById('apTab_xl').classList.toggle('on',t==='xl');
+  document.getElementById('apTab_gs').classList.toggle('on',t==='gs');
+}
+
+// ── AP GS fetch (same pattern as Replan) ──
+async function fetchAllAPPages(url,onProgress){
+  let allRows=[],headers=[],page=0,totalRows=999999;
+  while(allRows.length<totalRows){
+    const res=await fetch(url+'?page='+page,{redirect:'follow'});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const text=await res.text();
+    let j;try{j=JSON.parse(text);}catch(e){throw new Error('รูปแบบข้อมูลไม่ถูกต้อง');}
+    if(!j.apall||j.apall.length<2)break;
+    if(page===0){headers=j.apall[0];totalRows=j.totalRows||999999;}
+    const rows=j.apall.slice(page===0?1:0);
+    allRows=allRows.concat(rows);
+    if(onProgress)onProgress(allRows.length,totalRows,page);
+    if(rows.length<(j.pageSize||5000))break;
+    page++;
+  }
+  return{headers,rows:allRows};
+}
+
+async function loadAPGS(){
+  const url=document.getElementById('apGsUrl').value.trim();
+  if(!url){setSt('apGsSt','กรุณาใส่ URL',false);return;}
+  setSt('apGsSt','⏳ กำลังเชื่อมต่อ...',true);
+  try{
+    const{headers,rows}=await fetchAllAPPages(url);
+    if(rows.length<1)throw new Error('ไม่พบข้อมูล apall_');
+    const hd=headers.map(h=>String(h).toLowerCase().replace(/\s+/g,'_').trim());
+    const parsed=rows.map(row=>{const r={};hd.forEach((h,i)=>r[h]=row[i]);return r;});
+    parseAPData(parsed,'Google Sheets');
+    try{localStorage.setItem('apGsUrl',url);}catch(e){}
+    setSt('apGsSt','✅ โหลดสำเร็จ '+parsed.length.toLocaleString()+' rows!');
+    setTimeout(closeAPModal,1000);
+    switchPage('addpaper');
+  }catch(e){setSt('apGsSt','❌ '+e.message,false);}
+}
+
+async function autoAPGS(url){
+  showAPAutoLoading();
+  const setP=(pct,msg)=>{
+    const f=document.getElementById('apBarFill'),p=document.getElementById('apBarPct'),m=document.getElementById('apLoadMsg');
+    if(f)f.style.width=pct+'%';if(p)p.textContent=Math.round(pct)+'%';if(m&&msg)m.textContent=msg;
+  };
+  setP(8,'กำลังเชื่อมต่อ Google Sheets (Add Paper)...');
+  try{
+    const{headers,rows}=await fetchAllAPPages(url,(loaded,total)=>{
+      const pct=total>0?Math.min(10+loaded/total*80,90):50;
+      setP(pct,'โหลดข้อมูล... '+loaded.toLocaleString()+' rows');
+    });
+    if(rows.length<1)throw new Error('ไม่พบข้อมูล');
+    setP(95,'กำลังประมวลผล...');
+    const hd=headers.map(h=>String(h).toLowerCase().replace(/\s+/g,'_').trim());
+    const parsed=rows.map(row=>{const r={};hd.forEach((h,i)=>r[h]=row[i]);return r;});
+    setP(100,'✅ โหลดสำเร็จ!');
+    await new Promise(r=>setTimeout(r,400));
+    parseAPData(parsed,'Google Sheets');
+  }catch(e){
+    const c=document.getElementById('apCon');
+    if(c)c.innerHTML=`<div class="nd">❌ โหลดข้อมูลไม่สำเร็จ<br><small style="color:var(--accent2)">${e.message}</small><br><br><button class="btn pri" onclick="openAPModal()" style="padding:7px 18px;font-size:13px">📁 ตั้งค่าใหม่</button>&nbsp;<button class="btn" onclick="retryAPGS()" style="padding:7px 18px;font-size:13px">🔄 ลองใหม่</button></div>`;
+  }
+}
+
+function showAPAutoLoading(){
+  const c=document.getElementById('apCon');
+  if(!c)return;
+  c.innerHTML=`
+  <div class="nd" style="flex-direction:column;gap:20px;align-items:center;justify-content:center;width:100%;text-align:center;">
+    <div style="font-size:14px;color:var(--text)">⏳ กำลังโหลด Add Paper จาก Google Sheets...</div>
+    <div class="gs-loader">
+      <div class="gs-bar-wrap">
+        <div class="gs-bar-track"><div class="gs-bar-fill" id="apBarFill"></div></div>
+        <span class="gs-bar-pct" id="apBarPct">0%</span>
+      </div>
+      <div class="gs-dots"><span></span><span></span><span></span></div>
+    </div>
+    <div id="apLoadMsg" style="font-size:11px;color:var(--text2)">กำลังเชื่อมต่อ...</div>
+  </div>`;
+}
+
+function retryAPGS(){
+  try{const s=localStorage.getItem('apGsUrl');if(s)autoAPGS(s);}catch(e){openAPModal();}
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  // File input handler
+  const apFi=document.getElementById('apFi');
+  if(apFi)apFi.addEventListener('change',e=>{if(e.target.files[0])loadAPFile(e.target.files[0]);});
+  // Drag & drop
+  const apDz=document.getElementById('apDz');
+  if(apDz){
+    apDz.addEventListener('dragover',e=>{e.preventDefault();apDz.classList.add('ov');});
+    apDz.addEventListener('dragleave',()=>apDz.classList.remove('ov'));
+    apDz.addEventListener('drop',e=>{e.preventDefault();apDz.classList.remove('ov');if(e.dataTransfer.files[0])loadAPFile(e.dataTransfer.files[0]);});
+  }
+  // Auto-load AP GS from localStorage
+  const savedAPUrl=localStorage.getItem('apGsUrl')||AP_GS_URL||'';
+  if(savedAPUrl){
+    try{document.getElementById('apGsUrl').value=savedAPUrl;localStorage.setItem('apGsUrl',savedAPUrl);}catch(e){}
+    autoAPGS(savedAPUrl);
+  }
+});
+
+function setAPSt(msg,col){
+  const el=document.getElementById('apUpSt');
+  if(el){el.textContent=msg;el.style.color=col||'var(--text2)';}
+}
+
+function loadAPFile(file){
+  setAPSt('⏳ กำลังโหลด...','var(--text2)');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const sheetName=wb.SheetNames.find(n=>n.toLowerCase().startsWith('apall_')||n.toLowerCase().startsWith('addpaper'));
+      if(!sheetName){setAPSt('❌ ไม่พบ sheet ที่ขึ้นต้นด้วย apall_','var(--accent2)');return;}
+      const raw=XLSX.utils.sheet_to_json(wb.Sheets[sheetName]);
+      parseAPData(raw,file.name);
+      setAPSt(`✅ โหลดสำเร็จ ${apAllData.length.toLocaleString()} rows`,'var(--green)');
+      closeAPModal();
+    }catch(err){setAPSt('❌ Error: '+err.message,'var(--accent2)');}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ═══ ADDPAPER PARSE ═══
+function parseAPData(raw,src){
+  const n=k=>String(k).toLowerCase().replace(/\s+/g,'_').trim();
+  apAllData=raw.map(row=>{
+    const r={};Object.keys(row).forEach(k=>r[n(k)]=row[k]);
+    const jo=r.jo||'';
+    const code=r.code||'';
+    const sh=parseFloat(r.sh||r.sheet||0);
+    const cause=r.cause||r.reason||'';
+    const dept=r.dept||r.department||'';
+    const facc=r.facc||r.factory||'';
+    const mc=r.mc||r.machine_code||'';
+    const rawChk=r.check!==undefined?r.check:1;
+    const chk=isNaN(parseInt(rawChk))?1:parseInt(rawChk);
+    const val=parseFloat(r.val||r.value||0);
+    let yr=parseInt(r.year||0),mo=parseInt(r.month||0);
+    if(!yr||!mo){
+      const dv=r.date||'';
+      if(dv){
+        if(typeof dv==='number'){const dd=XLSX.SSF.parse_date_code(dv);yr=dd.y;mo=dd.m;}
+        else{const d=new Date(dv);if(!isNaN(d)){yr=d.getFullYear();mo=d.getMonth()+1;}}
+      }
+    }
+    return{jo,code,sh,cause,dept,facc,mc,check:chk,val,year:yr,month:mo,isNew:chk===0};
+  }).filter(r=>r.val!==0||r.jo);
+  apDomReady=false;
+  Object.keys(apCharts).forEach(k=>{if(apCharts[k]){try{apCharts[k].destroy();}catch(e){}apCharts[k]=null;}});
+  buildAPFilters();applyAPFilters();
+  document.getElementById('apSbar').style.display='flex';
+}
+
+// ═══ ADDPAPER DEMO ═══
+function loadDemoAP(){
+  closeAPModal();
+  const depts=['PR1','PR2','CON1','CON2','GL1'];
+  const causes=['ฉากตัด สับหลัง','ตัดยอดยกขึ้น ยกลง 2 รอบ','หมึกกอง','ยุยกระดาษ','เพลาทหลุด','ใบชั้นบอก','เมือเสียน้อย'];
+  const codes=['MB<1330>','TLC(ZC999.S)','NESI<166>','MJR<786R02>','TGT(Z907)','AJI(ZC073R02)','CRB(Z1911)','TTW(Z635.F)'];
+  const faccs=['F1','F2','F3'];
+  const mcs=['PRT08','PRT09','PRT10','PRT15','PRT03'];
+  apAllData=[];
+  [2025,2026].forEach(yr=>{
+    for(let m=1;m<=12;m++){
+      for(let i=0;i<Math.floor(Math.random()*12)+3;i++){
+        apAllData.push({
+          jo:Math.random()>.3?70000+Math.floor(Math.random()*15000):'',
+          code:codes[~~(Math.random()*codes.length)],
+          sh:Math.floor(Math.random()*3000)+100,
+          cause:causes[~~(Math.random()*causes.length)],
+          dept:depts[~~(Math.random()*depts.length)],
+          facc:faccs[~~(Math.random()*faccs.length)],
+          mc:mcs[~~(Math.random()*mcs.length)],
+          check:Math.random()<.2?0:1,
+          val:Math.floor(Math.random()*12000)+900,
+          year:yr,month:m,
+          isNew:false
+        });
+      }
+    }
+  });
+  apAllData=apAllData.map(r=>({...r,isNew:r.check===0}));
+  apDomReady=false;
+  Object.keys(apCharts).forEach(k=>{if(apCharts[k]){try{apCharts[k].destroy();}catch(e){}apCharts[k]=null;}});
+  buildAPFilters();applyAPFilters();
+  document.getElementById('apSbar').style.display='flex';
+  switchPage('addpaper');
+}
+
+// ═══ ADDPAPER FILTERS ═══
+function buildAPFilters(){}  // placeholder — filters embedded in header
+
+function applyAPFilters(){
+  clearTimeout(ap_filterTimer);
+  ap_filterTimer=setTimeout(()=>{
+    apFilteredData=apAllData;
+    renderAPAll();
+  },80);
+}
+
+function onSearchAP(){
+  const q=document.getElementById('apSfI').value.trim().toLowerCase();
+  const f=document.getElementById('apSfSel').value;
+  document.getElementById('apSfX').style.display=q?'block':'none';
+  if(!q){renderAPMainTable(apFilteredData);document.getElementById('apSc').style.display='none';return;}
+  const gv=(r,field)=>{
+    if(field==='all')return Object.values(r).join(' ').toLowerCase();
+    return String(r[field]||'').toLowerCase();
+  };
+  const matched=apFilteredData.filter(r=>gv(r,f).includes(q));
+  document.getElementById('apSN').textContent=matched.length.toLocaleString();
+  document.getElementById('apST').textContent=apFilteredData.length.toLocaleString();
+  document.getElementById('apSc').style.display='block';
+  renderAPMainTable(matched);
+}
+
+function clearSearchAP(){
+  document.getElementById('apSfI').value='';
+  document.getElementById('apSfX').style.display='none';
+  document.getElementById('apSc').style.display='none';
+  renderAPMainTable(apFilteredData);
+}
+
+// ═══ ADDPAPER RENDER ═══
+function renderAPAll(){
+  const apCon=document.getElementById('apCon');
+  if(!apCon)return;
+  const coreData=apFilteredData;
+
+  if(!apDomReady){
+    apCon.innerHTML='';
+    // Section 1: KPI
+    apCon.appendChild(mkSecLabel(1,'ภาพรวมมูลค่า Add Paper'));
+    const ks=document.createElement('div');ks.className='krow';ks.id='apKpiRow';apCon.appendChild(ks);
+
+    // Section 2: Monthly + Dept
+    apCon.appendChild(mkSecLabel(2,'แนวโน้มรายเดือน & แผนก'));
+    const g1=document.createElement('div');g1.className='g2';apCon.appendChild(g1);
+    const mC=mkCard('📅 Monthly Value (THB)','Add Paper monthly trend','ap_monthly');mC.id='apCardMonthly';g1.appendChild(mC);
+    const dC=mkCard('🏭 Department Value','by Department','ap_dept');dC.id='apCardDept';g1.appendChild(dC);
+
+    // Section 3: KPI gauge
+    apCon.appendChild(mkSecLabel(3,'ประเมินผล'));
+    const gRow=document.createElement('div');gRow.id='apGaugeRow';apCon.appendChild(gRow);
+    const gC=mkCard('🎯 KPI vs Target','');gC.id='apCardGauge';gRow.appendChild(gC);
+
+    // Section 4: Pareto
+    apCon.appendChild(mkSecLabel(4,'วิเคราะห์สาเหตุ'));
+    const g3=document.createElement('div');g3.className='g2';apCon.appendChild(g3);
+    const p1C=mkCard('📊 Pareto — สาเหตุ vs จำนวน','Top 10','ap_pareto_count');p1C.id='apCardPareto1';g3.appendChild(p1C);
+    const p2C=mkCard('📊 Pareto — สาเหตุ vs มูลค่า','Top 10','ap_pareto_value');p2C.id='apCardPareto2';g3.appendChild(p2C);
+
+    // Section 5: Product (code)
+    apCon.appendChild(mkSecLabel(5,'รหัสสินค้าที่มีมูลค่าสูงสุด'));
+    const g2=document.createElement('div');g2.className='g2';apCon.appendChild(g2);
+    const pC=mkCard('📦 Top 10 Codes by Value','','ap_product');pC.id='apCardProduct';g2.appendChild(pC);
+    g2.appendChild(document.createElement('div'));
+
+    // Section 6: Table
+    apCon.appendChild(mkSecLabel(6,'รายละเอียดทั้งหมด'));
+    const tCard=mkCard('📋 รายละเอียด Add Paper','');tCard.id='apTcMain';apCon.appendChild(tCard);
+
+    // Skeletons
+    ['apCardMonthly','apCardDept','apCardGauge','apCardPareto1','apCardPareto2','apCardProduct'].forEach((id,i)=>{
+      const h=[230,230,160,280,280,260][i];
+      document.getElementById(id)?.querySelector('.cbody')?.innerHTML && (document.getElementById(id).querySelector('.cbody').innerHTML=mkSkeleton(h));
+    });
+
+    apDomReady=true;
+    requestAnimationFrame(()=>_renderAPCharts(coreData,true));
+  }else{
+    apCon.style.transition='opacity .15s';apCon.style.opacity='.5';
+    ['apCardMonthly','apCardDept','apCardGauge','apCardPareto1','apCardPareto2','apCardProduct'].forEach((id,i)=>{
+      const el=document.getElementById(id);if(!el)return;
+      el.querySelector('.cbody').innerHTML=mkSkeleton([230,230,160,280,280,260][i]);
+    });
+    Object.keys(apCharts).forEach(k=>{if(apCharts[k]){try{apCharts[k].destroy();}catch(e){}apCharts[k]=null;}});
+    requestAnimationFrame(()=>{apCon.style.opacity='1';_renderAPCharts(coreData,false);});
+  }
+}
+
+function _renderAPCharts(coreData,isFirst){
+  // KPI
+  const ks=document.getElementById('apKpiRow');
+  if(ks)renderAPKPIs(ks,coreData);
+
+  // Table instant
+  const tCard=document.getElementById('apTcMain');
+  if(tCard)renderAPMainTable(coreData);
+
+  // Charts batch
+  setTimeout(()=>{
+    const mCb=document.getElementById('apCardMonthly')?.querySelector('.cbody');
+    if(mCb){mCb.innerHTML='';const w=document.createElement('div');w.style.cssText='position:relative;height:230px';mCb.appendChild(w);const cv=document.createElement('canvas');w.appendChild(cv);apCharts.monthly=buildAPMonthlyChart(cv,coreData);}
+    const dCb=document.getElementById('apCardDept')?.querySelector('.cbody');
+    if(dCb){dCb.innerHTML='';const w=document.createElement('div');w.style.cssText='position:relative;height:230px';dCb.appendChild(w);const cv=document.createElement('canvas');w.appendChild(cv);apCharts.dept=buildAPDeptChart(cv,coreData);}
+    const gCb=document.getElementById('apCardGauge')?.querySelector('.cbody');
+    if(gCb){gCb.innerHTML='';renderAPGauge(gCb,coreData);}
+  },50);
+  setTimeout(()=>{
+    const p1Cb=document.getElementById('apCardPareto1')?.querySelector('.cbody');
+    if(p1Cb)renderAPPareto(p1Cb,coreData,'count');
+    const p2Cb=document.getElementById('apCardPareto2')?.querySelector('.cbody');
+    if(p2Cb)renderAPPareto(p2Cb,coreData,'value');
+    const pCb=document.getElementById('apCardProduct')?.querySelector('.cbody');
+    if(pCb)renderAPProduct(pCb,coreData);
+  },120);
+}
+
+// ── AP KPI ──
+function renderAPKPIs(el,data){
+  const tv=data.reduce((a,r)=>a+r.val,0);
+  const tSh=data.reduce((a,r)=>a+r.sh,0);
+  const j5=data.filter(r=>r.val>5000);
+  const ni=data.filter(r=>r.isNew);
+  const cards=[
+    {l:'Total Value (THB)',v:fB(tv),c:'cb',cls:'b',sub:'มูลค่ารวม Add Paper'},
+    {l:'Total Sheet (sh)',v:fmt(Math.round(tSh)),c:'cp',cls:'p',sub:'จำนวนชีท/กระดาษรวม'},
+    {l:'Total Jobs',v:fmt(data.length),c:'cg',cls:'g',sub:'จำนวนรายการ'},
+    {l:'Jobs > 5,000 THB',v:fmt(j5.length),c:'cr',cls:'r',sub:`มูลค่ารวม: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`},
+    {l:'New Items',v:fmt(ni.length),c:'cy',cls:'y',sub:`มูลค่า: ${fB(ni.reduce((a,r)=>a+r.val,0))} THB`},
+    {l:'Avg Value / Job',v:fB(data.length?tv/data.length:0),c:'co',cls:'o',sub:'ค่าเฉลี่ยต่อรายการ'},
+  ];
+  el.innerHTML=cards.map(c=>`<div class="kc ${c.c}"><div class="kl">${c.l}</div><div class="kv ${c.cls}">${c.v}</div><div class="ks">${c.sub}</div></div>`).join('');
+}
+
+// ── AP Monthly Chart ──
+function buildAPMonthlyChart(cv,data){
+  const vals=Array.from({length:12},(_,i)=>data.filter(r=>r.month===i+1).reduce((a,r)=>a+r.val,0));
+  const colors=vals.map((_,i)=>`rgba(155,89,182,${vals[i]>0?.82:.2})`);
+  return new Chart(cv,{type:'bar',data:{labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],datasets:[{label:'Value (THB)',data:vals,backgroundColor:colors,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:()=>cssVar('--text2'),font:{size:10}}}},scales:{x:{grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:10}}},y:{grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:10},callback:v=>fB(v)}}}}});
+}
+
+// ── AP Dept Chart ──
+function buildAPDeptChart(cv,data){
+  const depts=[...new Set(data.map(r=>r.dept).filter(Boolean))];
+  const vals=depts.map(d=>data.filter(r=>r.dept===d).reduce((a,r)=>a+r.val,0));
+  const order=depts.map((d,i)=>({d,v:vals[i]})).sort((a,b)=>b.v-a.v);
+  const cols=order.map((_,i)=>{const t=i/(order.length-1||1);const rr=Math.round(59+t*(155-59)),g=Math.round(142+t*(89-142)),b=Math.round(243+t*(182-243));return `rgba(${rr},${g},${b},.85)`;});
+  return new Chart(cv,{type:'bar',data:{labels:order.map(x=>x.d),datasets:[{label:'Value',data:order.map(x=>x.v),backgroundColor:cols,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:10}}},y:{grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:10},callback:v=>fB(v)}}}}});
+}
+
+// ── AP Gauge (reuse same style but purple theme) ──
+function renderAPGauge(con,data){
+  con.innerHTML='';
+  const tv=data.reduce((a,r)=>a+r.val,0);
+  const tSh=data.reduce((a,r)=>a+r.sh,0);
+  const w=document.createElement('div');w.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center';con.appendChild(w);
+  const left=document.createElement('div');left.style.cssText='display:flex;flex-direction:column;align-items:center;';
+  const cv=document.createElement('canvas');cv.width=220;cv.height=130;left.appendChild(cv);
+  const c2=cv.getContext('2d');
+  const cx=110,cy=118,r=88,lw=20;
+  const bgCol=document.body.classList.contains('light')?'rgba(0,0,0,.07)':'rgba(255,255,255,.06)';
+  c2.beginPath();c2.arc(cx,cy,r,Math.PI,2*Math.PI);c2.lineWidth=lw;c2.strokeStyle=bgCol;c2.lineCap='butt';c2.stroke();
+  // Purple gradient arc — show ratio of val vs sh (meaningless but visual)
+  const pct=Math.min(tv/(tSh*3||1),1.5);
+  const arcEnd=Math.PI+pct*Math.PI;
+  const grad=c2.createLinearGradient(cx-r,cy,cx+r,cy);
+  grad.addColorStop(0,'#3b8ef3');grad.addColorStop(0.5,'#9b59b6');grad.addColorStop(1,'#e74c3c');
+  c2.beginPath();c2.arc(cx,cy,r,Math.PI,arcEnd);c2.lineWidth=lw;c2.strokeStyle=grad;c2.lineCap='round';c2.stroke();
+  c2.font='10px IBM Plex Mono,monospace';c2.fillStyle=document.body.classList.contains('light')?'rgba(0,0,0,.3)':'rgba(255,255,255,.25)';
+  c2.textAlign='left';c2.fillText('0',cx-r-4,cy+16);c2.textAlign='right';c2.fillText(fB(tSh)+'sh',cx+r+4,cy+16);
+  const gv=document.createElement('div');gv.style.cssText=`font-size:26px;font-weight:700;font-family:'IBM Plex Mono',monospace;margin-top:-6px;color:var(--purple);`;gv.textContent=fB(tv);left.appendChild(gv);
+  const gs=document.createElement('div');gs.style.cssText='font-size:10px;color:var(--text2);margin-top:2px;';gs.textContent=`Total: ${fB(tv)} THB`;left.appendChild(gs);
+  w.appendChild(left);
+  const right=document.createElement('div');right.style.cssText='display:flex;flex-direction:column;gap:8px';
+  const j5=data.filter(r=>r.val>5000);
+  [{l:'Total Sheet',v:fmt(Math.round(tSh))+' sh',col:'var(--purple)'},
+   {l:'Jobs > 5,000',v:fmt(j5.length)+' jobs',col:'var(--accent2)'},
+   {l:'Value > 5K',v:fB(j5.reduce((a,r)=>a+r.val,0))+' THB',col:'var(--blue)'},
+   {l:'New Items',v:fmt(data.filter(r=>r.isNew).length)+' items',col:'var(--yellow)'}
+  ].forEach(s=>{const b=document.createElement('div');b.style.cssText='background:var(--surface2);border-radius:6px;padding:8px 10px;';b.innerHTML=`<div style="font-size:9px;color:var(--text2)">${s.l}</div><div style="font-size:14px;font-weight:700;color:${s.col};font-family:'IBM Plex Mono',monospace">${s.v}</div>`;right.appendChild(b);});
+  w.appendChild(right);
+}
+
+// ── AP Pareto ──
+function renderAPPareto(con,data,mode){
+  con.innerHTML='';
+  const grp={};
+  data.forEach(r=>{const k=(r.cause||'ไม่ระบุ').trim();if(!grp[k])grp[k]={count:0,val:0,sh:0};grp[k].count++;grp[k].val+=r.val;grp[k].sh+=r.sh;});
+  const sorted=Object.entries(grp).map(([k,v])=>({cause:k,...v})).sort((a,b)=>mode==='count'?b.count-a.count:b.val-a.val).slice(0,10);
+  const labels=sorted.map(s=>s.cause.length>22?s.cause.slice(0,22)+'…':s.cause);
+  const barVals=sorted.map(s=>mode==='count'?s.count:s.val);
+  const total=barVals.reduce((a,v)=>a+v,0);
+  let cum=0;const cumPct=barVals.map(v=>{cum+=v;return total>0?parseFloat((cum/total*100).toFixed(1)):0;});
+  const barColors=barVals.map((_,i)=>{const t=i/(sorted.length-1||1);const rr=Math.round(155+t*(231-155)),g=Math.round(89+t*(76-89)),b=Math.round(182+t*(60-182));return `rgba(${rr},${g},${b},.82)`;});
+  const w=document.createElement('div');w.style.cssText='position:relative;height:280px';con.appendChild(w);
+  const cv=document.createElement('canvas');w.appendChild(cv);
+  new Chart(cv,{type:'bar',data:{labels,datasets:[{label:mode==='count'?'จำนวน':'มูลค่า',data:barVals,backgroundColor:barColors,borderRadius:3,yAxisID:'y',order:2},{label:'Cumulative %',data:cumPct,type:'line',borderColor:'#ffe066',borderWidth:2,pointRadius:3,fill:false,yAxisID:'y2',order:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:()=>cssVar('--text2'),font:{size:9},boxWidth:14}},tooltip:{callbacks:{label:ctx=>ctx.datasetIndex===0?' '+(mode==='count'?fmt(ctx.parsed.y)+' ครั้ง':fmt(ctx.parsed.y)+' THB'):' '+ctx.parsed.y+'%'}}},scales:{x:{grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:9}}},y:{grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:9},callback:v=>mode==='count'?fmt(v):fB(v)}},y2:{position:'right',grid:{display:false},ticks:{color:'#ffe066',font:{size:9},callback:v=>v+'%'},min:0,max:100}}}});
+}
+
+// ── AP Product (by code) ──
+function renderAPProduct(con,data){
+  con.innerHTML='';
+  const grp={};data.forEach(r=>{const k=r.code||'ไม่ระบุ';if(!grp[k])grp[k]=0;grp[k]+=r.val;});
+  const sorted=Object.entries(grp).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const w=document.createElement('div');w.style.cssText='position:relative;height:260px';con.appendChild(w);
+  const cv=document.createElement('canvas');w.appendChild(cv);
+  new Chart(cv,{type:'bar',data:{labels:sorted.map(([k])=>k.length>20?k.slice(0,20)+'…':k),datasets:[{label:'Value (THB)',data:sorted.map(([,v])=>v),backgroundColor:'rgba(155,89,182,.82)',borderRadius:3,indexAxis:'y'}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.parsed.x)+' THB'}}},scales:{x:{grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:9},callback:v=>fB(v)}},y:{grid:{display:false},ticks:{color:()=>cssVar('--text2'),font:{size:9}}}}}});
+}
+
+// ── AP Main Table ──
+function renderAPMainTable(data){
+  const card=document.getElementById('apTcMain');if(!card)return;
+  const badge=card.querySelector('.cb3');if(badge)badge.textContent=data.length.toLocaleString()+' rows';
+  const cbody=card.querySelector('.cbody');if(!cbody)return;
+  const totalPages=Math.ceil(data.length/AP_PAGE);
+  const page=Math.min(apTblPage,Math.max(0,totalPages-1));
+  apTblPage=page;
+  const slice=data.slice(page*AP_PAGE,(page+1)*AP_PAGE);
+  const cols=['date','jo','code','sh','cause','dept','facc','check','val','mc'];
+  const hdrs=['Date','JO','Code','sh','Cause','Dept','Facc','Chk','Value','MC'];
+  cbody.innerHTML=`
+    <div class="tw" style="max-height:300px">
+      <table>
+        <thead><tr>${hdrs.map((h,i)=>`<th>${h}</th>`).join('')}</tr></thead>
+        <tbody>${slice.map(r=>`<tr class="${r.val>=5000?'hi5k':''}">
+          <td>${r.year||''}/${String(r.month||'').padStart(2,'0')}</td>
+          <td>${r.jo||''}</td><td>${r.code||''}</td>
+          <td class="tr">${fmt(r.sh)}</td>
+          <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${r.cause||''}">${r.cause||''}</td>
+          <td>${r.dept||''}</td><td>${r.facc||''}</td>
+          <td>${r.check}</td>
+          <td class="tr ${r.val>=5000?'val5k':'val-normal'}">${fmt(r.val)}${r.val>=5000?'<span class="badge-hot">HIGH</span>':''}</td>
+          <td>${r.mc||''}</td>
+        </tr>`).join('')}</tbody>
+        <tfoot><tr><td colspan="8">Total ${data.length.toLocaleString()} rows</td><td class="tr">${fB(data.reduce((a,r)=>a+r.val,0))} THB</td><td></td></tr></tfoot>
+      </table>
+    </div>
+    ${totalPages>1?`<div class="pg-bar">
+      <div class="pg-info">${page*AP_PAGE+1}–${Math.min((page+1)*AP_PAGE,data.length)} จาก ${data.length.toLocaleString()}</div>
+      <div class="pg-btns">
+        <button class="pg-btn" ${page===0?'disabled':''} onclick="apTblPage=${page-1};renderAPMainTable(apFilteredData)">‹</button>
+        ${Array.from({length:Math.min(totalPages,7)},(_,i)=>{let p=i;if(totalPages>7){if(page<4)p=i;else if(page>totalPages-4)p=totalPages-7+i;else p=page-3+i;}return`<button class="pg-btn${p===page?' active':''}" onclick="apTblPage=${p};renderAPMainTable(apFilteredData)">${p+1}</button>`;}).join('')}
+        <button class="pg-btn" ${page===totalPages-1?'disabled':''} onclick="apTblPage=${page+1};renderAPMainTable(apFilteredData)">›</button>
+      </div>
+    </div>`:''}`;
+}
+
 </script>
 <button id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="กลับด้านบน">↑</button>
+
+<!-- ADDPAPER UPLOAD MODAL -->
+<div class="overlay hidden" id="apOverlay">
+  <div class="modal">
+    <h2>📄 Add Paper Data</h2>
+    <p class="modal-sub">อัปโหลด Excel หรือเชื่อมต่อ Google Sheets สำหรับข้อมูล Add Paper</p>
+    <div class="mtabs">
+      <div class="mt on" id="apTab_xl" onclick="switchAPTab('xl')">📂 Excel Upload</div>
+      <div class="mt" id="apTab_gs" onclick="switchAPTab('gs')">🔗 Google Sheets</div>
+    </div>
+    <!-- Excel pane -->
+    <div class="mpane on" id="apPXl">
+      <div class="dz" id="apDz" onclick="document.getElementById('apFi').click()">
+        <div class="dz-ico">📄</div>
+        <p>ลากไฟล์ .xlsx มาวางที่นี่ หรือคลิกเพื่อเลือก<br>
+        <small>ต้องมี sheet ขึ้นต้นด้วย <strong style="color:var(--accent)">apall_</strong><br>columns: date, JO, code, sh, cause, dept, facc, check, val, MC</small></p>
+        <button class="btn pri" onclick="event.stopPropagation();document.getElementById('apFi').click()">เลือกไฟล์</button>
+        <input type="file" id="apFi" accept=".xlsx,.xls" style="display:none">
+      </div>
+      <div id="apUpSt"></div>
+    </div>
+    <!-- Google Sheets pane -->
+    <div class="mpane" id="apPGs">
+      <div class="gss">
+        <div class="gsh">
+          <strong style="color:var(--text)">วิธีตั้งค่า Google Sheets สำหรับ Add Paper:</strong><br>
+          1. เปิด Google Sheets → <strong>Extensions → Apps Script</strong><br>
+          2. วางโค้ดนี้แล้ว Save:<br>
+          <code>function doGet(e){
+  var ss=SpreadsheetApp.getActiveSpreadsheet();
+  var ap=ss.getSheets().find(function(s){return s.getName().toLowerCase().indexOf('apall_')===0;});
+  var page=e&&e.parameter&&e.parameter.page?parseInt(e.parameter.page):0;
+  var pageSize=5000;
+  var apData=[]; var headers=[]; var totalRows=0;
+  if(ap){
+    var allData=ap.getDataRange().getValues();
+    headers=allData[0]; totalRows=allData.length-1;
+    var start=1+page*pageSize;
+    var end=Math.min(start+pageSize,allData.length);
+    apData=allData.slice(page===0?0:start,end);
+    if(page===0)apData=allData.slice(0,Math.min(1+pageSize,allData.length));
+  }
+  var d={apall:apData,totalRows:totalRows,pageSize:pageSize,page:page};
+  return ContentService.createTextOutput(JSON.stringify(d)).setMimeType(ContentService.MimeType.JSON);
+}</code><br><br>
+          3. กด <strong>Deploy → New deployment → Web App</strong><br>
+          &nbsp;&nbsp;&nbsp;— Execute as: <strong>Me</strong> | Who has access: <strong>Anyone</strong><br>
+          4. คัดลอก URL มาวางด้านล่าง
+        </div>
+        <input class="gsi" id="apGsUrl" placeholder="https://script.google.com/macros/s/…/exec">
+        <div id="apGsSt"></div>
+        <button class="btn pri" onclick="loadAPGS()">🔗 เชื่อมต่อและโหลดข้อมูล</button>
+        <div style="font-size:10px;color:var(--text2);margin-top:6px">URL จะถูกจำไว้ — ครั้งหน้าเปิดหน้าเว็บจะโหลดอัตโนมัติ</div>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn" onclick="loadDemoAP()">🎮 Demo AP</button>
+      <button class="btn" onclick="closeAPModal()">ปิด</button>
+    </div>
+  </div>
+</div>
 
 <!-- EXPAND MODAL -->
 <div class="exp-overlay" id="expOverlay" onclick="closeExp(event)">
