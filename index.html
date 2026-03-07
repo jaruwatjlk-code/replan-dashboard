@@ -781,6 +781,7 @@ body.pm .pm-exit{display:block;}
 <script>
 // ═══ STATE ═══
 let allData=[],filteredData=[],targetData={};
+let _nextKpiAnimate=false;
 let selDepts=new Set(['__all__']),allDeptList=[];
 
 // ═══ THEME ═══
@@ -1105,7 +1106,6 @@ function resetFilters(){
   // flag next render as animate
   _nextKpiAnimate=true;
 }
-let _nextKpiAnimate=false;
 function renderChips(){
   const ch=document.getElementById('chips');ch.innerHTML='';
   const add=(lbl,val,clr)=>{if(!val||val==='all')return;const c=document.createElement('div');c.className='chip';c.innerHTML=`${lbl}: <strong>${val}</strong><span style="margin-left:4px;font-size:14px" onclick="${clr}">×</span>`;ch.appendChild(c);};
