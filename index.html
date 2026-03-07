@@ -2487,23 +2487,25 @@ function parseAPData(raw,src){
     if(!yr||!mo){
       const dv=r.date||'';
       if(dv){
-        if(typeof dv==='number'){try{const dd=XLSX.SSF.parse_date_code(dv);yr=dd.y;mo=dd.m;}catch(e){}}
-        else{
-          // รองรับ dd-mm-yy, dd-mm-yyyy, dd/mm/yy, dd/mm/yyyy จาก Google Sheets Thai format
-          const sep=String(dv).includes('-')?'-':'/';
-          const parts=String(dv).split(sep);
-          if(parts.length===3){
-            const [p0,p1,p2]=parts.map(Number);
-            // ถ้า part[2] ดูเหมือนปี (>= 2000 หรือ >= 20 = ปี 2020+)
-            // format: dd-mm-yyyy หรือ dd-mm-yy
-            const fullYr=p2<100?(p2>=50?1900+p2:2000+p2):p2;
-            if(p1>=1&&p1<=12&&p0>=1&&p0<=31){
-              yr=fullYr; mo=p1; // dd-mm
-            } else {
-              // fallback: mm-dd
-              const d=new Date(dv);if(!isNaN(d)){yr=d.getFullYear();mo=d.getMonth()+1;}
+        if(typeof dv==='number'){
+          // Excel serial date
+          try{const dd=XLSX.SSF.parse_date_code(dv);yr=dd.y;mo=dd.m;}catch(e){}
+        } else {
+          const s=String(dv).trim();
+          // ISO format: "2026-02-04" หรือ "2026-02-04T..."
+          const isoM=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          if(isoM){yr=+isoM[1];mo=+isoM[2];}
+          else {
+            // dd/mm/yyyy หรือ dd-mm-yy หรือ dd/mm/yy (Thai format จาก GS)
+            const sep=s.includes('/')?'/':'-';
+            const pts=s.split(sep).map(p=>parseInt(p,10));
+            if(pts.length===3){
+              const [d,m,y2]=pts;
+              // p[0]=day, p[1]=month, p[2]=year (yy หรือ yyyy)
+              const fullY=y2<100?(y2>=50?1900+y2:2000+y2):y2;
+              if(m>=1&&m<=12&&d>=1&&d<=31){yr=fullY;mo=m;}
             }
-          }else{const d=new Date(dv);if(!isNaN(d)){yr=d.getFullYear();mo=d.getMonth()+1;}}
+          }
         }
       }
     }
@@ -3648,8 +3650,17 @@ function copyFilterToRP(){
     headers=allData[0]; totalRows=allData.length-1;
     var start=1+page*pageSize;
     var end=Math.min(start+pageSize,allData.length);
-    apData=allData.slice(page===0?0:start,end);
-    if(page===0)apData=allData.slice(0,Math.min(1+pageSize,allData.length));
+    var slice=page===0?allData.slice(0,Math.min(1+pageSize,allData.length)):allData.slice(start,end);
+    // format Date objects → "dd/mm/yyyy" string ก่อน JSON
+    apData=slice.map(function(row){
+      return row.map(function(cell){
+        if(cell instanceof Date){
+          var d=cell.getDate(),m=cell.getMonth()+1,y=cell.getFullYear();
+          return (d<10?'0'+d:d)+'/'+(m<10?'0'+m:m)+'/'+y;
+        }
+        return cell;
+      });
+    });
   }
   var d={apall:apData,totalRows:totalRows,pageSize:pageSize,page:page};
   return ContentService.createTextOutput(JSON.stringify(d)).setMimeType(ContentService.MimeType.JSON);
