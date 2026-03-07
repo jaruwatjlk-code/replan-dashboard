@@ -274,14 +274,16 @@ body.light .pareto-insight{background:linear-gradient(135deg,rgba(26,111,212,.06
 .exp-search input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:6px;font-size:11px;font-family:inherit;outline:none;}
 .exp-search input:focus{border-color:var(--accent);}
 
-/* Mobile: แนวตั้ง chart บน table ล่าง — scroll เหมือนหน้าปกติ */
+/* Mobile: แนวตั้ง chart บน table ล่าง — scroll ทั้ง popup */
 @media(max-width:768px){
   .exp-modal{width:100vw;height:100dvh;border-radius:0;border:none;animation:none;overflow:hidden;display:flex;flex-direction:column;}
-  .exp-body{display:flex;flex-direction:column;flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;min-height:0;touch-action:pan-y;}
-  .exp-chart-wrap{border-right:none;border-bottom:1px solid var(--border);padding:12px;height:55vw;min-height:200px;max-height:300px;flex-shrink:0;width:100%;}
+  /* exp-body scroll ทั้งก้อน ไม่ใช่แค่ตาราง */
+  .exp-body{display:block;flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;min-height:0;touch-action:pan-y;}
+  .exp-chart-wrap{border-right:none;border-bottom:1px solid var(--border);padding:12px;height:55vw;min-height:200px;max-height:300px;width:100%;}
   .exp-chart-inner{height:100%!important;width:100%!important;}
-  .exp-table-wrap{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
-  .exp-table-scroll{flex:1;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;min-height:0;max-height:none;}
+  .exp-table-wrap{display:flex;flex-direction:column;min-height:300px;}
+  /* ปลดล็อก scroll ของตาราง — ให้ parent เป็นคนจัดการแทน */
+  .exp-table-scroll{overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch;}
   .exp-table-scroll table{min-width:500px;}
   .exp-hdr{padding:8px 12px;position:sticky;top:0;z-index:10;background:var(--surface);}
   .exp-title{font-size:12px;}
@@ -2024,9 +2026,9 @@ function renderGauge(con,coreData){
   const w=document.createElement('div');w.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center';con.appendChild(w);
   const left=document.createElement('div');left.style.cssText='display:flex;flex-direction:column;align-items:center';
 
-  const cv=document.createElement('canvas');cv.width=240;cv.height=140;left.appendChild(cv);
+  const cv=document.createElement('canvas');cv.width=260;cv.height=160;left.appendChild(cv);
   const c2=cv.getContext('2d');
-  const cx=120,cy=126,r=94,lw=18;
+  const cx=130,cy=148,r=110,lw=18;
 
   // BG track
   const bgColor=document.body.classList.contains('light')?'rgba(0,0,0,.07)':'rgba(255,255,255,.06)';
@@ -2058,8 +2060,8 @@ function renderGauge(con,coreData){
   // Min/Max labels
   c2.font='bold 10px IBM Plex Mono,monospace';
   c2.fillStyle=document.body.classList.contains('light')?'rgba(0,0,0,.4)':'rgba(255,255,255,.35)';
-  c2.textAlign='left';c2.fillText('0',cx-r+4,cy+18);
-  c2.textAlign='right';c2.fillText(tA?fB(tA):'—',cx+r-4,cy+18);
+  c2.textAlign='left';c2.fillText('0',cx-r+4,cy+10);
+  c2.textAlign='right';c2.fillText(tA?fB(tA):'—',cx+r-4,cy+10);
 
   // Value
   const gv=document.createElement('div');
@@ -2088,35 +2090,56 @@ function renderGauge(con,coreData){
 }
 
 // ═══ SCREENSHOT — capture whole expand modal ═══
-async function saveChartImg(){
-  const modal=document.getElementById('expModal');
+async function saveChartImg(modalId){
+  // รองรับทั้ง expModal และ apExpModal
+  const mid = modalId || (document.getElementById('expOverlay')?.classList.contains('open') ? 'expModal' : 'apExpModal');
+  const modal = document.getElementById(mid);
   if(!modal){alert('ไม่พบ popup');return;}
-  const btn=document.querySelector('.exp-ss-btn');
-  if(btn){btn.classList.add('snap-flash');}
+
+  // ซ่อนปุ่มทั้งหมดใน header ก่อน capture
+  const btns = modal.querySelectorAll('.exp-ss-btn,.exp-close');
+  btns.forEach(b=>b.style.visibility='hidden');
+
+  // flash feedback
+  const allSnapBtns = document.querySelectorAll('.exp-ss-btn');
+  allSnapBtns.forEach(b=>b.classList.add('snap-flash'));
+
   try{
-    const canvas=await html2canvas(modal,{
-      backgroundColor:document.body.classList.contains('light')?'#ffffff':'#181c27',
-      scale:2,useCORS:true,logging:false,
-      ignoreElements:el=>el.classList&&el.classList.contains('exp-ss-btn')
+    const isLight = document.body.classList.contains('light');
+    const canvas = await html2canvas(modal,{
+      backgroundColor: isLight ? '#f0f2f7' : '#181c27',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      allowTaint: false,
     });
-    const a=document.createElement('a');
-    const title=document.getElementById('expTitle')?.textContent||'popup';
-    a.download=`${title.replace(/[^a-zA-Z0-9ก-๙]/g,'_').slice(0,40)}_${new Date().toISOString().slice(0,10)}.png`;
-    a.href=canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    const rawTitle = document.getElementById(mid==='expModal'?'expTitle':'apExpTitle')?.textContent || 'dashboard';
+    const dateStr = new Date().toISOString().slice(0,10);
+    a.download = `${rawTitle.replace(/[^a-zA-Z0-9ก-๙\s]/g,'').trim().replace(/\s+/g,'_').slice(0,40)}_${dateStr}.png`;
+    a.href = canvas.toDataURL('image/png');
     a.click();
   }catch(e){
-    // fallback: chart only
-    const cv=document.querySelector('#expChartInner canvas');
+    console.error('html2canvas error:',e);
+    // fallback: chart canvas only
+    const cv = modal.querySelector('.exp-chart-inner canvas');
     if(cv){
-      const bg=document.createElement('canvas');bg.width=cv.width;bg.height=cv.height;
-      const ctx=bg.getContext('2d');
-      ctx.fillStyle=document.body.classList.contains('light')?'#ffffff':'#181c27';
-      ctx.fillRect(0,0,bg.width,bg.height);ctx.drawImage(cv,0,0);
-      const a=document.createElement('a');a.href=bg.toDataURL('image/png');
-      a.download='chart.png';a.click();
+      const bg = document.createElement('canvas');
+      bg.width = cv.width; bg.height = cv.height;
+      const ctx = bg.getContext('2d');
+      ctx.fillStyle = document.body.classList.contains('light') ? '#ffffff' : '#181c27';
+      ctx.fillRect(0,0,bg.width,bg.height);
+      ctx.drawImage(cv,0,0);
+      const a = document.createElement('a');
+      a.href = bg.toDataURL('image/png');
+      a.download = 'chart.png';
+      a.click();
     }
+  }finally{
+    // คืนค่าปุ่มกลับ
+    btns.forEach(b=>b.style.visibility='');
+    setTimeout(()=>allSnapBtns.forEach(b=>b.classList.remove('snap-flash')), 400);
   }
-  setTimeout(()=>btn?.classList.remove('snap-flash'),400);
 }
 
 // ═══ PDF EXPORT — KPI + Monthly + Dept + Gauge ═══
@@ -2760,9 +2783,9 @@ function renderAPGauge(con,data){
 
   const w=document.createElement('div');w.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center';con.appendChild(w);
   const left=document.createElement('div');left.style.cssText='display:flex;flex-direction:column;align-items:center';
-  const cv=document.createElement('canvas');cv.width=240;cv.height=140;left.appendChild(cv);
+  const cv=document.createElement('canvas');cv.width=260;cv.height=160;left.appendChild(cv);
   const c2=cv.getContext('2d');
-  const cx=120,cy=126,r=94,lw=18;
+  const cx=130,cy=148,r=110,lw=18;
   const bgCol=document.body.classList.contains('light')?'rgba(0,0,0,.07)':'rgba(255,255,255,.06)';
   c2.beginPath();c2.arc(cx,cy,r,Math.PI,2*Math.PI);c2.lineWidth=lw;c2.strokeStyle=bgCol;c2.lineCap='butt';c2.stroke();
 
@@ -3505,7 +3528,7 @@ function copyFilterToRP(){
       <span class="exp-title" id="apExpTitle">—</span>
       <div style="display:flex;align-items:center;gap:6px">
         <span class="exp-badge" id="apExpBadge"></span>
-        <button class="exp-ss-btn" onclick="saveChartImg()" title="บันทึกกราฟเป็นรูป">📷 บันทึกกราฟ</button>
+        <button class="exp-ss-btn" onclick="saveChartImg('apExpModal')" title="บันทึกกราฟเป็นรูป">📷 บันทึกกราฟ</button>
         <button class="exp-close" onclick="closeAPExpBtn()">✕</button>
       </div>
     </div>
