@@ -1811,7 +1811,7 @@ function buildParetoChart(cv,data,mode){
     scales:{
       x:{grid:{display:false},ticks:{color:()=>cssVar('--text2'),font:{size:9},maxRotation:35}},
       y:{position:'left',grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:9},callback:v=>mode==='count'?v:fB(v)}},
-      y2:{position:'right',min:0,max:100,grid:{display:false},ticks:{color:'#ffe066',font:{size:9},callback:v=>v+'%'}}
+      y2:{position:'right',min:0,max:100,grid:{display:false},ticks:{color:'#000000',font:{size:9},callback:v=>v+'%'}}
     },
     animation:{onComplete(ctx){
       const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.font='8px IBM Plex Mono,monospace';c2.fillStyle=cssVar('--text');c2.textAlign='center';
@@ -3173,7 +3173,7 @@ function buildAPParetoChart(cv,data,mode){
     scales:{
       x:{grid:{display:false},ticks:{color:()=>cssVar('--text2'),font:{size:9},maxRotation:35}},
       y:{position:'left',grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:9},callback:v=>mode==='count'?v:fB(v)}},
-      y2:{position:'right',min:0,max:100,grid:{display:false},ticks:{color:'#ffe066',font:{size:9},callback:v=>v+'%'}}
+      y2:{position:'right',min:0,max:100,grid:{display:false},ticks:{color:'#000000',font:{size:9},callback:v=>v+'%'}}
     },
     animation:{onComplete(ctx){
       const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.font='8px IBM Plex Mono,monospace';c2.fillStyle=cssVar('--text');c2.textAlign='center';
