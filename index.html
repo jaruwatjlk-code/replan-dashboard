@@ -113,7 +113,7 @@ mark.hl{background:rgba(245,166,35,.35);border-radius:2px;padding:0 1px;}
 
 /* KPI */
 .krow{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}
-.kc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 14px 12px;position:relative;overflow:visible;transition:transform .2s var(--ease),box-shadow .2s var(--ease),border-color .15s;}
+.kc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 14px 12px;position:relative;overflow:visible;transition:transform .2s var(--ease),box-shadow .2s var(--ease),border-color .15s;isolation:isolate;}
 .kc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:10px 10px 0 0;pointer-events:none;}
 .kc.cb .kl{color:var(--blue);}.kc.cg .kl{color:var(--green);}.kc.co .kl{color:var(--accent);}
 .kc.cr .kl{color:var(--accent2);}.kc.cp .kl{color:var(--purple);}.kc.cy .kl{color:var(--yellow);}
@@ -121,13 +121,23 @@ mark.hl{background:rgba(245,166,35,.35);border-radius:2px;padding:0 1px;}
 .kc.cr::before{background:var(--accent2);}.kc.cp::before{background:var(--purple);}.kc.cy::before{background:var(--yellow);}
 .kc:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.35);}
 .kc:active{transform:translateY(-1px);}
-.kl{font-size:10px;color:var(--text);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-weight:600;opacity:.85;}
-.kv{font-size:21px;font-weight:700;font-family:'IBM Plex Mono',monospace;line-height:1;}
+.kc-glow{position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.055) 0%,transparent 65%);opacity:0;transition:opacity .3s;pointer-events:none;z-index:0;}
+.kc:hover .kc-glow{opacity:1;}
+.kl{font-size:10px;color:var(--text);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-weight:600;opacity:.85;position:relative;z-index:1;}
+.kv{font-size:21px;font-weight:700;font-family:'IBM Plex Mono',monospace;line-height:1;position:relative;z-index:1;}
 .kv.b{color:var(--blue);}.kv.g{color:var(--green);}.kv.o{color:var(--accent);}.kv.r{color:var(--accent2);}.kv.p{color:var(--purple);}.kv.y{color:var(--yellow);}
-.ks{font-size:10px;color:var(--text2);margin-top:4px;}
+.ks{font-size:10px;color:var(--text2);margin-top:4px;position:relative;z-index:1;}
 .k-tip{font-size:9px;color:var(--text2);opacity:.6;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;margin-top:3px;}
+.badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;margin-top:3px;position:relative;z-index:1;}
 .bg{background:rgba(46,204,113,.15);color:var(--green);}.br{background:rgba(231,76,60,.15);color:var(--accent2);}
+.trend-badge{display:inline-flex;align-items:center;gap:2px;padding:2px 6px;border-radius:20px;font-size:9px;font-weight:700;margin-top:5px;font-family:'IBM Plex Mono',monospace;position:relative;z-index:1;}
+.trend-up{background:rgba(231,76,60,.13);color:var(--accent2);}
+.trend-dn{background:rgba(46,204,113,.15);color:var(--green);}
+.trend-flat{background:rgba(138,147,168,.1);color:var(--text2);}
+body.light .trend-up{background:rgba(192,57,43,.09);}
+body.light .trend-dn{background:rgba(26,158,82,.09);}
+@keyframes kpiIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.kv.kpi-anim{animation:kpiIn .4s var(--ease) both;}
 
 /* GRID / CARD */
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -487,23 +497,76 @@ body.present-mode .present-btn{background:var(--accent2);color:#fff;border-color
 /* ── Mobile Bottom Nav ── */
 @media(max-width:700px){
   .page-tabs{display:none!important;}
-  .mob-nav{display:flex!important;}
+  .mob-nav{display:block!important;}
+  body{padding-bottom:62px!important;}
+  #scrollTop{bottom:74px!important;}
+  .pm-exit{top:auto!important;bottom:74px!important;right:12px!important;}
+  /* KPI horizontal carousel */
+  .krow{display:flex!important;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px;scrollbar-width:none;}
+  .krow::-webkit-scrollbar{display:none;}
+  .kc{flex:0 0 calc(50vw - 18px)!important;min-width:145px!important;scroll-snap-align:start;}
+  /* Charts full width */
+  .g2{grid-template-columns:1fr!important;}
+  .ai-bar{flex-wrap:wrap;}
+  .ai-start-btn{width:100%!important;}
 }
-.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);z-index:600;padding:6px 0 max(6px,env(safe-area-inset-bottom));box-shadow:0 -4px 20px rgba(0,0,0,.2);}
-.mob-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;cursor:pointer;color:var(--text2);transition:color .15s;font-size:9px;font-weight:600;letter-spacing:.04em;border:none;background:none;font-family:inherit;}
+.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:700;background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -2px 20px rgba(0,0,0,.18);}
+.mob-nav-inner{display:flex;padding-bottom:env(safe-area-inset-bottom,0px);}
+.mob-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px 6px;border:none;background:none;cursor:pointer;color:var(--text2);font-size:9px;font-weight:600;letter-spacing:.04em;font-family:inherit;transition:color .15s;-webkit-tap-highlight-color:transparent;}
 .mob-nav-item.active{color:var(--accent);}
-.mob-nav-item svg,.mob-nav-icon{font-size:18px;line-height:1;}
-@media(max-width:700px){
-  body{padding-bottom:60px!important;}
-  .present-btn{bottom:80px;}
-  #scrollTop{bottom:80px;}
-}
+.mob-nav-item .mni{font-size:20px;line-height:1.2;}
+.mob-sep{width:1px;background:var(--border);align-self:stretch;margin:7px 0;}
+
 
 /* ── KPI card enhanced hover ── */
 .kc{isolation:isolate;}
 .kc::after{content:'';position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.04) 0%,transparent 70%);opacity:0;transition:opacity .3s;pointer-events:none;}
 .kc:hover::after{opacity:1;}
 
+
+/* ═══ AI SUMMARY ═══ */
+.ai-wrap{margin:0 0 14px;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:var(--surface);}
+.ai-bar{display:flex;align-items:center;gap:10px;padding:11px 16px;background:linear-gradient(135deg,rgba(59,142,243,.07),rgba(155,89,182,.07));cursor:pointer;user-select:none;transition:background .2s;}
+.ai-bar:hover{background:linear-gradient(135deg,rgba(59,142,243,.13),rgba(155,89,182,.13));}
+.ai-bar-left{flex:1;display:flex;align-items:center;gap:10px;}
+.ai-icon{font-size:20px;flex-shrink:0;}
+.ai-title{font-size:12px;font-weight:700;color:var(--text);}
+.ai-sub{font-size:10px;color:var(--text2);margin-top:1px;}
+.ai-start-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:inherit;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;box-shadow:0 3px 12px rgba(59,142,243,.3);transition:all .2s var(--ease);}
+.ai-start-btn:hover{filter:brightness(1.12);transform:translateY(-1px);box-shadow:0 5px 18px rgba(59,142,243,.4);}
+.ai-start-btn:active{transform:translateY(0);}
+.ai-start-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+.ai-body{display:none;padding:14px 16px 16px;font-size:12.5px;line-height:1.8;color:var(--text);border-top:1px solid var(--border);}
+.ai-body.open{display:block;}
+.ai-body strong{color:var(--accent);}
+.ai-hl-bad{color:var(--accent2);font-weight:600;}
+.ai-hl-good{color:var(--green);font-weight:600;}
+.ai-foot{display:flex;align-items:center;justify-content:space-between;padding:7px 16px;background:var(--surface2);border-top:1px solid var(--border);font-size:10px;color:var(--text2);display:none;}
+.ai-foot.show{display:flex;}
+.ai-close-btn{background:none;border:1px solid var(--border);color:var(--text2);padding:2px 10px;border-radius:5px;font-size:10px;cursor:pointer;font-family:inherit;transition:all .15s;}
+.ai-close-btn:hover{border-color:var(--accent2);color:var(--accent2);}
+.ai-cursor::after{content:'▋';animation:aiCursorBlink .65s infinite;color:var(--accent);}
+@keyframes aiCursorBlink{0%,100%{opacity:1}50%{opacity:0}}
+.ai-spin{display:inline-block;animation:aiSpin .7s linear infinite;}
+@keyframes aiSpin{to{transform:rotate(360deg)}}
+
+/* ═══ PRESENTATION MODE ═══ */
+body.pm .hdr{display:none!important;}
+body.pm .page-tabs{top:0!important;}
+body.pm #rpFilters,body.pm #apFilters{display:none!important;}
+body.pm .chips{display:none!important;}
+body.pm .sbar{display:none!important;}
+body.pm .ai-wrap{display:none!important;}
+body.pm .upd{display:none!important;}
+body.pm .kv{font-size:clamp(22px,2.5vw,32px)!important;}
+body.pm .kl{font-size:12px!important;letter-spacing:.1em!important;}
+body.pm .ks{font-size:11px!important;}
+body.pm .kc{padding:20px 18px 16px!important;}
+body.pm .sec-label-txt{font-size:15px!important;font-weight:700!important;}
+body.pm .card{border-radius:14px!important;}
+.pm-exit{display:none;position:fixed;top:10px;right:14px;z-index:9999;background:var(--accent2);color:#fff;border:none;border-radius:8px;padding:6px 16px;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(231,76,60,.45);font-family:inherit;letter-spacing:.03em;}
+.pm-exit:hover{filter:brightness(1.1);}
+body.pm .pm-exit{display:block;}
 </style>
 </head>
 <body class="light">
@@ -668,6 +731,24 @@ body.present-mode .present-btn{background:var(--accent2);color:#fff;border-color
       <button class="sf-x" id="sfX" onclick="clearSearch()">×</button>
     </div>
     <div class="sc" id="sc">พบ <span id="sN">0</span> จาก <span id="sT">0</span></div>
+  </div>
+  <!-- AI SUMMARY PANEL -->
+  <div class="ai-wrap" id="aiPanel">
+    <div class="ai-bar" onclick="toggleAIBody()">
+      <div class="ai-bar-left">
+        <span class="ai-icon">🤖</span>
+        <div>
+          <div class="ai-title">AI Analysis — Replan Loss</div>
+          <div class="ai-sub">Claude วิเคราะห์ข้อมูลปัจจุบันให้อัตโนมัติ ภาษาไทย + English</div>
+        </div>
+      </div>
+      <button class="ai-start-btn" id="aiStartBtn" onclick="event.stopPropagation();runAI()">✨ AI วิเคราะห์</button>
+    </div>
+    <div class="ai-body" id="aiBody"></div>
+    <div class="ai-foot" id="aiFooter">
+      <span id="aiTimestamp"></span>
+      <button class="ai-close-btn" onclick="closeAI()">✕ ปิด</button>
+    </div>
   </div>
   <!-- MAIN CONTENT -->
   <div class="con" id="con">
@@ -1018,7 +1099,15 @@ function applyFilters(){
     if(con)requestAnimationFrame(()=>{con.style.transition='opacity .15s';con.style.opacity='1';});
   },80);
 }
-function resetFilters(){document.getElementById('fY').value='all';document.getElementById('fM').value='all';document.getElementById('fMc').value='all';msAll();}
+function resetFilters(){
+  document.getElementById('fY').value='all';
+  document.getElementById('fM').value='all';
+  document.getElementById('fMc').value='all';
+  msAll();
+  // flag next render as animate
+  _nextKpiAnimate=true;
+}
+let _nextKpiAnimate=false;
 function renderChips(){
   const ch=document.getElementById('chips');ch.innerHTML='';
   const add=(lbl,val,clr)=>{if(!val||val==='all')return;const c=document.createElement('div');c.className='chip';c.innerHTML=`${lbl}: <strong>${val}</strong><span style="margin-left:4px;font-size:14px" onclick="${clr}">×</span>`;ch.appendChild(c);};
@@ -1147,8 +1236,10 @@ function _renderCharts(coreData,scrollY,isFirst){
   // KPI (instant)
   const ks=document.getElementById('kpiRow');
   if(ks){
-    renderKPIs(ks,coreData);
-    renderKPIsClickable(ks); // add click handlers
+    const doAnim = isFirst || _nextKpiAnimate;
+    _nextKpiAnimate=false;
+    renderKPIs(ks, coreData, doAnim);
+    renderKPIsClickable(ks);
   }
   // Tables (instant)
   const t1=document.getElementById('tcMain'),t2=document.getElementById('tcNew');
@@ -1472,30 +1563,93 @@ function expChangePage(pg){
 }
 
 // ═══ KPIs (ไม่นับ MAT/OTHER/OUTWORK/CUTOUT) ═══
-function renderKPIs(el,coreData){
+// ═══ ANIMATED COUNTER ═══
+function animateKpiValue(el, endVal, isCurrency, delay=0){
+  const dur=700;
+  setTimeout(()=>{
+    el.classList.add('kpi-anim');
+    const start=performance.now();
+    function step(now){
+      const p=Math.min((now-start)/dur,1);
+      const ease=1-Math.pow(1-p,3);
+      const cur=Math.round(endVal*ease);
+      el.textContent=isCurrency?fB(cur):fmt(cur);
+      if(p<1)requestAnimationFrame(step);
+      else el.textContent=isCurrency?fB(endVal):fmt(endVal);
+    }
+    requestAnimationFrame(step);
+  }, delay);
+}
+
+// ═══ TREND vs PREV MONTH ═══
+function calcTrend(curData, yr, mo){
+  if(yr==='all'||mo==='all') return null;
+  let pYr=parseInt(yr), pMo=parseInt(mo)-1;
+  if(pMo<1){pMo=12; pYr--;}
+  const prev=allData.filter(r=>!isExcl(r)&&r.year===pYr&&r.month===pMo);
+  if(!prev.length) return null;
+  const cur=curData.reduce((a,r)=>a+r.val,0);
+  const prv=prev.reduce((a,r)=>a+r.val,0);
+  if(!prv) return null;
+  return (cur-prv)/prv*100;
+}
+function trendBadgeHtml(pct){
+  if(pct===null) return '';
+  if(Math.abs(pct)<0.5) return '<div class="trend-badge trend-flat">→ ทรงตัว</div>';
+  // Loss: ลด = ดี (green), เพิ่ม = แย่ (red)
+  const cls=pct>0?'trend-up':'trend-dn';
+  const icon=pct>0?'↑':'↓';
+  return `<div class="trend-badge ${cls}">${icon} ${Math.abs(pct).toFixed(1)}% vs เดือนก่อน</div>`;
+}
+
+// ═══ KPI GLOW EFFECT ═══
+function initKcGlow(rowEl){
+  rowEl.querySelectorAll('.kc').forEach(card=>{
+    if(card.querySelector('.kc-glow')) return;
+    const g=document.createElement('div'); g.className='kc-glow'; card.prepend(g);
+    card.addEventListener('mousemove',e=>{
+      const r=card.getBoundingClientRect();
+      card.style.setProperty('--mx',((e.clientX-r.left)/r.width*100).toFixed(1)+'%');
+      card.style.setProperty('--my',((e.clientY-r.top)/r.height*100).toFixed(1)+'%');
+    });
+  });
+}
+
+function renderKPIs(el, coreData, animate=false){
   const tv=coreData.reduce((a,r)=>a+r.val,0);
   const j5=coreData.filter(r=>r.val>5000);
   const ni=coreData.filter(r=>r.isNew);
-  const tA=targetData['All']||targetData['all']||0,tAv=targetData['Avg.']||targetData['avg']||0;
-  const pct=tA?(tv-tA)/tA*100:null,pass=pct!==null?tv<=tA:null;
-  // breakdown tooltip
+  const tA=targetData['All']||targetData['all']||0, tAv=targetData['Avg.']||targetData['avg']||0;
+  const pct=tA?(tv-tA)/tA*100:null, pass=pct!==null?tv<=tA:null;
   const depts=[...new Set(coreData.map(r=>r.dept).filter(Boolean))];
   const topDept=depts.map(d=>({d,v:coreData.filter(r=>r.dept===d).reduce((a,r)=>a+r.val,0)})).sort((a,b)=>b.v-a.v).slice(0,3).map(x=>`${x.d}: ${fB(x.v)}`).join(' / ');
+  const yr=document.getElementById('fY')?.value||'all';
+  const mo=document.getElementById('fM')?.value||'all';
+  const trend=calcTrend(coreData,yr,mo);
   const cards=[
-    {l:'Total Value (THB)',v:fB(tv),c:'cb',cls:'b',sub:tA?`Target: ${fB(tA)} THB`:'รวมทั้งหมด',tip:`Top Dept: ${topDept||'—'}`,bx:pct!==null?`<span class="badge ${pass?'bg':'br'}">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ต่ำกว่า':'เกิน'}เป้า</span>`:''},
-    {l:'Target All (THB)',v:tA?fB(tA):'—',c:'co',cls:'o',sub:'เป้าหมายรวม',tip:tAv?`Avg. Baseline: ${fB(tAv)} THB`:''},
-    {l:'Baseline Avg (THB)',v:tAv?fB(tAv):'—',c:'cp',cls:'p',sub:'ค่าเฉลี่ย Baseline',tip:tA&&tAv?`ต่างจาก Target: ${fB(Math.abs(tA-tAv))} THB`:''},
-    {l:'Total Jobs',v:fmt(filteredData.length),c:'cg',cls:'g',sub:'จำนวนรายการทั้งหมด',tip:`ค่าเฉลี่ยต่อ Job: ${filteredData.length?fB(tv/filteredData.length)+' THB':'—'}`},
-    {l:'Jobs > 5,000 THB',v:fmt(j5.length),c:'cr',cls:'r',sub:`มูลค่ารวม: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,tip:`คิดเป็น ${filteredData.length?((j5.length/filteredData.length)*100).toFixed(1)+'%':'-'} ของ jobs ทั้งหมด`},
-    {l:'รายการใหม่ (check=0)',v:fmt(ni.length),c:'cy',cls:'y',sub:`มูลค่ารวม: ${fB(ni.reduce((a,r)=>a+r.val,0))} THB`,tip:`คิดเป็น ${filteredData.length?((ni.length/filteredData.length)*100).toFixed(1)+'%':'-'} ของ jobs ทั้งหมด`},
+    {l:'Total Value (THB)',raw:tv,isCurr:true,cls:'b',c:'cb',sub:tA?`Target: ${fB(tA)} THB`:'รวมทั้งหมด',tip:`Top Dept: ${topDept||'—'}`,
+      bx:(pct!==null?`<span class="badge ${pass?'bg':'br'}">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ต่ำกว่า':'เกิน'}เป้า</span>`:'')+trendBadgeHtml(trend)},
+    {l:'Target All (THB)',raw:tA,isCurr:true,cls:'o',c:'co',sub:'เป้าหมายรวม',tip:tAv?`Avg. Baseline: ${fB(tAv)} THB`:''},
+    {l:'Baseline Avg (THB)',raw:tAv,isCurr:true,cls:'p',c:'cp',sub:'ค่าเฉลี่ย Baseline',tip:tA&&tAv?`ต่างจาก Target: ${fB(Math.abs(tA-tAv))} THB`:''},
+    {l:'Total Jobs',raw:filteredData.length,isCurr:false,cls:'g',c:'cg',sub:'จำนวนรายการทั้งหมด',tip:`ค่าเฉลี่ยต่อ Job: ${filteredData.length?fB(tv/filteredData.length)+' THB':'—'}`},
+    {l:'Jobs > 5,000 THB',raw:j5.length,isCurr:false,cls:'r',c:'cr',sub:`มูลค่ารวม: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,tip:`คิดเป็น ${filteredData.length?((j5.length/filteredData.length)*100).toFixed(1)+'%':'-'} ของ jobs ทั้งหมด`},
+    {l:'รายการใหม่ (check=0)',raw:ni.length,isCurr:false,cls:'y',c:'cy',sub:`มูลค่ารวม: ${fB(ni.reduce((a,r)=>a+r.val,0))} THB`,tip:`คิดเป็น ${filteredData.length?((ni.length/filteredData.length)*100).toFixed(1)+'%':'-'} ของ jobs ทั้งหมด`},
   ];
-  el.innerHTML=cards.map(c=>`
-    <div class="kc ${c.c}" ${c.tip?`data-tip="${c.tip}"`:''}> 
+  el.innerHTML=cards.map((c,i)=>`
+    <div class="kc ${c.c}" ${c.tip?`data-tip="${c.tip}"`:''}>
       <div class="kl">${c.l}</div>
-      <div class="kv ${c.cls}">${c.v}</div>
+      <div class="kv ${c.cls}" data-raw="${c.raw}" data-curr="${c.isCurr}" data-idx="${i}">${c.isCurr?fB(c.raw):fmt(c.raw)}</div>
       <div class="ks">${c.sub}</div>
       ${c.bx||''}
     </div>`).join('');
+  initKcGlow(el);
+  if(animate){
+    el.querySelectorAll('.kv[data-raw]').forEach((kvEl,i)=>{
+      const raw=parseFloat(kvEl.dataset.raw)||0;
+      const isCurr=kvEl.dataset.curr==='true';
+      animateKpiValue(kvEl, raw, isCurr, i*60);
+    });
+  }
 }
 
 // ═══ MONTHLY (ไม่นับ MAT/OTHER/OUTWORK/CUTOUT) ═══
@@ -1919,6 +2073,11 @@ function switchPage(page){
   document.getElementById('msp')?.classList.remove('open');
   document.getElementById('apMsp')?.classList.remove('open');
   updateCopyFilterBtn();
+  // sync mobile nav
+  ['Replan','Addpaper'].forEach(n=>{
+    const b=document.getElementById('mobBtn'+n);
+    if(b) b.classList.toggle('active', n.toLowerCase()===page);
+  });
 }
 
 // ═══ GAUGE (no needle, clean arc) ═══
@@ -3227,6 +3386,125 @@ async function exportAPPDF(){
   doc.text('Add Paper Dashboard  •  Page 1',W/2,H-3,{align:'center'});
   doc.save(`addpaper_report_${new Date().toISOString().slice(0,10)}.pdf`);
 }
+
+
+// ═══ AI SUMMARY ═══
+function toggleAIBody(){
+  const body=document.getElementById('aiBody');
+  if(body&&body.innerHTML.trim()) body.classList.toggle('open');
+}
+function closeAI(){
+  document.getElementById('aiBody').classList.remove('open');
+  document.getElementById('aiBody').innerHTML='';
+  document.getElementById('aiFooter').classList.remove('show');
+}
+
+async function runAI(){
+  const btn=document.getElementById('aiStartBtn');
+  const body=document.getElementById('aiBody');
+  const footer=document.getElementById('aiFooter');
+  if(!btn||!body) return;
+  if(!filteredData||filteredData.length===0){
+    body.innerHTML='<span style="color:var(--text2)">⚠ ไม่มีข้อมูล — กรุณาโหลดข้อมูลก่อน</span>';
+    body.classList.add('open'); return;
+  }
+  btn.innerHTML='<span class="ai-spin">⟳</span> กำลังวิเคราะห์…';
+  btn.disabled=true;
+  body.classList.add('open');
+  body.innerHTML='<span style="color:var(--text2);font-size:11px">⏳ Claude กำลังอ่านข้อมูล…</span>';
+  footer.classList.remove('show');
+
+  // Build compact data summary for prompt
+  const tv=filteredData.reduce((a,r)=>a+r.val,0);
+  const j5=filteredData.filter(r=>r.val>5000);
+  const ni=filteredData.filter(r=>r.isNew);
+  const tA=targetData['All']||targetData['all']||0;
+  const deptMap={};filteredData.forEach(r=>{deptMap[r.dept]=(deptMap[r.dept]||0)+r.val;});
+  const topDepts=Object.entries(deptMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([d,v])=>`${d}:${fB(v)}`).join(', ');
+  const causeMap={};filteredData.forEach(r=>{causeMap[r.cause]=(causeMap[r.cause]||0)+r.val;});
+  const topCauses=Object.entries(causeMap).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([c,v])=>`${c}:${fB(v)}`).join(', ');
+  const yr=document.getElementById('fY')?.value||'all';
+  const mo=document.getElementById('fM')?.value||'all';
+  const MNth=['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const period=yr==='all'?'ทุกปี':`ปี ${yr}${mo!=='all'?' เดือน '+MNth[parseInt(mo)]:''}`;
+  const vsTarget=tA?`${((tv/tA-1)*100).toFixed(1)}% vs target ${fB(tA)}`:'(ไม่มี target)';
+
+  const prompt=`คุณเป็น Factory Quality Analyst ผู้เชี่ยวชาญ วิเคราะห์ข้อมูล Replan Loss Dashboard นี้:
+
+📊 ช่วงเวลา: ${period}
+💰 มูลค่า Loss รวม: ${fB(tv)} THB (${vsTarget})
+📦 จำนวน Jobs: ${filteredData.length} รายการ
+🔴 Jobs > 5,000 THB: ${j5.length} รายการ (${filteredData.length?(j5.length/filteredData.length*100).toFixed(1):0}%)
+🆕 New Items: ${ni.length} รายการ
+🏭 Top Dept: ${topDepts||'—'}
+⚠️ Top Cause: ${topCauses||'—'}
+
+เขียนบทวิเคราะห์สั้น กระชับ 3-4 ย่อหน้า ภาษาไทยก่อน ตามด้วย English summary ในวงเล็บ
+ใช้ **bold** สำหรับตัวเลขสำคัญ
+โฟกัส: ภาพรวม → จุดเสี่ยงหลัก → ข้อแนะนำ
+ห้ามใช้ bullet points ใช้ paragraph เท่านั้น`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:700,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    if(!res.ok) throw new Error('API error '+res.status);
+    const json=await res.json();
+    const text=json.content?.[0]?.text||'ไม่สามารถวิเคราะห์ได้';
+    // Typewriter render
+    const html=text
+      .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+      .replace(/
+
+/g,'<br><br>').replace(/
+/g,'<br>');
+    body.innerHTML='';
+    body.classList.add('ai-cursor');
+    let i=0;
+    function type(){
+      if(i<html.length){
+        body.innerHTML=html.slice(0,i+1);
+        i+=Math.floor(Math.random()*4)+2;
+        setTimeout(type,10);
+      } else {
+        body.innerHTML=html;
+        body.classList.remove('ai-cursor');
+        footer.classList.add('show');
+        document.getElementById('aiTimestamp').textContent='วิเคราะห์เมื่อ '+new Date().toLocaleTimeString('th-TH');
+      }
+    }
+    type();
+  } catch(e){
+    body.innerHTML=`<span class="ai-hl-bad">⚠ Error: ${e.message}</span><br><small style="color:var(--text2)">ตรวจสอบว่าเปิดจาก HTTPS (GitHub Pages) ไม่ใช่ local file</small>`;
+  } finally{
+    btn.innerHTML='✨ วิเคราะห์อีกครั้ง';
+    btn.disabled=false;
+  }
+}
+
+
+// ═══ PRESENTATION MODE ═══
+function togglePM(){
+  const on=document.body.classList.toggle('pm');
+  if(on){
+    document.body._pmScroll=window.scrollY;
+    window.scrollTo({top:0,behavior:'smooth'});
+  } else {
+    window.scrollTo({top:document.body._pmScroll||0,behavior:'smooth'});
+  }
+}
+document.addEventListener('keydown',e=>{
+  const tag=e.target.tagName;
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
+  if(e.key==='p'||e.key==='P') togglePM();
+  if(e.key==='Escape'&&document.body.classList.contains('pm')) togglePM();
+});
 
 // ═══ SCROLL LISTENER ═══
 function updateScrollBtn(){
