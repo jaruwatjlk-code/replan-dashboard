@@ -2487,21 +2487,24 @@ function parseAPData(raw,src){
     if(!yr||!mo){
       const dv=r.date||'';
       if(dv){
+        const s=String(dv).trim();
         if(typeof dv==='number'){
           // Excel serial date
           try{const dd=XLSX.SSF.parse_date_code(dv);yr=dd.y;mo=dd.m;}catch(e){}
+        } else if(s.startsWith('__DATE__')){
+          // format จาก Apps Script: "__DATE__2026/02"
+          const pts=s.slice(8).split('/');
+          yr=+pts[0]; mo=+pts[1];
         } else {
-          const s=String(dv).trim();
           // ISO format: "2026-02-04" หรือ "2026-02-04T..."
           const isoM=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
           if(isoM){yr=+isoM[1];mo=+isoM[2];}
           else {
-            // dd/mm/yyyy หรือ dd-mm-yy หรือ dd/mm/yy (Thai format จาก GS)
+            // dd/mm/yyyy หรือ dd-mm-yy (Thai format fallback)
             const sep=s.includes('/')?'/':'-';
             const pts=s.split(sep).map(p=>parseInt(p,10));
             if(pts.length===3){
               const [d,m,y2]=pts;
-              // p[0]=day, p[1]=month, p[2]=year (yy หรือ yyyy)
               const fullY=y2<100?(y2>=50?1900+y2:2000+y2):y2;
               if(m>=1&&m<=12&&d>=1&&d<=31){yr=fullY;mo=m;}
             }
@@ -3651,12 +3654,11 @@ function copyFilterToRP(){
     var start=1+page*pageSize;
     var end=Math.min(start+pageSize,allData.length);
     var slice=page===0?allData.slice(0,Math.min(1+pageSize,allData.length)):allData.slice(start,end);
-    // format Date objects → "dd/mm/yyyy" string ก่อน JSON
+    // แปลง Date object → {year, month} ตรงๆ หลีกเลี่ยงปัญหา locale ทั้งหมด
     apData=slice.map(function(row){
       return row.map(function(cell){
-        if(cell instanceof Date){
-          var d=cell.getDate(),m=cell.getMonth()+1,y=cell.getFullYear();
-          return (d<10?'0'+d:d)+'/'+(m<10?'0'+m:m)+'/'+y;
+        if(cell instanceof Date && !isNaN(cell.getTime())){
+          return '__DATE__'+cell.getFullYear()+'/'+('0'+(cell.getMonth()+1)).slice(-2);
         }
         return cell;
       });
