@@ -897,13 +897,25 @@ function readXL(file){
 }
 
 // ═══ GOOGLE SHEETS ═══
+async function fetchWithTimeout(url, opts={}, ms=25000){
+  const ctrl=new AbortController();
+  const tid=setTimeout(()=>ctrl.abort(),ms);
+  try{
+    const res=await fetch(url,{...opts,signal:ctrl.signal});
+    clearTimeout(tid); return res;
+  }catch(e){
+    clearTimeout(tid);
+    if(e.name==='AbortError') throw new Error('หมดเวลาเชื่อมต่อ (>25s) — Google Sheets ตอบสนองช้า ลองใหม่อีกครั้ง');
+    throw e;
+  }
+}
 async function fetchAllPages(url,onProgress){
   let allRows=[], headers=[], page=0, totalRows=999999, targetRows=[];
   while(allRows.length<totalRows){
-    const res=await fetch(url+'?page='+page,{redirect:'follow'});
-    if(!res.ok)throw new Error('HTTP '+res.status);
+    const res=await fetchWithTimeout(url+'?page='+page,{redirect:'follow'},25000);
+    if(!res.ok)throw new Error('HTTP '+res.status+' — ตรวจสอบว่า Apps Script Deploy เป็น Anyone');
     const text=await res.text();
-    let j;try{j=JSON.parse(text);}catch(e){throw new Error('รูปแบบข้อมูลไม่ถูกต้อง');}
+    let j;try{j=JSON.parse(text);}catch(e){throw new Error('รูปแบบข้อมูลไม่ถูกต้อง — Apps Script อาจยังไม่ได้ Deploy');}
     if(!j.rpall||j.rpall.length<2)break;
     if(page===0){headers=j.rpall[0];if(j.target&&j.target.length>1)targetRows=j.target;totalRows=j.totalRows||999999;}
     const rows=j.rpall.slice(page===0?1:0);
@@ -997,7 +1009,7 @@ async function autoGS(url){
     parseData(parsed,'Google Sheets');
   }catch(e){
     const c=document.getElementById('con');
-    c.innerHTML=`<div class="nd">❌ โหลดข้อมูลไม่สำเร็จ<br><small style="color:var(--accent2)">${e.message}</small><br><br><button class="btn pri" onclick="openModal()" style="padding:7px 18px;font-size:13px">📁 ตั้งค่าใหม่</button>&nbsp;<button class="btn" onclick="retryGS()" style="padding:7px 18px;font-size:13px">🔄 ลองใหม่</button></div>`;
+    c.innerHTML=`<div class="nd">❌ โหลดข้อมูลไม่สำเร็จ<br><small style="color:var(--accent2)">${e.message}</small><br><small style="color:var(--text2);margin-top:6px;display:block">💡 ลองกด 🔄 ลองใหม่ก่อน — Google Sheets อาจ cold start ช้า 10-20 วินาที</small><br><button class="btn pri" onclick="retryGS()" style="padding:7px 18px;font-size:13px">🔄 ลองใหม่</button>&nbsp;<button class="btn" onclick="openModal()" style="padding:7px 18px;font-size:13px">📁 ตั้งค่าใหม่</button>&nbsp;<button class="btn" onclick="loadDemo()" style="padding:7px 18px;font-size:13px">🎮 Demo</button></div>`;
   }
 }
 function retryGS(){try{const s=localStorage.getItem('gsUrl');if(s){showAutoLoading();autoGS(s);}}catch(e){openModal();}}
@@ -2382,7 +2394,7 @@ function switchAPTab(t){
 async function fetchAllAPPages(url,onProgress){
   let allRows=[],headers=[],page=0,totalRows=999999;
   while(allRows.length<totalRows){
-    const res=await fetch(url+'?page='+page,{redirect:'follow'});
+    const res=await fetchWithTimeout(url+'?page='+page,{redirect:'follow'},25000);
     if(!res.ok)throw new Error('HTTP '+res.status);
     const text=await res.text();
     let j;try{j=JSON.parse(text);}catch(e){throw new Error('รูปแบบข้อมูลไม่ถูกต้อง');}
