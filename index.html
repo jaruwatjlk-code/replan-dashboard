@@ -967,7 +967,22 @@ function parseData(raw,src){
     const mach=r.machine||r.mach||'',cause=r.cause||r.reason||'',dept=r.dept||r.department||'';
     const rawChk=r.check!==undefined&&r.check!==""&&r.check!==null?r.check:(r.chk!==undefined?r.chk:1);const chk=isNaN(parseInt(rawChk))?1:parseInt(rawChk);
     let yr=parseInt(r.year||r.yr||0),mo=parseInt(r.month||r.mon||r.mth||0);
-    if(!yr||!mo){const dv=r.date||r.plan_date||r.replan_date||'';if(dv){if(typeof dv==='number'){const dd=XLSX.SSF.parse_date_code(dv);yr=dd.y;mo=dd.m;}else{const d=new Date(dv);if(!isNaN(d)){yr=d.getFullYear();mo=d.getMonth()+1;}}}}
+    if(!yr||!mo){
+      const dv=r.date||r.plan_date||r.replan_date||'';
+      if(dv){
+        if(typeof dv==='number'){const dd=XLSX.SSF.parse_date_code(dv);yr=dd.y;mo=dd.m;}
+        else{
+          const sep=String(dv).includes('-')?'-':'/';
+          const parts=String(dv).split(sep);
+          if(parts.length===3){
+            const [p0,p1,p2]=parts.map(Number);
+            const fullYr=p2<100?(p2>=50?1900+p2:2000+p2):p2;
+            if(p1>=1&&p1<=12&&p0>=1&&p0<=31){yr=fullYr;mo=p1;}
+            else{const d=new Date(dv);if(!isNaN(d)){yr=d.getFullYear();mo=d.getMonth()+1;}}
+          }else{const d=new Date(dv);if(!isNaN(d)){yr=d.getFullYear();mo=d.getMonth()+1;}}
+        }
+      }
+    }
     const val=parseFloat(r.val||r.value||r.amount||r.cost||0);
     const isNew=chk===0;
     return{jo,compnt,jo_problem:jp,machine:mach,cause,dept,year:yr,month:mo,val,check:chk,isNew};
@@ -2473,7 +2488,23 @@ function parseAPData(raw,src){
       const dv=r.date||'';
       if(dv){
         if(typeof dv==='number'){try{const dd=XLSX.SSF.parse_date_code(dv);yr=dd.y;mo=dd.m;}catch(e){}}
-        else{const d=new Date(dv);if(!isNaN(d)){yr=d.getFullYear();mo=d.getMonth()+1;}}
+        else{
+          // รองรับ dd-mm-yy, dd-mm-yyyy, dd/mm/yy, dd/mm/yyyy จาก Google Sheets Thai format
+          const sep=String(dv).includes('-')?'-':'/';
+          const parts=String(dv).split(sep);
+          if(parts.length===3){
+            const [p0,p1,p2]=parts.map(Number);
+            // ถ้า part[2] ดูเหมือนปี (>= 2000 หรือ >= 20 = ปี 2020+)
+            // format: dd-mm-yyyy หรือ dd-mm-yy
+            const fullYr=p2<100?(p2>=50?1900+p2:2000+p2):p2;
+            if(p1>=1&&p1<=12&&p0>=1&&p0<=31){
+              yr=fullYr; mo=p1; // dd-mm
+            } else {
+              // fallback: mm-dd
+              const d=new Date(dv);if(!isNaN(d)){yr=d.getFullYear();mo=d.getMonth()+1;}
+            }
+          }else{const d=new Date(dv);if(!isNaN(d)){yr=d.getFullYear();mo=d.getMonth()+1;}}
+        }
       }
     }
     return{jo,code,sh,cause,dept,facc,mc,check:chk,val,year:yr,month:mo,isNew:chk===0};
