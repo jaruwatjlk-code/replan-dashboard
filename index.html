@@ -2091,27 +2091,18 @@ function renderGauge(con,coreData){
 
 // ═══ SCREENSHOT — capture whole expand modal ═══
 async function saveChartImg(modalId){
-  // รองรับทั้ง expModal และ apExpModal
   const mid = modalId || (document.getElementById('expOverlay')?.classList.contains('open') ? 'expModal' : 'apExpModal');
   const modal = document.getElementById(mid);
   if(!modal){alert('ไม่พบ popup');return;}
-
-  // ซ่อนปุ่มทั้งหมดใน header ก่อน capture
   const btns = modal.querySelectorAll('.exp-ss-btn,.exp-close');
   btns.forEach(b=>b.style.visibility='hidden');
-
-  // flash feedback
   const allSnapBtns = document.querySelectorAll('.exp-ss-btn');
   allSnapBtns.forEach(b=>b.classList.add('snap-flash'));
-
   try{
     const isLight = document.body.classList.contains('light');
     const canvas = await html2canvas(modal,{
       backgroundColor: isLight ? '#f0f2f7' : '#181c27',
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      allowTaint: false,
+      scale: 2, useCORS: true, logging: false, allowTaint: false,
     });
     const a = document.createElement('a');
     const rawTitle = document.getElementById(mid==='expModal'?'expTitle':'apExpTitle')?.textContent || 'dashboard';
@@ -2121,22 +2112,17 @@ async function saveChartImg(modalId){
     a.click();
   }catch(e){
     console.error('html2canvas error:',e);
-    // fallback: chart canvas only
     const cv = modal.querySelector('.exp-chart-inner canvas');
     if(cv){
       const bg = document.createElement('canvas');
       bg.width = cv.width; bg.height = cv.height;
       const ctx = bg.getContext('2d');
       ctx.fillStyle = document.body.classList.contains('light') ? '#ffffff' : '#181c27';
-      ctx.fillRect(0,0,bg.width,bg.height);
-      ctx.drawImage(cv,0,0);
+      ctx.fillRect(0,0,bg.width,bg.height); ctx.drawImage(cv,0,0);
       const a = document.createElement('a');
-      a.href = bg.toDataURL('image/png');
-      a.download = 'chart.png';
-      a.click();
+      a.href = bg.toDataURL('image/png'); a.download = 'chart.png'; a.click();
     }
   }finally{
-    // คืนค่าปุ่มกลับ
     btns.forEach(b=>b.style.visibility='');
     setTimeout(()=>allSnapBtns.forEach(b=>b.classList.remove('snap-flash')), 400);
   }
@@ -2309,6 +2295,7 @@ let apDomReady=false;
 const apCharts={monthly:null,dept:null,gauge:null,pareto_count:null,pareto_value:null,product:null};
 let apGsr={field:'all',query:''};
 let apKpiActiveFilter=null;
+let _nextAPKpiAnimate=false;
 
 // ═══ ADDPAPER MODAL ═══
 function openAPModal(){document.getElementById('apOverlay').classList.remove('hidden');}
@@ -2556,35 +2543,37 @@ function resetAPFilters(){
   ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='all';});
   apSelDepts=new Set(['__all__']);
   updateAPMSBtn();renderAPMSItems();
+  _nextAPKpiAnimate=true;
   applyAPFilters();
 }
 
 // AP multi-select dept
 function toggleAPMS(){const p=document.getElementById('apMsp');p.classList.toggle('open');if(p.classList.contains('open'))document.getElementById('apMsSearch').focus();}
 function updateAPMSBtn(){
-  const btn=document.getElementById('apMsb');if(!btn)return;
-  const txt=document.getElementById('apMsTxt');if(!txt)return;
-  if(apSelDepts.has('__all__')||apSelDepts.size===0){txt.textContent='All Depts';}
-  else if(apSelDepts.size===1){txt.textContent=[...apSelDepts][0];}
-  else{txt.textContent=`${apSelDepts.size} Depts`;}
+  const el=document.getElementById('apMsTxt');if(!el)return;
+  if(apSelDepts.has('__all__')||apSelDepts.size===0)el.innerHTML='All Depts';
+  else if(apSelDepts.size===1)el.textContent=[...apSelDepts][0];
+  else el.innerHTML=[...apSelDepts].slice(0,2).join(', ')+` <span class="ms-cnt">${apSelDepts.size}</span>`;
 }
 function renderAPMSItems(){
   const list=document.getElementById('apMsList');if(!list)return;
   const q=(document.getElementById('apMsSearch')?.value||'').toLowerCase();
   const items=apAllDeptList.filter(d=>d.toLowerCase().includes(q));
-  list.innerHTML=items.map(d=>{
-    const on=apSelDepts.has(d)||apSelDepts.has('__all__');
-    return`<div class="msi${on?' on':''}" onclick="apMsToggle('${d}')">${on?'✓ ':''} ${d}</div>`;
-  }).join('');
+  const allOn=apSelDepts.has('__all__');
+  list.innerHTML=items.map(d=>`
+    <label class="msp-item">
+      <input type="checkbox" ${allOn||apSelDepts.has(d)?'checked':''} onchange="onAPDeptChk('${d}',this.checked)">
+      <span>${d}</span>
+    </label>`).join('');
 }
-function apMsToggle(d){
-  if(apSelDepts.has('__all__')){apSelDepts=new Set([d]);}
-  else if(apSelDepts.has(d)){apSelDepts.delete(d);if(apSelDepts.size===0)apSelDepts=new Set(['__all__']);}
-  else{apSelDepts.add(d);}
-  updateAPMSBtn();renderAPMSItems();applyAPFilters();
+function onAPDeptChk(d,chk){
+  apSelDepts.delete('__all__');
+  chk?apSelDepts.add(d):apSelDepts.delete(d);
+  if(apSelDepts.size===0||apSelDepts.size===apAllDeptList.length)apSelDepts=new Set(['__all__']);
+  updateAPMSBtn();applyAPFilters();
 }
 function apMsAll(){apSelDepts=new Set(['__all__']);updateAPMSBtn();renderAPMSItems();applyAPFilters();}
-function apMsClear(){apSelDepts=new Set(['__all__']);updateAPMSBtn();renderAPMSItems();applyAPFilters();}
+function apMsClear(){apSelDepts=new Set();updateAPMSBtn();renderAPMSItems();applyAPFilters();}
 document.addEventListener('click',e=>{
   const msw=document.getElementById('apMsw');
   if(msw&&!msw.contains(e.target))document.getElementById('apMsp')?.classList.remove('open');
@@ -2612,7 +2601,7 @@ function onSearchAP(){
   if(document.getElementById('apSfX'))document.getElementById('apSfX').style.display=q?'block':'none';
   apGsr={field:f,query:q};
   if(!q){renderAPMainTable(apFilteredData);document.getElementById('apSc').style.display='none';return;}
-  const gv=(r,field)=>{if(field==='all')return Object.values(r).join(' ').toLowerCase();return String(r[field]||'').toLowerCase();};
+  const gv=(r,field)=>{if(field==='all')return[r.jo,r.code,r.cause,r.dept,r.facc,r.mc].map(v=>String(v||'').toLowerCase()).join(' ');return String(r[field]||'').toLowerCase();};
   const matched=apFilteredData.filter(r=>gv(r,f).includes(q));
   if(document.getElementById('apSN'))document.getElementById('apSN').textContent=matched.length.toLocaleString();
   if(document.getElementById('apST'))document.getElementById('apST').textContent=apFilteredData.length.toLocaleString();
@@ -2625,6 +2614,39 @@ function clearSearchAP(){
   if(document.getElementById('apSc'))document.getElementById('apSc').style.display='none';
   apGsr={field:'all',query:''};
   renderAPMainTable(apFilteredData);
+}
+
+// ── refresh ตาราง AP หลัก (เฉพาะ tbody ไม่ rebuild ทั้ง card) ──
+function renderAPMainTable(data){
+  const t1=document.getElementById('apTcMain');
+  const t2=document.getElementById('apTcNew');
+  if(t1){
+    const card=t1;
+    const tbody=card.querySelector('tbody');
+    const foot=card.querySelector('tfoot');
+    const cnt=card.querySelector('.cb3');
+    const pgBar=card.querySelector('.pg-bar');
+    const inp=card.querySelector('input.ts2');
+    if(tbody&&foot&&cnt&&pgBar){
+      renderAPRows('apmain',data,tbody,foot,cnt,pgBar,inp?inp.value:'',false);
+    } else {
+      renderAPTable(card,data,'apmain',false);
+    }
+  }
+  if(t2){
+    const nd=data.filter(r=>r.isNew);
+    const card=t2;
+    const tbody=card.querySelector('tbody');
+    const foot=card.querySelector('tfoot');
+    const cnt=card.querySelector('.cb3');
+    const pgBar=card.querySelector('.pg-bar');
+    const inp=card.querySelector('input.ts2');
+    if(tbody&&foot&&cnt&&pgBar){
+      renderAPRows('apnew',nd,tbody,foot,cnt,pgBar,inp?inp.value:'',true);
+    } else {
+      renderAPTable(card,nd,'apnew',true);
+    }
+  }
 }
 
 function updateAPFbarBadge(){
@@ -2700,7 +2722,12 @@ function renderAPAll(){
 function _renderAPCharts(coreData,scrollY,isFirst){
   // KPI instant
   const ks=document.getElementById('apKpiRow');
-  if(ks){renderAPKPIs(ks,coreData);renderAPKPIsClickable(ks);}
+  if(ks){
+    const doAnim = isFirst || _nextAPKpiAnimate;
+    _nextAPKpiAnimate=false;
+    renderAPKPIs(ks,coreData,doAnim);
+    renderAPKPIsClickable(ks);
+  }
   // Tables instant
   const t1=document.getElementById('apTcMain'),t2=document.getElementById('apTcNew');
   if(t1){const badge=t1.querySelector('.cb3');if(badge)badge.textContent='';renderAPTable(t1,apFilteredData,'apmain');}
@@ -2726,23 +2753,54 @@ function _renderAPCharts(coreData,scrollY,isFirst){
   });
 }
 
+// ═══ AP TREND ═══
+function calcAPTrend(curData, yr, mo){
+  if(yr==='all'||mo==='all') return null;
+  let pYr=parseInt(yr), pMo=parseInt(mo)-1;
+  if(pMo<1){pMo=12; pYr--;}
+  const prev=apAllData.filter(r=>r.year===pYr&&r.month===pMo);
+  if(!prev.length) return null;
+  const cur=curData.reduce((a,r)=>a+r.val,0);
+  const prv=prev.reduce((a,r)=>a+r.val,0);
+  if(!prv) return null;
+  return (cur-prv)/prv*100;
+}
+
 // ═══ AP KPI CARDS ═══
-function renderAPKPIs(el,data){
+function renderAPKPIs(el, data, animate=false){
   const tv=data.reduce((a,r)=>a+r.val,0);
   const tSh=data.reduce((a,r)=>a+r.sh,0);
   const j5=data.filter(r=>r.val>5000);
   const ni=data.filter(r=>r.isNew);
   const depts=[...new Set(data.map(r=>r.dept).filter(Boolean))];
   const topDept=depts.map(d=>({d,v:data.filter(r=>r.dept===d).reduce((a,r)=>a+r.val,0)})).sort((a,b)=>b.v-a.v).slice(0,3).map(x=>`${x.d}: ${fB(x.v)}`).join(' / ');
+  const yr=document.getElementById('apFY')?.value||'all';
+  const mo=document.getElementById('apFM')?.value||'all';
+  const trend=calcAPTrend(data,yr,mo);
   const cards=[
-    {l:'Total Value (THB)',v:fB(tv),c:'cb',cls:'b',sub:'มูลค่ารวม Add Paper',tip:`Top Dept: ${topDept||'—'}`},
-    {l:'Total Sheet',v:fmt(Math.round(tSh))+' sh',c:'cp',cls:'p',sub:'จำนวนชีทรวมทั้งหมด',tip:`ค่าเฉลี่ย: ${data.length?fmt(Math.round(tSh/data.length))+' sh/job':'—'}`},
-    {l:'Total Jobs',v:fmt(data.length),c:'cg',cls:'g',sub:'จำนวนรายการทั้งหมด',tip:`ค่าเฉลี่ย: ${data.length?fB(tv/data.length)+' THB/job':'—'}`},
-    {l:'Jobs > 5,000 THB',v:fmt(j5.length),c:'cr',cls:'r',sub:`มูลค่ารวม: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,tip:`คิดเป็น ${data.length?((j5.length/data.length)*100).toFixed(1)+'%':'-'} ของ jobs ทั้งหมด`},
-    {l:'รายการใหม่ (check=0)',v:fmt(ni.length),c:'cy',cls:'y',sub:`มูลค่ารวม: ${fB(ni.reduce((a,r)=>a+r.val,0))} THB`,tip:`คิดเป็น ${data.length?((ni.length/data.length)*100).toFixed(1)+'%':'-'} ของ jobs ทั้งหมด`},
-    {l:'Avg Value / Job',v:fB(data.length?tv/data.length:0),c:'co',cls:'o',sub:'ค่าเฉลี่ยต่อรายการ',tip:'คำนวณจากทุกรายการใน filter'},
+    {l:'Total Value (THB)',raw:tv,isCurr:true,cls:'b',c:'cb',sub:'มูลค่ารวม Add Paper',tip:`Top Dept: ${topDept||'—'}`,
+      bx:trendBadgeHtml(trend)},
+    {l:'Total Sheet',raw:Math.round(tSh),isCurr:false,cls:'p',c:'cp',sub:'จำนวนชีทรวมทั้งหมด',tip:`ค่าเฉลี่ย: ${data.length?fmt(Math.round(tSh/data.length))+' sh/job':'—'}`,bx:''},
+    {l:'Total Jobs',raw:data.length,isCurr:false,cls:'g',c:'cg',sub:'จำนวนรายการทั้งหมด',tip:`ค่าเฉลี่ย: ${data.length?fB(tv/data.length)+' THB/job':'—'}`,bx:''},
+    {l:'Jobs > 5,000 THB',raw:j5.length,isCurr:false,cls:'r',c:'cr',sub:`มูลค่ารวม: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,tip:`คิดเป็น ${data.length?((j5.length/data.length)*100).toFixed(1)+'%':'-'} ของ jobs ทั้งหมด`,bx:''},
+    {l:'รายการใหม่ (check=0)',raw:ni.length,isCurr:false,cls:'y',c:'cy',sub:`มูลค่ารวม: ${fB(ni.reduce((a,r)=>a+r.val,0))} THB`,tip:`คิดเป็น ${data.length?((ni.length/data.length)*100).toFixed(1)+'%':'-'} ของ jobs ทั้งหมด`,bx:''},
+    {l:'Avg Value / Job',raw:data.length?Math.round(tv/data.length):0,isCurr:true,cls:'o',c:'co',sub:'ค่าเฉลี่ยต่อรายการ',tip:'คำนวณจากทุกรายการใน filter',bx:''},
   ];
-  el.innerHTML=cards.map(c=>`<div class="kc ${c.c}" ${c.tip?`data-tip="${c.tip}"`:''}><div class="kl">${c.l}</div><div class="kv ${c.cls}">${c.v}</div><div class="ks">${c.sub}</div></div>`).join('');
+  el.innerHTML=cards.map((c,i)=>`
+    <div class="kc ${c.c}" ${c.tip?`data-tip="${c.tip}"`:''}>
+      <div class="kl">${c.l}</div>
+      <div class="kv ${c.cls}" data-raw="${c.raw}" data-curr="${c.isCurr}" data-idx="${i}">${c.isCurr?fB(c.raw):fmt(c.raw)}</div>
+      <div class="ks">${c.sub}</div>
+      ${c.bx||''}
+    </div>`).join('');
+  initKcGlow(el);
+  if(animate){
+    el.querySelectorAll('.kv[data-raw]').forEach((kvEl,i)=>{
+      const raw=parseFloat(kvEl.dataset.raw)||0;
+      const isCurr=kvEl.dataset.curr==='true';
+      animateKpiValue(kvEl, raw, isCurr, i*60);
+    });
+  }
 }
 
 // AP KPI clickable filter
@@ -2804,8 +2862,8 @@ function renderAPGauge(con,data){
 
   c2.font='bold 10px IBM Plex Mono,monospace';
   c2.fillStyle=document.body.classList.contains('light')?'rgba(0,0,0,.4)':'rgba(255,255,255,.35)';
-  c2.textAlign='left';c2.fillText('0%',cx-r+2,cy+20);
-  c2.textAlign='right';c2.fillText('50%+',cx+r-2,cy+20);
+  c2.textAlign='left';c2.fillText('0%',cx-r+2,cy+10);
+  c2.textAlign='right';c2.fillText('50%+',cx+r-2,cy+10);
 
   const gv=document.createElement('div');
   gv.style.cssText=`font-size:clamp(20px,2.2vw,28px);font-weight:700;font-family:'IBM Plex Mono',monospace;margin-top:-4px;color:var(--purple);letter-spacing:-.02em;`;
@@ -3351,6 +3409,7 @@ function togglePM(){
     window.scrollTo({top:document.body._pmScroll||0,behavior:'smooth'});
   }
 }
+const togglePresentMode=togglePM;
 document.addEventListener('keydown',e=>{
   const tag=e.target.tagName;
   if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
