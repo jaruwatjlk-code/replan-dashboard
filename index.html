@@ -15,7 +15,7 @@
   --accent:#f59e0b;--accent2:#ef4444;
   --blue:#3b82f6;--green:#22c55e;--purple:#a855f7;
   --teal:#06b6d4;--indigo:#6366f1;
-  --text:#e2e8f4;--text2:#7c8aa0;--yellow:#b45309;
+  --text:#e2e8f4;--text2:#7c8aa0;--yellow:#fbbf24;
   --ease:cubic-bezier(.25,.46,.45,.94);--ease-out:cubic-bezier(0,.55,.45,1);
 }
 body.light{
@@ -23,7 +23,7 @@ body.light{
   --accent:#d97706;--accent2:#dc2626;
   --blue:#2563eb;--green:#16a34a;--purple:#9333ea;
   --teal:#0891b2;--indigo:#4f46e5;
-  --text:#1e2438;--text2:#52607a;--yellow:#fbbf24;
+  --text:#1e2438;--text2:#52607a;--yellow:#b45309;
 }
 html{scroll-behavior:smooth;}
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1811,7 +1811,7 @@ function buildParetoChart(cv,data,mode){
     scales:{
       x:{grid:{display:false},ticks:{color:()=>cssVar('--text2'),font:{size:9},maxRotation:35}},
       y:{position:'left',grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:9},callback:v=>mode==='count'?v:fB(v)}},
-      y2:{position:'right',min:0,max:100,grid:{display:false},ticks:{color:'#000000',font:{size:9},callback:v=>v+'%'}}
+      y2:{position:'right',min:0,max:100,grid:{display:false},ticks:{color:'#ffe066',font:{size:9},callback:v=>v+'%'}}
     },
     animation:{onComplete(ctx){
       const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.font='8px IBM Plex Mono,monospace';c2.fillStyle=cssVar('--text');c2.textAlign='center';
@@ -2167,160 +2167,234 @@ async function saveChartImg(modalId){
 async function exportPDF(){
   document.getElementById('exportMenu')?.classList.remove('open');
   const {jsPDF}=window.jspdf;
-  if(!jsPDF){alert('jsPDF ไม่พร้อม กรุณารอสักครู่แล้วลองใหม่');return;}
+  if(!jsPDF){alert('jsPDF ไม่พร้อม');return;}
+
   const isLight=document.body.classList.contains('light');
-  const bg=isLight?'#f0f2f7':'#0f1117';
-  const surf=isLight?'#ffffff':'#181c27';
-  const textCol=isLight?[26,30,46]:[232,236,244];
-  const text2Col=isLight?[90,98,120]:[138,147,168];
-  const borderCol=isLight?[208,213,224]:[42,48,69];
-  const accentCol=isLight?[224,138,0]:[245,166,35];
+  const BG   =isLight?[241,245,251]:[11,14,24];
+  const SURF =isLight?[255,255,255]:[20,24,39];
+  const SURF2=isLight?[232,237,247]:[26,31,48];
+  const TXT  =isLight?[30,36,56]  :[226,232,244];
+  const TXT2 =isLight?[82,96,122] :[124,138,160];
+  const BRD  =isLight?[209,217,236]:[37,44,66];
+  const RED  =[239,68,68];
+  const BLUE =[59,130,246];
+  const GRN  =[34,197,94];
+  const ORG  =[245,158,11];
+  const YLW  =[251,191,36];
+  const PRP  =[168,85,247];
 
   const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
-  const W=297,H=210,pad=12;
-  let y=pad;
+  const W=297,H=210,PAD=14;
 
-  // ── BG ──
-  pdf.setFillColor(...(isLight?[240,242,247]:[15,17,23]));
-  pdf.rect(0,0,W,H,'F');
-
-  // ── HEADER BAR ──
-  pdf.setFillColor(...(isLight?[255,255,255]:[24,28,39]));
-  pdf.rect(0,0,W,18,'F');
-  pdf.setFontSize(13);pdf.setTextColor(...textCol);pdf.setFont('helvetica','bold');
-  pdf.text('Replan Performance & Loss Overview',pad,11);
-  pdf.setFontSize(8);pdf.setTextColor(...text2Col);pdf.setFont('helvetica','normal');
-  const fY=document.getElementById('fY')?.value||'all';
-  const fM=document.getElementById('fM')?.value||'all';
-  const MNx=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const filterTxt=`Filter: Year=${fY} | Month=${fM==='all'?'All':MNx[parseInt(fM)]} | Records=${filteredData.length.toLocaleString()}`;
-  pdf.text(filterTxt,W-pad,11,{align:'right'});
-  pdf.text(`Generated: ${new Date().toLocaleDateString('th-TH')}`,W-pad,15,{align:'right'});
-  y=22;
-
-  // ── KPI CARDS row ──
   const coreData=filteredData.filter(r=>!isExcl(r));
   const tv=coreData.reduce((a,r)=>a+r.val,0);
   const j5=coreData.filter(r=>r.val>5000);
   const ni=coreData.filter(r=>r.isNew);
   const tA=targetData['All']||targetData['all']||0;
-  const pct=tA?(tv-tA)/tA*100:null;
+  const tAv=targetData['Avg.']||targetData['avg']||0;
+  const pct=tA?(tv/tA*100):null;
   const pass=pct!==null?tv<=tA:null;
-  const kpis=[
-    {l:'Total Value (THB)',v:fB(tv),col:isLight?[26,111,212]:[59,142,243]},
-    {l:'Target (THB)',v:tA?fB(tA):'—',col:isLight?[224,138,0]:[245,166,35]},
-    {l:'Total Jobs',v:filteredData.length.toLocaleString(),col:isLight?[26,158,82]:[46,204,113]},
-    {l:'Jobs > 5K THB',v:j5.length.toLocaleString(),col:isLight?[192,57,43]:[231,76,60]},
-    {l:'New Items',v:ni.length.toLocaleString(),col:isLight?[200,146,10]:[255,224,102]},
-    {l:'vs Target',v:pct!==null?`${pass?'✓':''} ${Math.abs(pct).toFixed(1)}%`:'—',col:pass===false?[192,57,43]:pass===true?[26,158,82]:[90,90,90]},
-  ];
-  const kw=(W-pad*2-5*3)/6;
-  kpis.forEach((k,i)=>{
-    const kx=pad+i*(kw+3);
-    pdf.setFillColor(...(isLight?[255,255,255]:[24,28,39]));
-    pdf.setDrawColor(...borderCol);pdf.setLineWidth(.3);
-    pdf.roundedRect(kx,y,kw,16,2,2,'FD');
-    pdf.setFontSize(7);pdf.setTextColor(...text2Col);pdf.setFont('helvetica','normal');
-    pdf.text(k.l,kx+3,y+5);
-    pdf.setFontSize(11);pdf.setTextColor(...k.col);pdf.setFont('helvetica','bold');
-    pdf.text(k.v,kx+kw/2,y+13,{align:'center'});
+  const fY=document.getElementById('fY')?.value||'all';
+  const fM=document.getElementById('fM')?.value||'all';
+  const da=selDepts.has('__all__')||selDepts.size===0;
+
+  // ── BG ──
+  pdf.setFillColor(...BG); pdf.rect(0,0,W,H,'F');
+
+  // ── HEADER: large title + date + chips ──
+  const hH=28;
+  pdf.setFillColor(...SURF); pdf.rect(0,0,W,hH,'F');
+  pdf.setDrawColor(...BRD); pdf.setLineWidth(.3); pdf.line(0,hH,W,hH);
+
+  // Title
+  pdf.setFontSize(18); pdf.setFont('helvetica','bold'); pdf.setTextColor(...TXT);
+  const dateLabel=(fM!=='all'&&fY!=='all')?`${MN[parseInt(fM)]} ${fY}`:(fY!=='all'?`Year ${fY}`:'All Periods');
+  pdf.text(dateLabel, PAD, 12);
+
+  // Dept chip
+  let chipX=PAD;
+  const chipY=16; const chipH=6;
+  const chips=[];
+  if(fY!=='all') chips.push('Year: '+fY);
+  if(fM!=='all') chips.push('Month: '+MN[parseInt(fM)]);
+  if(!da) chips.push('Dept: '+([...selDepts].slice(0,3).join(', ')+(selDepts.size>3?'…':'')));
+  chips.forEach(ch=>{
+    const cw=pdf.getStringUnitWidth(ch)*6.5*0.352+8;
+    pdf.setFillColor(...SURF2); pdf.roundedRect(chipX,chipY,cw,chipH,2,2,'F');
+    pdf.setDrawColor(...BRD); pdf.setLineWidth(.25); pdf.roundedRect(chipX,chipY,cw,chipH,2,2,'S');
+    pdf.setFontSize(6); pdf.setTextColor(...TXT2); pdf.setFont('helvetica','normal');
+    pdf.text(ch,chipX+4,chipY+4.2);
+    chipX+=cw+3;
   });
-  y+=20;
 
-  // ── CHARTS: render off-screen canvases ──
-  // Monthly chart
-  const tmpDiv=document.createElement('div');tmpDiv.style.cssText='position:fixed;left:-9999px;top:-9999px;width:560px;height:220px;';document.body.appendChild(tmpDiv);
-  const mCv=document.createElement('canvas');mCv.width=560;mCv.height=220;tmpDiv.appendChild(mCv);
+  // Logo area (right)
+  const logoX=W-60;
+  pdf.setFillColor(...RED); pdf.roundedRect(W-PAD-42,4,8,8,1,1,'F');
+  pdf.setFontSize(5); pdf.setTextColor(255,255,255); pdf.setFont('helvetica','bold');
+  pdf.text('SIAM',W-PAD-42+4,8.5,{align:'center'});
+  pdf.text('TOPPAN',W-PAD-42+4,11,{align:'center'});
+  pdf.setFontSize(9); pdf.setTextColor(...TXT); pdf.setFont('helvetica','bold');
+  pdf.text('SIAMTOPPAN',W-PAD-32,8.5);
+  pdf.setFontSize(6.5); pdf.setTextColor(...TXT2); pdf.setFont('helvetica','normal');
+  pdf.text('PACKAGING CO., LTD.',W-PAD-32,12.5);
+  pdf.setFontSize(6.5); pdf.setTextColor(...TXT2);
+  pdf.text(`Generated: ${new Date().toLocaleDateString('th-TH')}`,W-PAD,22,{align:'right'});
+
+  // Section label fn
+  const secLabel=(num,label,y)=>{
+    pdf.setFillColor(...BLUE); pdf.circle(PAD+3,y+3,3,'F');
+    pdf.setFontSize(6.5); pdf.setTextColor(255,255,255); pdf.setFont('helvetica','bold');
+    pdf.text(String(num),PAD+3,y+3.8,{align:'center'});
+    pdf.setFontSize(7.5); pdf.setTextColor(...TXT); pdf.setFont('helvetica','bold');
+    pdf.text(label,PAD+9,y+4.2);
+    pdf.setDrawColor(...BRD); pdf.setLineWidth(.2);
+    pdf.line(PAD+9+pdf.getStringUnitWidth(label)*7.5*0.352+4,y+3,W-PAD,y+3);
+  };
+
+  let y=hH+4;
+
+  // ── Section 1: KPI ──
+  secLabel(1,'ภาพรวมมูลค่า LOSS',y); y+=7;
+
+  const kpis=[
+    {l:'TOTAL VALUE (THB)', v:fB(tv),     sub:tA?`Target: ${fB(tA)} THB`:'', badge:pct!==null?(pass?`✓ ${(100-pct).toFixed(1)}% ต่ำกว่าเป้า`:`▲ ${(pct-100).toFixed(1)}% เกินเป้า`):'', badgePass:pass, col:BLUE},
+    {l:'TOTAL JOBS',        v:fmt(filteredData.length), sub:`ค่าเฉลี่ย: ${fB(filteredData.length?tv/filteredData.length:0)} THB/job`, badge:'', col:GRN},
+    {l:'JOBS > 5,000 THB',  v:fmt(j5.length), sub:`มูลค่ารวม: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`, badge:'', col:RED},
+    {l:'รายการใหม่ (CHECK=0)',v:fmt(ni.length), sub:`มูลค่ารวม: ${fB(ni.reduce((a,r)=>a+r.val,0))} THB`, badge:'', col:ORG},
+  ];
+  const kW=(W-PAD*2-kpis.length*3+3)/kpis.length, kH=22;
+  kpis.forEach((k,i)=>{
+    const kx=PAD+i*(kW+3);
+    pdf.setFillColor(...SURF); pdf.roundedRect(kx,y,kW,kH,2,2,'F');
+    pdf.setDrawColor(...BRD); pdf.setLineWidth(.25); pdf.roundedRect(kx,y,kW,kH,2,2,'S');
+    // top color bar
+    pdf.setFillColor(...k.col); pdf.roundedRect(kx,y,kW,1.5,1,1,'F');
+    // label
+    pdf.setFontSize(6); pdf.setTextColor(...TXT2); pdf.setFont('helvetica','normal');
+    pdf.text(k.l,kx+3,y+5);
+    // value
+    pdf.setFontSize(12); pdf.setTextColor(...k.col); pdf.setFont('helvetica','bold');
+    pdf.text(k.v,kx+3,y+13);
+    // sub
+    pdf.setFontSize(6); pdf.setTextColor(...TXT2); pdf.setFont('helvetica','normal');
+    if(k.sub) pdf.text(k.sub,kx+3,y+17.5);
+    // badge
+    if(k.badge){
+      const bCol=k.badgePass===true?GRN:k.badgePass===false?RED:TXT2;
+      pdf.setFontSize(6); pdf.setTextColor(...bCol); pdf.setFont('helvetica','bold');
+      pdf.text(k.badge,kx+3,y+21);
+    }
+  });
+  y+=kH+5;
+
+  // ── Section 2: Charts ──
+  secLabel(2,'แนวโน้มรายเดือน & แผนก',y); y+=7;
+
+  // Render charts off-screen
+  const tmp=document.createElement('div');
+  tmp.style.cssText='position:fixed;left:-9999px;top:0;width:600px;height:240px;';
+  document.body.appendChild(tmp);
+  const mCv=document.createElement('canvas'); mCv.width=600; mCv.height=240; tmp.appendChild(mCv);
+  const dCv=document.createElement('canvas'); dCv.width=380; dCv.height=240; tmp.appendChild(dCv);
+  const pCv=document.createElement('canvas'); pCv.width=380; pCv.height=240; tmp.appendChild(pCv);
   const mChart=buildMonthlyChart(mCv,coreData);
+  let dChart=null; try{dChart=buildDeptChart(dCv);}catch(e){}
+  // product chart — top 10
+  let pChart=null;
+  const grp={};coreData.forEach(r=>{const k=String(r.compnt||r.jo||'?');grp[k]=(grp[k]||0)+r.val;});
+  const top10=Object.entries(grp).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  if(top10.length){
+    pChart=new Chart(pCv,{type:'bar',data:{labels:top10.map(x=>x[0].slice(0,20)),datasets:[{data:top10.map(x=>x[1]),backgroundColor:top10.map((_,i)=>i<3?'rgba(59,130,246,.85)':'rgba(59,130,246,.45)'),borderRadius:3}]},options:{indexAxis:'y',responsive:false,plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>fB(v),font:{size:9}}},y:{ticks:{font:{size:8}}}}}});
+  }
 
-  // Dept chart
-  const dCv=document.createElement('canvas');dCv.width=280;dCv.height=220;tmpDiv.appendChild(dCv);
-  let dChart=null;
-  try{dChart=buildDeptChart(dCv);}catch(e){}
+  await new Promise(r=>setTimeout(r,400));
 
-  // Gauge canvas (already rendered — capture from DOM)
-  const gaugeEl=document.getElementById('cardGauge');
-  let gaugeCanvas=null;
-  if(gaugeEl){gaugeCanvas=gaugeEl.querySelector('canvas');}
-
-  await new Promise(r=>setTimeout(r,300)); // wait for chart animation
-
+  const cH=60; const cHalf=(W-PAD*2-6)/2;
   // Monthly
-  const chartW=(W-pad*2-6)/2;
-  const chartH=65;
   try{
-    const mImg=mCv.toDataURL('image/png');
-    pdf.setFillColor(...(isLight?[255,255,255]:[24,28,39]));
-    pdf.setDrawColor(...borderCol);pdf.setLineWidth(.3);
-    pdf.roundedRect(pad,y,chartW,chartH+8,2,2,'FD');
-    pdf.setFontSize(8);pdf.setTextColor(...textCol);pdf.setFont('helvetica','bold');
-    pdf.text('Monthly Value (THB)',pad+3,y+5);
-    pdf.addImage(mImg,'PNG',pad+2,y+7,chartW-4,chartH);
+    const img=mCv.toDataURL('image/png',1);
+    pdf.setFillColor(...SURF); pdf.roundedRect(PAD,y,cHalf,cH+8,2,2,'F');
+    pdf.setDrawColor(...BRD); pdf.setLineWidth(.25); pdf.roundedRect(PAD,y,cHalf,cH+8,2,2,'S');
+    pdf.setFontSize(7); pdf.setTextColor(...TXT); pdf.setFont('helvetica','bold');
+    pdf.text('📅 Monthly Value (THB)',PAD+3,y+5);
+    pdf.addImage(img,'PNG',PAD+2,y+7,cHalf-4,cH);
   }catch(e){}
-
   // Dept
   try{
-    const dImg=dCv.toDataURL('image/png');
-    const dx=pad+chartW+6;
-    pdf.setFillColor(...(isLight?[255,255,255]:[24,28,39]));
-    pdf.setDrawColor(...borderCol);pdf.setLineWidth(.3);
-    pdf.roundedRect(dx,y,chartW,chartH+8,2,2,'FD');
-    pdf.setFontSize(8);pdf.setTextColor(...textCol);pdf.setFont('helvetica','bold');
-    pdf.text('Department Value',dx+3,y+5);
-    pdf.addImage(dImg,'PNG',dx+2,y+7,chartW-4,chartH);
+    const img=dCv.toDataURL('image/png',1);
+    const dx=PAD+cHalf+6;
+    pdf.setFillColor(...SURF); pdf.roundedRect(dx,y,cHalf,cH+8,2,2,'F');
+    pdf.setDrawColor(...BRD); pdf.setLineWidth(.25); pdf.roundedRect(dx,y,cHalf,cH+8,2,2,'S');
+    pdf.setFontSize(7); pdf.setTextColor(...TXT); pdf.setFont('helvetica','bold');
+    pdf.text('🏭 Department Value',dx+3,y+5);
+    pdf.addImage(img,'PNG',dx+2,y+7,cHalf-4,cH);
   }catch(e){}
-  y+=chartH+12;
+  y+=cH+14;
 
-  // Gauge section
-  const gaugeW=90;
-  pdf.setFillColor(...(isLight?[255,255,255]:[24,28,39]));
-  pdf.setDrawColor(...borderCol);pdf.setLineWidth(.3);
-  pdf.roundedRect(pad,y,gaugeW,42,2,2,'FD');
-  pdf.setFontSize(8);pdf.setTextColor(...textCol);pdf.setFont('helvetica','bold');
-  pdf.text('KPI vs Target',pad+3,y+5);
-  if(gaugeCanvas){
-    try{
-      const gi=gaugeCanvas.toDataURL('image/png');
-      pdf.addImage(gi,'PNG',pad+2,y+7,40,28);
-    }catch(e){}
-  }
-  // Gauge stats
-  pdf.setFontSize(7);pdf.setTextColor(...text2Col);pdf.setFont('helvetica','normal');
-  const gstats=[
-    `Total: ${fB(tv)} THB`,
-    `Target: ${tA?fB(tA)+' THB':'—'}`,
-    `Jobs>5K: ${j5.length}`,
-    `Val>5K: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,
-  ];
-  gstats.forEach((s,i)=>pdf.text(s,pad+44,y+11+i*7));
+  // ── Section 5+6: Product chart + Top table ──
+  secLabel(5,'สินค้าที่มีมูลค่า LOSS สูงสุด (WHAT?)',y); y+=7;
 
-  // Summary text
-  const sx=pad+gaugeW+6;
-  const sw=W-pad-sx;
-  pdf.setFillColor(...(isLight?[255,255,255]:[24,28,39]));
-  pdf.setDrawColor(...borderCol);pdf.roundedRect(sx,y,sw,42,2,2,'FD');
-  pdf.setFontSize(8);pdf.setTextColor(...textCol);pdf.setFont('helvetica','bold');
-  pdf.text('Summary',sx+3,y+5);
-  pdf.setFontSize(7);pdf.setTextColor(...text2Col);pdf.setFont('helvetica','normal');
-  const sumLines=[
-    `• Total replan value: ${fB(tv)} THB  (${filteredData.length} jobs)`,
-    `• Jobs exceeding 5,000 THB: ${j5.length} jobs = ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,
-    `• New items (check=0): ${ni.length} items`,
-    pct!==null?`• vs Target: ${Math.abs(pct).toFixed(1)}% ${pass?'BELOW (PASS)':'ABOVE (FAIL)'}`:''
-  ].filter(Boolean);
-  sumLines.forEach((l,i)=>pdf.text(l,sx+3,y+11+i*7));
+  const prodW=cHalf; const tblW=cHalf;
+  // Product chart
+  try{
+    const img=pCv.toDataURL('image/png',1);
+    pdf.setFillColor(...SURF); pdf.roundedRect(PAD,y,prodW,50,2,2,'F');
+    pdf.setDrawColor(...BRD); pdf.setLineWidth(.25); pdf.roundedRect(PAD,y,prodW,50,2,2,'S');
+    pdf.setFontSize(7); pdf.setTextColor(...TXT); pdf.setFont('helvetica','bold');
+    pdf.text('🏆 Top 10 Products by Value',PAD+3,y+5);
+    pdf.addImage(img,'PNG',PAD+2,y+7,prodW-4,42);
+  }catch(e){}
+
+  // Table — top 10 rows
+  secLabel(6,'รายละเอียดทั้งหมด',y);
+  const tx=PAD+prodW+6; let ty=y;
+  pdf.setFillColor(...SURF); pdf.roundedRect(tx,ty,tblW,50,2,2,'F');
+  pdf.setDrawColor(...BRD); pdf.setLineWidth(.25); pdf.roundedRect(tx,ty,tblW,50,2,2,'S');
+  pdf.setFontSize(7); pdf.setTextColor(...TXT); pdf.setFont('helvetica','bold');
+  pdf.text('📋 รายละเอียดทั้งหมด',tx+3,ty+5);
+  ty+=8;
+  // table header
+  const cols=[{l:'JO',w:18},{l:'Component',w:38},{l:'Dept',w:14},{l:'Machine',w:20},{l:'Cause',w:38},{l:'Month',w:18},{l:'Value',w:20}];
+  let cx2=tx+2;
+  pdf.setFillColor(...SURF2); pdf.rect(tx+2,ty,tblW-4,5,'F');
+  cols.forEach(c=>{
+    pdf.setFontSize(5.5); pdf.setTextColor(...TXT2); pdf.setFont('helvetica','bold');
+    pdf.text(c.l,cx2+1,ty+3.5); cx2+=c.w;
+  });
+  ty+=5;
+  // rows
+  const rows=coreData.sort((a,b)=>b.val-a.val).slice(0,6);
+  rows.forEach((r,ri)=>{
+    if(ri%2===0){pdf.setFillColor(...(isLight?[248,250,254]:[22,27,44]));pdf.rect(tx+2,ty,tblW-4,5,'F');}
+    let rx=tx+2;
+    const cells=[r.jo,r.compnt,(r.dept||'').slice(0,6),(r.machine||''),(r.cause||'').slice(0,18),`${MN[r.month]||''} ${r.year||''}`,fB(r.val)];
+    cols.forEach((c,ci)=>{
+      const isVal=ci===cols.length-1;
+      pdf.setFontSize(5.5); pdf.setTextColor(isVal?(r.val>=5000?RED:TXT):TXT); pdf.setFont('helvetica',isVal?'bold':'normal');
+      pdf.text(String(cells[ci]||'').slice(0,c.w/2+1),rx+1,ty+3.5);
+      rx+=c.w;
+    });
+    if(r.val>=5000){
+      pdf.setFillColor(...RED); pdf.roundedRect(tx+tblW-10,ty+1,8,3,1,1,'F');
+      pdf.setFontSize(4.5); pdf.setTextColor(255,255,255); pdf.setFont('helvetica','bold');
+      pdf.text('HIGH',tx+tblW-6,ty+3.2,{align:'center'});
+    }
+    ty+=5;
+  });
 
   // cleanup
   try{mChart.destroy();}catch(e){}
   try{if(dChart)dChart.destroy();}catch(e){}
-  document.body.removeChild(tmpDiv);
+  try{if(pChart)pChart.destroy();}catch(e){}
+  document.body.removeChild(tmp);
 
-  // footer
-  pdf.setFontSize(7);pdf.setTextColor(...text2Col);
-  pdf.text('Replan Performance Dashboard',pad,H-5);
-  pdf.text(`Page 1 of 1`,W-pad,H-5,{align:'right'});
+  // ── FOOTER ──
+  pdf.setFillColor(...BLUE); pdf.rect(0,H-8,W,8,'F');
+  pdf.setFontSize(6.5); pdf.setTextColor(255,255,255); pdf.setFont('helvetica','normal');
+  pdf.text('Replan Performance Dashboard  •  Siam Toppan Packaging Co., Ltd.',PAD,H-3.5);
+  pdf.text(`Page 1 of 1  •  ${new Date().toLocaleDateString('th-TH')}`,W-PAD,H-3.5,{align:'right'});
 
-  pdf.save(`replan_report_${new Date().toISOString().slice(0,10)}.pdf`);
+  pdf.save(`replan_report_${fY}_${MN[parseInt(fM)]||'All'}_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 
 // ═══ ADDPAPER STATE ═══
@@ -2496,17 +2570,20 @@ function parseAPData(raw,src){
           const pts=s.slice(8).split('/');
           yr=+pts[0]; mo=+pts[1];
         } else {
-          // ISO format: "2026-02-04" หรือ "2026-02-04T..."
+          // ISO: "2026-02-04" หรือ "2026-02-04T..."
           const isoM=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
           if(isoM){yr=+isoM[1];mo=+isoM[2];}
           else {
-            // dd/mm/yyyy หรือ dd-mm-yy (Thai format fallback)
+            // Thai format: "d/m/yy" หรือ "dd/mm/yy" หรือ "d/m/yyyy"
+            // ถือเสมอว่า [0]=วัน [1]=เดือน [2]=ปี
             const sep=s.includes('/')?'/':'-';
             const pts=s.split(sep).map(p=>parseInt(p,10));
-            if(pts.length===3){
-              const [d,m,y2]=pts;
+            if(pts.length===3&&!isNaN(pts[0])&&!isNaN(pts[1])&&!isNaN(pts[2])){
+              const [day,month,y2]=pts;
               const fullY=y2<100?(y2>=50?1900+y2:2000+y2):y2;
-              if(m>=1&&m<=12&&d>=1&&d<=31){yr=fullY;mo=m;}
+              if(month>=1&&month<=12&&day>=1&&day<=31&&fullY>=2000){
+                yr=fullY; mo=month;
+              }
             }
           }
         }
@@ -3173,7 +3250,7 @@ function buildAPParetoChart(cv,data,mode){
     scales:{
       x:{grid:{display:false},ticks:{color:()=>cssVar('--text2'),font:{size:9},maxRotation:35}},
       y:{position:'left',grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:9},callback:v=>mode==='count'?v:fB(v)}},
-      y2:{position:'right',min:0,max:100,grid:{display:false},ticks:{color:'#000000',font:{size:9},callback:v=>v+'%'}}
+      y2:{position:'right',min:0,max:100,grid:{display:false},ticks:{color:'#ffe066',font:{size:9},callback:v=>v+'%'}}
     },
     animation:{onComplete(ctx){
       const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.font='8px IBM Plex Mono,monospace';c2.fillStyle=cssVar('--text');c2.textAlign='center';
@@ -3478,68 +3555,219 @@ async function exportAPPDF(){
   if(!apFilteredData||!apFilteredData.length){alert('ไม่มีข้อมูล');return;}
   const {jsPDF}=window.jspdf||{};
   if(!jsPDF){alert('jsPDF ไม่พร้อม');return;}
+
+  const isLight=document.body.classList.contains('light');
+  const BG   =isLight?[241,245,251]:[11,14,24];
+  const SURF =isLight?[255,255,255]:[20,24,39];
+  const SURF2=isLight?[232,237,247]:[26,31,48];
+  const TXT  =isLight?[30,36,56]  :[226,232,244];
+  const TXT2 =isLight?[82,96,122] :[124,138,160];
+  const BRD  =isLight?[209,217,236]:[37,44,66];
+  const PRP  =[168,85,247];
+  const IND  =[99,102,241];
+  const BLUE =[59,130,246];
+  const GRN  =[34,197,94];
+  const RED  =[239,68,68];
+  const ORG  =[245,158,11];
+
   const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
-  const W=297,H=210,pad=12;
+  const W=297,H=210,PAD=14;
+
   const tv=apFilteredData.reduce((a,r)=>a+r.val,0);
   const tSh=apFilteredData.reduce((a,r)=>a+r.sh,0);
   const j5=apFilteredData.filter(r=>r.val>5000);
   const ni=apFilteredData.filter(r=>r.isNew);
-  const isLight=document.body.classList.contains('light');
-  const bg=isLight?[240,242,247]:[15,17,23];
-  const surf=isLight?[255,255,255]:[24,28,39];
-  const txt=isLight?[26,30,46]:[232,236,244];
-  const txt2=isLight?[90,98,120]:[138,147,168];
-  const purple=[155,89,182];
-  const blue=[59,142,243];
-  const green=[46,204,113];
-  const red=[231,76,60];
-  const yellow=[255,192,0];
-  // BG
-  doc.setFillColor(...bg);doc.rect(0,0,W,H,'F');
-  // Header
-  doc.setFillColor(...purple);doc.rect(0,0,W,14,'F');
-  doc.setTextColor(255,255,255);doc.setFontSize(13);doc.setFont('helvetica','bold');
-  doc.text('Add Paper — Performance Overview',pad,9.5);
-  doc.setFontSize(8);doc.setFont('helvetica','normal');
-  const yr=document.getElementById('apFY')?.value||'all';
-  const mo=document.getElementById('apFM')?.value||'all';
-  doc.text(`Year: ${yr}  Month: ${MN[parseInt(mo)]||mo}  Generated: ${new Date().toLocaleDateString('th-TH')}`,W-pad,9.5,{align:'right'});
-  // KPI cards
-  const kpis=[
-    {l:'Total Value',v:fB(tv)+' THB',col:blue},
-    {l:'Total Sheet',v:fmt(Math.round(tSh))+' sh',col:purple},
-    {l:'Total Jobs',v:fmt(apFilteredData.length),col:green},
-    {l:'Jobs > 5K THB',v:fmt(j5.length),col:red},
-    {l:'New Items',v:fmt(ni.length),col:yellow},
-    {l:'Avg / Job',v:fB(apFilteredData.length?tv/apFilteredData.length:0)+' THB',col:[245,166,35]},
-  ];
-  const kW=(W-pad*2-10)/6,kH=20,kY=18;
-  kpis.forEach((k,i)=>{
-    const kx=pad+i*(kW+2);
-    doc.setFillColor(...surf);doc.roundedRect(kx,kY,kW,kH,2,2,'F');
-    doc.setDrawColor(...k.col);doc.setLineWidth(.8);doc.line(kx,kY,kx+kW,kY);
-    doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(...txt2);
-    doc.text(k.l,kx+kW/2,kY+5.5,{align:'center'});
-    doc.setFontSize(8.5);doc.setFont('helvetica','bold');doc.setTextColor(...k.col);
-    doc.text(k.v,kx+kW/2,kY+13,{align:'center'});
+  const tA=apTargetData['All']||apTargetData['all']||0;
+  const pct=tA?(tv/tA*100):null;
+  const pass=pct!==null?tv<=tA:null;
+  const fY=document.getElementById('apFY')?.value||'all';
+  const fM=document.getElementById('apFM')?.value||'all';
+  const da=apSelDepts.has('__all__')||apSelDepts.size===0;
+
+  // ── BG ──
+  doc.setFillColor(...BG); doc.rect(0,0,W,H,'F');
+
+  // ── HEADER ──
+  const hH=28;
+  doc.setFillColor(...SURF); doc.rect(0,0,W,hH,'F');
+  doc.setDrawColor(...BRD); doc.setLineWidth(.3); doc.line(0,hH,W,hH);
+  // purple accent bar
+  doc.setFillColor(...PRP); doc.rect(0,0,3,hH,'F');
+
+  // Title
+  doc.setFontSize(18); doc.setFont('helvetica','bold'); doc.setTextColor(...TXT);
+  const dateLabel=(fM!=='all'&&fY!=='all')?`${MN[parseInt(fM)]} ${fY}`:(fY!=='all'?`Year ${fY}`:'All Periods');
+  doc.text(dateLabel, PAD+4, 12);
+
+  // Chips
+  let chipX=PAD+4; const chipY=16; const chipH=6;
+  const chips=[];
+  if(fY!=='all') chips.push('Year: '+fY);
+  if(fM!=='all') chips.push('Month: '+MN[parseInt(fM)]);
+  if(!da) chips.push('Dept: '+([...apSelDepts].slice(0,3).join(', ')+(apSelDepts.size>3?'…':'')));
+  chips.forEach(ch=>{
+    const cw=doc.getStringUnitWidth(ch)*6.5*0.352+8;
+    doc.setFillColor(...SURF2); doc.roundedRect(chipX,chipY,cw,chipH,2,2,'F');
+    doc.setDrawColor(...PRP); doc.setLineWidth(.3); doc.roundedRect(chipX,chipY,cw,chipH,2,2,'S');
+    doc.setFontSize(6); doc.setTextColor(...TXT2); doc.setFont('helvetica','normal');
+    doc.text(ch,chipX+4,chipY+4.2);
+    chipX+=cw+3;
   });
-  // Charts — Monthly
-  const mCv=document.querySelector('#apCardMonthly canvas');
-  const dCv=document.querySelector('#apCardDept canvas');
-  const cY=kY+kH+5,cH=65;
-  if(mCv){try{const img=mCv.toDataURL('image/png',1);doc.setFillColor(...surf);doc.roundedRect(pad,cY,(W-pad*2-6)/2,cH,2,2,'F');doc.addImage(img,pad+1,cY+1,(W-pad*2-6)/2-2,cH-2);}catch(e){}}
-  if(dCv){try{const img=dCv.toDataURL('image/png',1);const cx=pad+(W-pad*2-6)/2+6;doc.setFillColor(...surf);doc.roundedRect(cx,cY,(W-pad*2-6)/2,cH,2,2,'F');doc.addImage(img,cx+1,cY+1,(W-pad*2-6)/2-2,cH-2);}catch(e){}}
-  // Charts — Pareto
-  const p1Cv=document.querySelector('#apCardPareto1 canvas');
-  const p2Cv=document.querySelector('#apCardPareto2 canvas');
-  const pY=cY+cH+5,pH=60;
-  if(p1Cv){try{const img=p1Cv.toDataURL('image/png',1);doc.setFillColor(...surf);doc.roundedRect(pad,pY,(W-pad*2-6)/2,pH,2,2,'F');doc.addImage(img,pad+1,pY+1,(W-pad*2-6)/2-2,pH-2);}catch(e){}}
-  if(p2Cv){try{const img=p2Cv.toDataURL('image/png',1);const cx=pad+(W-pad*2-6)/2+6;doc.setFillColor(...surf);doc.roundedRect(cx,pY,(W-pad*2-6)/2,pH,2,2,'F');doc.addImage(img,cx+1,pY+1,(W-pad*2-6)/2-2,pH-2);}catch(e){}}
-  // Footer
-  doc.setFillColor(...purple);doc.rect(0,H-8,W,8,'F');
-  doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(255,255,255);
-  doc.text('Add Paper Dashboard  •  Page 1',W/2,H-3,{align:'center'});
-  doc.save(`addpaper_report_${new Date().toISOString().slice(0,10)}.pdf`);
+
+  // Logo
+  doc.setFillColor(...RED); doc.roundedRect(W-PAD-42,4,8,8,1,1,'F');
+  doc.setFontSize(5); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+  doc.text('SIAM',W-PAD-42+4,8.5,{align:'center'});
+  doc.text('TOPPAN',W-PAD-42+4,11,{align:'center'});
+  doc.setFontSize(9); doc.setTextColor(...TXT); doc.setFont('helvetica','bold');
+  doc.text('SIAMTOPPAN',W-PAD-32,8.5);
+  doc.setFontSize(6.5); doc.setTextColor(...TXT2); doc.setFont('helvetica','normal');
+  doc.text('PACKAGING CO., LTD.',W-PAD-32,12.5);
+  doc.setFontSize(6.5); doc.setTextColor(...TXT2);
+  doc.text(`Generated: ${new Date().toLocaleDateString('th-TH')}`,W-PAD,22,{align:'right'});
+
+  // Section label
+  const secLabel=(num,label,y,col=PRP)=>{
+    doc.setFillColor(...col); doc.circle(PAD+3+4,y+3,3,'F');
+    doc.setFontSize(6.5); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+    doc.text(String(num),PAD+3+4,y+3.8,{align:'center'});
+    doc.setFontSize(7.5); doc.setTextColor(...TXT); doc.setFont('helvetica','bold');
+    doc.text(label,PAD+10+4,y+4.2);
+    doc.setDrawColor(...BRD); doc.setLineWidth(.2);
+    doc.line(PAD+10+4+doc.getStringUnitWidth(label)*7.5*0.352+4,y+3,W-PAD,y+3);
+  };
+
+  let y=hH+4;
+
+  // ── Section 1: KPI ──
+  secLabel(1,'ภาพรวมมูลค่า ADD PAPER',y); y+=7;
+
+  const kpis=[
+    {l:'TOTAL VALUE (THB)', v:fB(tv), sub:tA?`Target: ${fB(tA)} THB`:'',
+      badge:pct!==null?(pass?`✓ ${(100-pct).toFixed(1)}% ต่ำกว่าเป้า`:`▲ ${(pct-100).toFixed(1)}% เกินเป้า`):'', badgePass:pass, col:PRP},
+    {l:'TOTAL SHEET',  v:fmt(Math.round(tSh))+' sh', sub:`ค่าเฉลี่ย: ${fmt(apFilteredData.length?Math.round(tSh/apFilteredData.length):0)} sh/job`, badge:'', col:IND},
+    {l:'TOTAL JOBS',   v:fmt(apFilteredData.length), sub:`ค่าเฉลี่ย: ${fB(apFilteredData.length?tv/apFilteredData.length:0)} THB/job`, badge:'', col:GRN},
+    {l:'JOBS > 5,000 THB', v:fmt(j5.length), sub:`มูลค่ารวม: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`, badge:'', col:RED},
+  ];
+  const kW=(W-PAD*2-kpis.length*3+3)/kpis.length, kH=22;
+  kpis.forEach((k,i)=>{
+    const kx=PAD+i*(kW+3);
+    doc.setFillColor(...SURF); doc.roundedRect(kx,y,kW,kH,2,2,'F');
+    doc.setDrawColor(...BRD); doc.setLineWidth(.25); doc.roundedRect(kx,y,kW,kH,2,2,'S');
+    doc.setFillColor(...k.col); doc.roundedRect(kx,y,kW,1.5,1,1,'F');
+    doc.setFontSize(6); doc.setTextColor(...TXT2); doc.setFont('helvetica','normal');
+    doc.text(k.l,kx+3,y+5);
+    doc.setFontSize(12); doc.setTextColor(...k.col); doc.setFont('helvetica','bold');
+    doc.text(k.v,kx+3,y+13);
+    doc.setFontSize(6); doc.setTextColor(...TXT2); doc.setFont('helvetica','normal');
+    if(k.sub) doc.text(k.sub,kx+3,y+17.5);
+    if(k.badge){
+      const bCol=k.badgePass===true?GRN:k.badgePass===false?RED:TXT2;
+      doc.setFontSize(6); doc.setTextColor(...bCol); doc.setFont('helvetica','bold');
+      doc.text(k.badge,kx+3,y+21);
+    }
+  });
+  y+=kH+5;
+
+  // ── Section 2: Charts ──
+  secLabel(2,'แนวโน้มรายเดือน & แผนก',y); y+=7;
+
+  const tmp=document.createElement('div');
+  tmp.style.cssText='position:fixed;left:-9999px;top:0;width:600px;height:240px;';
+  document.body.appendChild(tmp);
+  const mCv=document.createElement('canvas'); mCv.width=600; mCv.height=240; tmp.appendChild(mCv);
+  const dCv=document.createElement('canvas'); dCv.width=380; dCv.height=240; tmp.appendChild(dCv);
+  const pCv=document.createElement('canvas'); pCv.width=380; pCv.height=240; tmp.appendChild(pCv);
+  const mChart=buildAPMonthlyChart(mCv,apFilteredData);
+  let dChart=null; try{dChart=buildAPDeptChart(dCv);}catch(e){}
+  // product chart
+  let pChart=null;
+  const grp={};apFilteredData.forEach(r=>{const k=String(r.code||r.jo||'?');grp[k]=(grp[k]||0)+r.val;});
+  const top10=Object.entries(grp).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  if(top10.length){
+    pChart=new Chart(pCv,{type:'bar',data:{labels:top10.map(x=>x[0].slice(0,20)),datasets:[{data:top10.map(x=>x[1]),backgroundColor:top10.map((_,i)=>i<3?'rgba(168,85,247,.85)':'rgba(168,85,247,.45)'),borderRadius:3}]},options:{indexAxis:'y',responsive:false,plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>fB(v),font:{size:9}}},y:{ticks:{font:{size:8}}}}}});
+  }
+
+  await new Promise(r=>setTimeout(r,400));
+
+  const cH=60; const cHalf=(W-PAD*2-6)/2;
+  try{
+    const img=mCv.toDataURL('image/png',1);
+    doc.setFillColor(...SURF); doc.roundedRect(PAD,y,cHalf,cH+8,2,2,'F');
+    doc.setDrawColor(...BRD); doc.setLineWidth(.25); doc.roundedRect(PAD,y,cHalf,cH+8,2,2,'S');
+    doc.setFontSize(7); doc.setTextColor(...TXT); doc.setFont('helvetica','bold');
+    doc.text('📅 Monthly Value (THB)',PAD+3,y+5);
+    doc.addImage(img,'PNG',PAD+2,y+7,cHalf-4,cH);
+  }catch(e){}
+  try{
+    const img=dCv.toDataURL('image/png',1);
+    const dx=PAD+cHalf+6;
+    doc.setFillColor(...SURF); doc.roundedRect(dx,y,cHalf,cH+8,2,2,'F');
+    doc.setDrawColor(...BRD); doc.setLineWidth(.25); doc.roundedRect(dx,y,cHalf,cH+8,2,2,'S');
+    doc.setFontSize(7); doc.setTextColor(...TXT); doc.setFont('helvetica','bold');
+    doc.text('🏭 Department Value',dx+3,y+5);
+    doc.addImage(img,'PNG',dx+2,y+7,cHalf-4,cH);
+  }catch(e){}
+  y+=cH+14;
+
+  // ── Section 5+6: Product + Table ──
+  secLabel(5,'รหัสสินค้าที่มีมูลค่าสูงสุด (WHAT?)',y); y+=1;
+
+  const prodW=cHalf; const tblW=cHalf;
+  try{
+    const img=pCv.toDataURL('image/png',1);
+    doc.setFillColor(...SURF); doc.roundedRect(PAD,y+6,prodW,50,2,2,'F');
+    doc.setDrawColor(...BRD); doc.setLineWidth(.25); doc.roundedRect(PAD,y+6,prodW,50,2,2,'S');
+    doc.setFontSize(7); doc.setTextColor(...TXT); doc.setFont('helvetica','bold');
+    doc.text('🏆 Top 10 Codes by Value',PAD+3,y+11);
+    doc.addImage(img,'PNG',PAD+2,y+13,prodW-4,42);
+  }catch(e){}
+
+  secLabel(6,'รายละเอียดทั้งหมด',y);
+  const tx=PAD+prodW+6; let ty=y+6;
+  doc.setFillColor(...SURF); doc.roundedRect(tx,ty,tblW,50,2,2,'F');
+  doc.setDrawColor(...BRD); doc.setLineWidth(.25); doc.roundedRect(tx,ty,tblW,50,2,2,'S');
+  doc.setFontSize(7); doc.setTextColor(...TXT); doc.setFont('helvetica','bold');
+  doc.text('📋 รายละเอียดทั้งหมด',tx+3,ty+5);
+  ty+=8;
+  const cols=[{l:'JO',w:16},{l:'Code',w:36},{l:'Cause',w:40},{l:'Dept',w:14},{l:'Facc',w:12},{l:'Month',w:18},{l:'Value',w:20}];
+  let cx2=tx+2;
+  doc.setFillColor(...SURF2); doc.rect(tx+2,ty,tblW-4,5,'F');
+  cols.forEach(c=>{
+    doc.setFontSize(5.5); doc.setTextColor(...TXT2); doc.setFont('helvetica','bold');
+    doc.text(c.l,cx2+1,ty+3.5); cx2+=c.w;
+  });
+  ty+=5;
+  apFilteredData.sort((a,b)=>b.val-a.val).slice(0,6).forEach((r,ri)=>{
+    if(ri%2===0){doc.setFillColor(...(isLight?[248,250,254]:[22,27,44]));doc.rect(tx+2,ty,tblW-4,5,'F');}
+    let rx=tx+2;
+    const cells=[r.jo,r.code,(r.cause||'').slice(0,18),(r.dept||''),(r.facc||''),`${MN[r.month]||''} ${r.year||''}`,fB(r.val)];
+    cols.forEach((c,ci)=>{
+      const isVal=ci===cols.length-1;
+      doc.setFontSize(5.5); doc.setTextColor(isVal?(r.val>=5000?RED:TXT):TXT); doc.setFont('helvetica',isVal?'bold':'normal');
+      doc.text(String(cells[ci]||'').slice(0,c.w/2+1),rx+1,ty+3.5);
+      rx+=c.w;
+    });
+    if(r.val>=5000){
+      doc.setFillColor(...PRP); doc.roundedRect(tx+tblW-10,ty+1,8,3,1,1,'F');
+      doc.setFontSize(4.5); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+      doc.text('HIGH',tx+tblW-6,ty+3.2,{align:'center'});
+    }
+    ty+=5;
+  });
+
+  try{mChart.destroy();}catch(e){}
+  try{if(dChart)dChart.destroy();}catch(e){}
+  try{if(pChart)pChart.destroy();}catch(e){}
+  document.body.removeChild(tmp);
+
+  // ── FOOTER ──
+  doc.setFillColor(...PRP); doc.rect(0,H-8,W,8,'F');
+  doc.setFontSize(6.5); doc.setTextColor(255,255,255); doc.setFont('helvetica','normal');
+  doc.text('Add Paper Dashboard  •  Siam Toppan Packaging Co., Ltd.',PAD,H-3.5);
+  doc.text(`Page 1 of 1  •  ${new Date().toLocaleDateString('th-TH')}`,W-PAD,H-3.5,{align:'right'});
+
+  doc.save(`addpaper_report_${fY}_${MN[parseInt(fM)]||'All'}_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 
 
