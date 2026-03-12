@@ -654,11 +654,12 @@ body.light #presentOverlay{background:#f1f5fb;}
 }
 .pv-logo-wrap{display:flex;align-items:center;gap:10px;}
 .pv-logo-wrap img{width:36px;height:36px;border-radius:8px;object-fit:cover;}
-.pv-company{line-height:1.2;}
+.pv-company{line-height:1.2;flex-shrink:0;}
 .pv-company b{font-size:12px;color:var(--text);}
 .pv-company small{font-size:9px;color:var(--text2);display:block;}
-.pv-title{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.3px;position:absolute;left:50%;transform:translateX(-50%);}
-.pv-meta{text-align:right;font-size:10px;color:var(--text2);}
+.pv-logo-wrap{flex-shrink:0;}
+.pv-title{font-size:18px;font-weight:700;color:var(--text);letter-spacing:-.3px;flex:1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px;}
+.pv-meta{text-align:right;font-size:10px;color:var(--text2);white-space:nowrap;flex-shrink:0;}
 .pv-meta b{color:var(--accent);font-size:11px;display:block;}
 .pv-close{
   background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);
@@ -752,6 +753,26 @@ body.light #presentOverlay{background:#f1f5fb;}
 #presentOverlay{display:none;position:fixed;inset:0;z-index:9000;background:var(--bg);font-family:'IBM Plex Sans Thai','Sarabun',sans-serif;overflow:hidden;flex-direction:column;}
 #presentOverlay.show{display:flex;}
 
+/* chip filter bar */
+#pvChipBar{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:4px 10px;border-bottom:1px solid var(--border);background:var(--surface);min-height:30px;}
+.pv-chip{border:1px solid var(--border);background:var(--surface2);color:var(--text2);border-radius:20px;padding:2px 9px;font-size:9px;cursor:pointer;transition:all .15s;}
+.pv-chip:hover{background:var(--border);color:var(--text);}
+.pv-chip-on{background:var(--accent)!important;color:#fff!important;border-color:var(--accent)!important;}
+.pv-chip-clear{border-color:#ef4444;color:#ef4444;margin-left:auto;}
+.pv-chip-clear:hover{background:#ef4444;color:#fff;}
+/* sortable table headers */
+.pv-th{user-select:none;transition:color .15s;}
+.pv-th:hover{color:var(--text)!important;}
+.pv-th-on{color:var(--accent)!important;}
+/* drill modal buttons */
+.pv-drill-btn{border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:6px;padding:4px 10px;font-size:10px;cursor:pointer;transition:all .15s;}
+.pv-drill-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+.pv-drill-clear{margin-left:auto;}
+/* drill modal overlay */
+#pvDrillModal > div{background:#1a1f2e!important;border:1px solid rgba(255,255,255,.12)!important;}
+body.light #pvDrillModal > div{background:#ffffff!important;border:1px solid rgba(0,0,0,.15)!important;}
+#pvDrillModal table tr:nth-child(even) td{background:rgba(255,255,255,.04);}
+body.light #pvDrillModal table tr:nth-child(even) td{background:rgba(0,0,0,.04);}
 
 </style>
 </head>
@@ -964,6 +985,7 @@ function _initPDF(orientation='landscape') {
 
 // ═══ STATE ═══
 let allData=[],filteredData=[],targetData={};
+let selComp=null; // component filter from Top10 click
 let _nextKpiAnimate=false;
 let selDepts=new Set(['__all__']),allDeptList=[];
 
@@ -1214,7 +1236,9 @@ function parseData(raw,src){
     }
     const val=parseFloat(r.val||r.value||r.amount||r.cost||0);
     const isNew=chk===0;
-    return{jo,compnt,jo_problem:jp,machine:mach,cause,dept,year:yr,month:mo,val,check:chk,isNew};
+    // keep raw date string from GS (col A, format dd-mm-yy hh:mm)
+    const rawDate=r.date||r.plan_date||r.replan_date||'';
+    return{jo,compnt,jo_problem:jp,machine:mach,cause,dept,year:yr,month:mo,val,check:chk,isNew,date:rawDate};
   }).filter(r=>r.val!==0||r.jo);
   document.getElementById('updDate').textContent=(src||'')+'  ';
   domReady=false; // force DOM rebuild with new data
@@ -1290,6 +1314,7 @@ function applyFilters(){
       if(m!=='all'&&String(r.month)!==m)return false;
       if(mc!=='all'&&r.machine!==mc)return false;
       if(!da&&!selDepts.has(r.dept))return false;
+      if(selComp!==null&&(r.compnt||r.component||'')!==selComp)return false;
       return true;
     });
     renderChips();renderAll();
@@ -1300,8 +1325,8 @@ function resetFilters(){
   document.getElementById('fY').value='all';
   document.getElementById('fM').value='all';
   document.getElementById('fMc').value='all';
+  selComp=null;
   msAll();
-  // flag next render as animate
   _nextKpiAnimate=true;
 }
 function renderChips(){
@@ -1311,6 +1336,7 @@ function renderChips(){
   add('Month',MN[document.getElementById('fM').value]||document.getElementById('fM').value,"document.getElementById('fM').value='all';applyFilters()");
   add('Machine',document.getElementById('fMc').value,"document.getElementById('fMc').value='all';applyFilters()");
   if(!selDepts.has('__all__')&&selDepts.size>0){[...selDepts].forEach(d=>{const c=document.createElement('div');c.className='chip';c.innerHTML=`Dept: <strong>${d}</strong><span style="margin-left:4px;font-size:14px" onclick="rmDept('${d}')">×</span>`;ch.appendChild(c);});}
+  if(selComp!==null){const c=document.createElement('div');c.className='chip';c.innerHTML=`Component: <strong>${selComp}</strong><span style="margin-left:4px;font-size:14px" onclick="selComp=null;applyFilters()">×</span>`;ch.appendChild(c);}
 }
 function rmDept(d){selDepts.delete(d);if(selDepts.size===0)selDepts=new Set(['__all__']);updateMSBtn();renderMSItems();applyFilters();}
 
@@ -1605,12 +1631,15 @@ function populateExpFilters(data){
   const years=[...new Set(data.map(r=>r.year).filter(Boolean))].sort();
   const months=[...new Set(data.map(r=>r.month).filter(Boolean))].sort((a,b)=>a-b);
   const depts=[...new Set(data.map(r=>r.dept).filter(Boolean))].sort();
+  const machs=[...new Set(data.map(r=>r.machine).filter(Boolean))].sort();
   const yEl=document.getElementById('expFYear');
   const mEl=document.getElementById('expFMonth');
   const dEl=document.getElementById('expFDept');
+  const mcEl=document.getElementById('expFMachine');
   yEl.innerHTML=`<option value="all">All Years</option>`+years.map(y=>`<option value="${y}">${y}</option>`).join('');
   mEl.innerHTML=`<option value="all">All Months</option>`+months.map(m=>`<option value="${m}">${MN[m]}</option>`).join('');
   dEl.innerHTML=`<option value="all">All Dept</option>`+depts.map(d=>`<option value="${d}">${d}</option>`).join('');
+  if(mcEl) mcEl.innerHTML=`<option value="all">All Machine</option>`+machs.map(m=>`<option value="${m}">${m}</option>`).join('');
 }
 
 function getExpFiltered(){
@@ -1626,6 +1655,8 @@ function getExpFiltered(){
     if(yr!=='all'&&String(r.year)!==yr)return false;
     if(mo!=='all'&&String(r.month)!==mo)return false;
     if(dp!=='all'&&r.dept!==dp)return false;
+    const _mc=document.getElementById('expFMachine')?.value||'all';
+    if(_mc!=='all'&&r.machine!==_mc)return false;
     if(q&&![r.jo,r.compnt,r.machine,r.cause,r.dept].some(v=>String(v||'').toLowerCase().includes(q)))return false;
     return true;
   });
@@ -1682,6 +1713,7 @@ function resetExpFilter(){
   document.getElementById('expFYear').value='all';
   document.getElementById('expFMonth').value='all';
   document.getElementById('expFDept').value='all';
+  const _mcEl=document.getElementById('expFMachine');if(_mcEl)_mcEl.value='all';
   renderExpFilterChips();
   renderExpKpi(expTableData);
   renderExpTable(expTableData);
@@ -1987,14 +2019,29 @@ function renderProduct(con,data){
 function buildProductChart(cv,data){
   const grp={};data.forEach(r=>{const k=`${r.compnt} ${r.dept||''}`.trim();grp[k]=(grp[k]||0)+r.val;});
   const sorted=Object.entries(grp).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  return new Chart(cv,{type:'bar',data:{labels:sorted.map(([k])=>k.length>26?k.slice(0,26)+'…':k),datasets:[{label:'Value',data:sorted.map(([,v])=>v),backgroundColor:'rgba(59,142,243,.85)',borderRadius:3}]},options:{
+  const bgColors=sorted.map(([k])=>{
+    const compnt=k.split(' ')[0];
+    if(selComp===null) return 'rgba(59,142,243,.85)';
+    return compnt===selComp?'rgba(59,142,243,1)':'rgba(59,142,243,.3)';
+  });
+  return new Chart(cv,{type:'bar',data:{labels:sorted.map(([k])=>k.length>26?k.slice(0,26)+'…':k),datasets:[{label:'Value',data:sorted.map(([,v])=>v),backgroundColor:bgColors,borderWidth:sorted.map(([k])=>selComp!==null&&k.split(' ')[0]===selComp?2:0),borderColor:'#fff',borderRadius:3}]},options:{
     indexAxis:'y',responsive:true,maintainAspectRatio:false,
     onClick:(e,els)=>{
       if(!els.length)return;
       const k=sorted[els[0].index][0];
       const compnt=k.split(' ')[0];
-      if(document.getElementById('expOverlay').classList.contains('open'))setExpFilter('compnt',compnt,compnt);
+      if(document.getElementById('expOverlay').classList.contains('open')){
+        setExpFilter('compnt',compnt,compnt);
+      } else {
+        // toggle: click same bar again → clear
+        selComp = (selComp===compnt) ? null : compnt;
+        applyFilters();
+        // scroll to table
+        const tc=document.getElementById('tcMain');
+        if(tc) setTimeout(()=>tc.scrollIntoView({behavior:'smooth',block:'start'}),120);
+      }
     },
+    onHover:(e,els)=>{ cv.style.cursor=els.length?'pointer':'default'; },
     plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fB(ctx.parsed.x)+' THB'}}},
     scales:{x:{grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:9},callback:v=>fB(v)}},y:{grid:{display:false},ticks:{color:()=>cssVar('--text'),font:{size:10}}}},
     layout:{padding:{right:60}},
@@ -2103,8 +2150,11 @@ function renderRows(key,src,tbody,foot,cnt,pgBar,search,isNew=false){
   cnt.textContent=`${total.toLocaleString()} rows`;
   const q=gsr.query,f=gsr.field;
   const hq=(val,field)=>(q&&(f==='all'||f===field))?hl(val,q):String(val||'');
-  tbody.innerHTML=slice.map(r=>`
-    <tr class="${r.isNew?'nr':''} ${r.val>=5000?'hi5k':''}" onclick="this.classList.toggle('sel')">
+  // store rows for click handler
+  window._mainRowData = window._mainRowData || {};
+  window._mainRowData[key] = slice;
+  tbody.innerHTML=slice.map((r,idx)=>`
+    <tr class="${r.isNew?'nr':''} ${r.val>=5000?'hi5k':''}" style="cursor:pointer" onclick="showDrillModal(window._mainRowData['${key}'][${idx}])">
       <td>${hq(r.jo,'jo')}</td><td>${hq(r.compnt,'compnt')}</td><td>${hq(r.jo_problem,'jo_problem')}</td>
       <td>${hq(r.machine,'machine')}</td>
       <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis" title="${r.cause||''}">${hq(r.cause,'cause')}</td>
@@ -2404,29 +2454,199 @@ async function saveChartImg(modalId){
 
 // ═══ PRESENTATION MODE ═══
 // ═══ PRESENT MODE HELPERS ═══
+// ══════════════════════════════════════════════════════
+// PRESENT MODE — fully interactive
+// ══════════════════════════════════════════════════════
 let _pvCharts = {};
+let _pvState  = { 
+  data:[], isAP:false,
+  // chart-click highlight filters (don't change base data)
+  filterMonth:null, filterDept:null, filterComp:null,
+  sortCol:'val', sortDir:-1,
+  // independent filter bar state (base data filters)
+  selDepts: new Set(['__all__'])
+};
+let _pvBaseData = []; // full dataset before filter-bar, for rebuilding
 
 function _pvDestroyCharts(){
   Object.values(_pvCharts).forEach(c=>{try{c.destroy();}catch(e){}});
   _pvCharts={};
 }
 
-function _pvBuildKpi(cards){
+// ── Populate filter bar dropdowns ─────────────────────
+function pvPopulateFilters(data){
+  const years=[...new Set(data.map(r=>r.year).filter(Boolean))].sort();
+  const months=[...new Set(data.map(r=>r.month).filter(Boolean))].sort((a,b)=>a-b);
+  const machs=[...new Set(data.map(r=>r.machine).filter(Boolean))].sort();
+  const depts=[...new Set(data.map(r=>r.dept).filter(Boolean))].sort();
+
+  const yEl=document.getElementById('pvFYear');
+  const mEl=document.getElementById('pvFMonth');
+  const mcEl=document.getElementById('pvFMachine');
+  if(yEl) yEl.innerHTML=`<option value="all">All Years</option>`+years.map(y=>`<option value="${y}">${y}</option>`).join('');
+  if(mEl) mEl.innerHTML=`<option value="all">All Months</option>`+months.map(m=>`<option value="${m}">${MN[m]||m}</option>`).join('');
+  if(mcEl) mcEl.innerHTML=`<option value="all">All Machine</option>`+machs.map(m=>`<option value="${m}">${m}</option>`).join('');
+
+  // dept multi-select list
+  const list=document.getElementById('pvDeptList');
+  if(list){
+    list.innerHTML=depts.map(d=>`
+      <label style="display:flex;align-items:center;gap:6px;padding:3px 4px;font-size:11px;color:var(--text);cursor:pointer;border-radius:4px;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+        <input type="checkbox" value="${d}" onchange="pvDeptCheck(this)" style="cursor:pointer;" ${_pvState.selDepts.has('__all__')||_pvState.selDepts.has(d)?'checked':''}>
+        ${d}
+      </label>`).join('');
+  }
+  pvUpdateDeptBtn();
+}
+
+function pvDeptCheck(cb){
+  const d=cb.value;
+  if(cb.checked){ _pvState.selDepts.delete('__all__'); _pvState.selDepts.add(d); }
+  else{ _pvState.selDepts.delete(d); if(_pvState.selDepts.size===0) _pvState.selDepts=new Set(['__all__']); }
+  pvUpdateDeptBtn();
+  pvApplyFilter();
+}
+function pvDeptAll(){ _pvState.selDepts=new Set(['__all__']); pvPopulateFilters(_pvBaseData); pvApplyFilter(); }
+function pvDeptClear(){ _pvState.selDepts=new Set(); pvPopulateFilters(_pvBaseData); pvApplyFilter(); }
+function pvUpdateDeptBtn(){
+  const btn=document.getElementById('pvDeptTxt');
+  if(!btn) return;
+  const da=_pvState.selDepts.has('__all__')||_pvState.selDepts.size===0;
+  btn.textContent=da?'All Depts':([..._pvState.selDepts].join(', ').slice(0,18)||'All Depts');
+}
+function pvToggleDept(){
+  const drop=document.getElementById('pvDeptDrop');
+  if(!drop) return;
+  drop.style.display=drop.style.display==='none'?'block':'none';
+}
+
+// Close dept dropdown when clicking outside
+document.addEventListener('click',e=>{
+  const wrap=document.getElementById('pvDeptWrap');
+  if(wrap&&!wrap.contains(e.target)) document.getElementById('pvDeptDrop').style.display='none';
+});
+
+// ── Apply filter bar → rebuild _pvState.data ─────────
+function pvApplyFilter(){
+  const yr=document.getElementById('pvFYear')?.value||'all';
+  const mo=document.getElementById('pvFMonth')?.value||'all';
+  const mc=document.getElementById('pvFMachine')?.value||'all';
+  const da=_pvState.selDepts.has('__all__')||_pvState.selDepts.size===0;
+
+  // base filter: year + machine only (no month, no dept)
+  const baseYM=_pvBaseData.filter(r=>{
+    if(yr!=='all'&&String(r.year)!==yr) return false;
+    if(mc!=='all'&&r.machine!==mc) return false;
+    return true;
+  });
+  // for Monthly chart: year+machine+dept filtered, but NOT month → shows all 12 bars, highlight active month
+  _pvState.dataForMonthly=baseYM.filter(r=>da||_pvState.selDepts.has(r.dept));
+  // for Dept chart: year+machine+month filtered, but NOT dept → shows all depts, highlight active dept
+  _pvState.dataForDept=baseYM.filter(r=>{
+    if(mo!=='all'&&String(r.month)!==mo) return false;
+    return true;
+  });
+  // full filter for KPI/table/top10/new
+  _pvState.data=_pvState.dataForDept.filter(r=>da||_pvState.selDepts.has(r.dept));
+
+  _pvState.filterMonth=null; _pvState.filterDept=null; _pvState.filterComp=null;
+  _pvDestroyCharts();
+  _pvRefresh();
+  pvUpdateDeptBtn();
+}
+
+function pvResetFilters(){
+  const yEl=document.getElementById('pvFYear'); if(yEl) yEl.value='all';
+  const mEl=document.getElementById('pvFMonth'); if(mEl) mEl.value='all';
+  const mcEl=document.getElementById('pvFMachine'); if(mcEl) mcEl.value='all';
+  _pvState.selDepts=new Set(['__all__']);
+  _pvState.data=[..._pvBaseData];
+  _pvState.dataForMonthly=[..._pvBaseData];
+  _pvState.dataForDept=[..._pvBaseData];
+  _pvState.filterMonth=null; _pvState.filterDept=null; _pvState.filterComp=null;
+  pvPopulateFilters(_pvBaseData);
+  _pvDestroyCharts();
+  _pvRefresh();
+}
+
+// _pvFiltered: applies chart-click filters on top of filter-bar data (_pvState.data)
+function _pvFiltered(){
+  let d=_pvState.data; // already filtered by filter bar (Year/Month/Dept/Machine)
+  if(_pvState.filterMonth) d=d.filter(r=>r.month===_pvState.filterMonth);
+  if(_pvState.filterDept)  d=d.filter(r=>r.dept===_pvState.filterDept);
+  if(_pvState.filterComp)  d=d.filter(r=>(r.compnt||r.component||r.code||'')===_pvState.filterComp);
+  return d;
+}
+
+function _pvSetFilter(type, val){
+  if(type==='month') _pvState.filterMonth = (_pvState.filterMonth===val)?null:val;
+  if(type==='dept')  _pvState.filterDept  = (_pvState.filterDept ===val)?null:val;
+  if(type==='comp')  _pvState.filterComp  = (_pvState.filterComp ===val)?null:val;
+  // recompute KPI data = base data (all filters incl. click)
+  _pvDestroyCharts();
+  _pvRefresh();
+}
+
+function _pvRefresh(){
+  // Monthly chart: data without month filter (shows all 12 bars)
+  const forMonthly=_pvState.dataForMonthly||_pvState.data;
+  // Dept chart: data without dept filter (shows all depts)
+  const forDept=_pvState.dataForDept||_pvState.data;
+  // KPI/Table/Top10/New: fully filtered data + chart-click filters
+  const d=_pvFiltered();
+  _pvBuildKpiFromData(d);
+  _pvBuildNew(d.filter(r=>r.isNew));
+  _pvBuildMonthly(forMonthly);
+  _pvBuildDept(forDept);
+  _pvBuildTop10(d);
+  _pvBuildTable(d);
+  const clr=document.getElementById('pvChipClear');
+  if(clr) clr.style.display=(_pvState.filterMonth||_pvState.filterDept||_pvState.filterComp)?'inline-block':'none';
+}
+
+// ── KPI cards ────────────────────────────────────────
+function _pvBuildKpiFromData(d){
+  const tv=d.reduce((a,r)=>a+r.val,0);
+  const isAP=_pvState.isAP;
+  const tData=isAP?apTargetData:targetData;
+  const tA=tData['All']||tData['all']||0;
+  const pct=tA?(tv/tA*100):null;
+  const pass=pct!==null?tv<=tA:null;
+  const j5=d.filter(r=>r.val>5000);
+  const ni=d.filter(r=>r.isNew);
+  const cards=isAP?[
+    {label:'TOTAL VALUE (THB)',value:fB(tv)+' THB',
+     sub:tA?`Target: ${fB(tA)} THB`:'',
+     badge:pct!==null?(pass?`✓ ต่ำกว่าเป้า ${(100-pct).toFixed(1)}%`:`⚠ เกินเป้า ${(pct-100).toFixed(1)}%`):'',
+     badgeCol:pass===false?'#ef4444':pass===true?'#22c55e':'',col:'#a855f7'},
+    {label:'TOTAL SHEET',value:fmt(Math.round(d.reduce((a,r)=>a+r.sh,0)))+' sh',col:'#6366f1'},
+    {label:'TOTAL JOBS',value:fmt(d.length),sub:`เฉลี่ย ${fB(d.length?tv/d.length:0)} THB/งาน`,col:'#22c55e'},
+    {label:'JOBS > 5,000 THB',value:fmt(j5.length),sub:`รวม ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,col:'#ef4444'},
+  ]:[
+    {label:'TOTAL VALUE (THB)',value:fB(tv)+' THB',
+     sub:tA?`Target: ${fB(tA)} THB`:'',
+     badge:pct!==null?(pass?`✓ ต่ำกว่าเป้า ${(100-pct).toFixed(1)}%`:`⚠ เกินเป้า ${(pct-100).toFixed(1)}%`):'',
+     badgeCol:pass===false?'#ef4444':pass===true?'#22c55e':'',col:'#3b82f6'},
+    {label:'TOTAL JOBS',value:fmt(d.length),sub:`เฉลี่ย ${fB(d.length?tv/d.length:0)} THB/งาน`,col:'#22c55e'},
+    {label:'JOBS > 5,000 THB',value:fmt(j5.length),sub:`รวม ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,col:'#ef4444'},
+    {label:'รายการใหม่ (CHECK=0)',value:fmt(ni.length),sub:`รวม ${fB(ni.reduce((a,r)=>a+r.val,0))} THB`,col:'#f59e0b'},
+  ];
   const col=document.getElementById('pvKpiCol');
   col.innerHTML='';
   cards.forEach(k=>{
-    const d=document.createElement('div');
-    d.className='pv-kpi-card';
-    d.style.setProperty('--kpi-col',k.col||'var(--blue)');
-    d.innerHTML=`
+    const div=document.createElement('div');
+    div.className='pv-kpi-card';
+    div.style.setProperty('--kpi-col',k.col||'var(--blue)');
+    div.innerHTML=`
       <div class="pv-kpi-label">${k.label}</div>
       <div class="pv-kpi-value">${k.value}</div>
       <div class="pv-kpi-sub">${k.sub||''}</div>
       ${k.badge?`<div class="pv-kpi-badge" style="color:${k.badgeCol||'var(--text2)'}">${k.badge}</div>`:''}`;
-    col.appendChild(d);
+    col.appendChild(div);
   });
 }
 
+// ── New items ─────────────────────────────────────────
 function _pvBuildNew(items){
   const scroll=document.getElementById('pvNewScroll');
   const count=document.getElementById('pvNewCount');
@@ -2439,43 +2659,173 @@ function _pvBuildNew(items){
   items.slice().sort((a,b)=>b.val-a.val).forEach(r=>{
     const row=document.createElement('div');
     row.className='pv-new-row';
+    row.style.cursor='pointer';
     row.innerHTML=`
       <span class="pv-new-jo">${r.jo||''}</span>
       <span class="pv-new-comp">${r.compnt||r.component||r.code||''}</span>
       <span class="pv-new-val">${fB(r.val)}</span>`;
+    row.onclick=()=>_pvDrillDown(r);
     scroll.appendChild(row);
   });
 }
 
-function _pvCopyChart(srcCanvas, destId){
-  const dest=document.getElementById(destId);
-  if(!srcCanvas||!dest) return;
-  try{
-    const img=new Image();
-    img.onload=()=>{
-      dest.width=img.width; dest.height=img.height;
-      dest.getContext('2d').drawImage(img,0,0);
-    };
-    img.src=srcCanvas.toDataURL('image/png',1);
-  }catch(e){console.error(e);}
+// ── Monthly chart — interactive + Target/Avg lines ─────
+function _pvBuildMonthly(d){
+  const cv=document.getElementById('pvMonthlyCanvas');
+  if(_pvCharts.monthly) try{_pvCharts.monthly.destroy();}catch(e){}
+  const isAP=_pvState.isAP;
+  const tData=isAP?apTargetData:targetData;
+  const tA=tData['All']||tData['all']||0;
+  const tAv=tData['Avg.']||tData['avg']||0;
+  const ref=tA||tAv||0;
+  const vals=Array.from({length:12},(_,i)=>d.filter(r=>r.month===i+1).reduce((a,r)=>a+r.val,0));
+  // active month = chart-click filterMonth OR filter bar month dropdown
+  const fmClick=_pvState.filterMonth;
+  const pvFMonthVal=document.getElementById('pvFMonth')?.value||'all';
+  const fmBar=pvFMonthVal!=='all'?parseInt(pvFMonthVal):null;
+  const activeMonth=fmClick||(fmBar&&!isNaN(fmBar)?fmBar:null);
+  const bgColors=vals.map((v,i)=>{
+    const m=i+1;
+    const isHl=activeMonth===null||m===activeMonth;
+    if(v===0) return `rgba(42,48,69,${isHl?.5:.2})`;
+    return targetRatioColor(v,ref,isHl?.88:.2);
+  });
+  const ds=[{
+    label:'Value (THB)',data:vals,type:'bar',
+    backgroundColor:bgColors,
+    borderWidth:vals.map((_,i)=>activeMonth!==null&&(i+1)===activeMonth?2:0),
+    borderColor:'#fff',
+    borderRadius:4,order:3
+  }];
+  if(tAv) ds.push({label:`Avg. ${fB(tAv)}`,data:Array(12).fill(tAv),type:'line',borderColor:'#f5a623',borderWidth:2,borderDash:[8,5],pointRadius:0,fill:false,order:1});
+  if(tA)  ds.push({label:`Target ${fB(tA)}`,data:Array(12).fill(tA),type:'line',borderColor:'#e74c3c',borderWidth:2.5,pointRadius:0,fill:false,order:0});
+  _pvCharts.monthly=new Chart(cv,{
+    type:'bar',
+    data:{labels:MN.slice(1),datasets:ds},
+    options:{
+      responsive:true,maintainAspectRatio:false,animation:{duration:300},
+      plugins:{
+        legend:{labels:{color:()=>cssVar('--text2'),font:{size:9},boxWidth:14}},
+        tooltip:{callbacks:{label:ctx=>` ${fB(ctx.parsed.y)} THB`}}
+      },
+      scales:{
+        x:{ticks:{font:{size:10},color:cssVar('--text')},grid:{color:cssVar('--border')},border:{display:false}},
+        y:{ticks:{callback:v=>fB(v),font:{size:9},color:cssVar('--text2')},grid:{color:cssVar('--border')},border:{display:false}}
+      },
+      onClick:(evt,els)=>{
+        if(!els.length||els[0].datasetIndex!==0) return;
+        const m=els[0].index+1;
+        _pvSetFilter('month',m);
+      },
+      onHover:(evt,els)=>{ cv.style.cursor=(els.length&&els[0].datasetIndex===0)?'pointer':'default'; },
+      animation:{onComplete(ctx){
+        const ch=ctx.chart,{ctx:c2}=ch;c2.save();
+        c2.font='bold 8px IBM Plex Mono,monospace';c2.textAlign='center';
+        ch.data.datasets[0].data.forEach((v,i)=>{
+          if(v>0){const m2=ch.getDatasetMeta(0);if(m2.data[i]){
+            const b=m2.data[i].getProps(['x','y'],true);
+            const isHl=activeMonth===null||(i+1)===activeMonth;
+            c2.fillStyle=isHl?cssVar('--text'):'rgba(128,130,140,.35)';
+            c2.fillText(fB(v),b.x,b.y-5);
+          }}
+        });c2.restore();
+      }}
+    }
+  });
 }
 
-function _pvBuildTop10(data, isAP=false){
+// ── Dept chart — interactive + Target bars like main page ────
+function _pvBuildDept(d){
+  const cv=document.getElementById('pvDeptCanvas');
+  if(_pvCharts.dept) try{_pvCharts.dept.destroy();}catch(e){}
+  const isAP=_pvState.isAP;
+  const tData=isAP?apTargetData:targetData;
+  const DEPT_ORDER=['PR1','CON1','GL1','PR2','CON2','PDTN','OUTWORK','MAT','OTHER','CUTOUT','cutout'];
+  const allDepts=[...new Set(d.map(r=>r.dept).filter(Boolean))];
+  const depts=[...DEPT_ORDER.filter(dep=>allDepts.includes(dep)),...allDepts.filter(dep=>!DEPT_ORDER.includes(dep)).sort()];
+  const vals=depts.map(dep=>d.filter(r=>r.dept===dep).reduce((a,r)=>a+r.val,0));
+  const tgts=depts.map(dep=>tData[dep]||0);
+  // active dept = chart-click OR filter bar dept selection
+  const fdClick=_pvState.filterDept;
+  const pvSelDepts=_pvState.selDepts||new Set(['__all__']);
+  const barDeptActive=!pvSelDepts.has('__all__')&&pvSelDepts.size===1?[...pvSelDepts][0]:null;
+  const fd=fdClick||barDeptActive;
+  // if filter bar has multiple depts selected → dim non-selected
+  const multiDeptFilter=!pvSelDepts.has('__all__')&&pvSelDepts.size>1;
+  const bgColors=vals.map((v,i)=>{
+    const dep=depts[i];
+    const isHl=fd===null?(multiDeptFilter?pvSelDepts.has(dep):true):(dep===fd);
+    if(v===0) return `rgba(42,48,69,${isHl?.5:.15})`;
+    return targetRatioColor(v,tgts[i]||0,isHl?.88:.22);
+  });
+  const tgtColors=depts.map(dep=>{
+    const isHl=fd===null?(multiDeptFilter?pvSelDepts.has(dep):true):(dep===fd);
+    return isHl?'rgba(245,166,35,.55)':'rgba(245,166,35,.15)';
+  });
+  _pvCharts.dept=new Chart(cv,{
+    type:'bar',
+    data:{
+      labels:depts.map(dep=>dep.length>14?dep.slice(0,13)+'…':dep),
+      datasets:[
+        {label:'Actual',data:vals,backgroundColor:bgColors,
+         borderWidth:depts.map(dep=>fd!==null&&dep===fd?2:0),borderColor:'#fff',borderRadius:3},
+        {label:'Target',data:tgts,backgroundColor:tgtColors,borderRadius:3}
+      ]
+    },
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:300},
+      plugins:{
+        legend:{labels:{color:()=>cssVar('--text2'),font:{size:9},boxWidth:12}},
+        tooltip:{callbacks:{label:ctx=>` ${fB(ctx.parsed.x)} THB`}}
+      },
+      scales:{
+        x:{ticks:{callback:v=>fB(v),font:{size:9},color:cssVar('--text2')},grid:{color:cssVar('--border')},border:{display:false}},
+        y:{ticks:{font:{size:9},color:cssVar('--text')},grid:{display:false},border:{display:false}}
+      },
+      onClick:(evt,els)=>{
+        if(!els.length||els[0].datasetIndex!==0) return;
+        const dept=depts[els[0].index];
+        _pvSetFilter('dept',dept);
+      },
+      onHover:(evt,els)=>{ cv.style.cursor=(els.length&&els[0].datasetIndex===0)?'pointer':'default'; },
+      animation:{onComplete(ctx){
+        const ch=ctx.chart,{ctx:c2}=ch;c2.save();
+        c2.font='9px IBM Plex Mono,monospace';c2.textAlign='center';
+        ch.data.datasets[0].data.forEach((v,i)=>{
+          if(v>0){const mm=ch.getDatasetMeta(0);if(mm.data[i]){
+            const b=mm.data[i].getProps(['x','y','height'],true);
+            const dep=depts[i];
+            const isHl=fd===null?(multiDeptFilter?pvSelDepts.has(dep):true):(dep===fd);
+            c2.fillStyle=isHl?cssVar('--text'):'rgba(128,130,140,.35)';
+            c2.fillText(fB(v),b.x+4,b.y+(b.height||0)/2+4);
+          }}
+        });c2.restore();
+      }}
+    }
+  });
+}
+
+// ── Top 10 ────────────────────────────────────────────
+function _pvBuildTop10(d){
   const cv=document.getElementById('pvTop10Canvas');
-  const grp={};
-  if(isAP) data.forEach(r=>{const k=String(r.code||r.jo||'?');grp[k]=(grp[k]||0)+r.val;});
-  else data.forEach(r=>{const k=`${r.compnt||r.component||''} ${r.dept||''}`.trim();grp[k]=(grp[k]||0)+r.val;});
-  const top=Object.entries(grp).sort((a,b)=>b[1]-a[1]).slice(0,10);
   if(_pvCharts.top10) try{_pvCharts.top10.destroy();}catch(e){}
+  const isAP=_pvState.isAP;
+  const grp={};
+  if(isAP) d.forEach(r=>{const k=String(r.code||r.jo||'?');grp[k]=(grp[k]||0)+r.val;});
+  else d.forEach(r=>{const k=`${r.compnt||r.component||r.code||'?'}`.trim();grp[k]=(grp[k]||0)+r.val;});
+  const top=Object.entries(grp).sort((a,b)=>b[1]-a[1]).slice(0,10);
   const accent=isAP?'rgba(168,85,247,.85)':'rgba(59,130,246,.85)';
-  const accentDim=isAP?'rgba(168,85,247,.45)':'rgba(59,130,246,.45)';
+  const accentTop=isAP?'rgba(168,85,247,1)':'rgba(59,130,246,1)';
+  const fc=_pvState.filterComp;
   _pvCharts.top10=new Chart(cv,{
     type:'bar',
     data:{
       labels:top.map(x=>x[0].length>22?x[0].slice(0,21)+'…':x[0]),
       datasets:[{
         data:top.map(x=>x[1]),
-        backgroundColor:top.map((_,i)=>i<3?accent:accentDim),
+        backgroundColor:top.map(([k],i)=>fc===null?(i<3?accentTop:accent):(k===fc?accentTop:accent)),
+        borderWidth:top.map(([k])=>fc!==null&&k===fc?2:0),
+        borderColor:'#fff',
         borderRadius:3
       }]
     },
@@ -2485,148 +2835,195 @@ function _pvBuildTop10(data, isAP=false){
       scales:{
         x:{ticks:{callback:v=>fB(v),font:{size:9},color:cssVar('--text2')},grid:{color:cssVar('--border')},border:{display:false}},
         y:{ticks:{font:{size:9},color:cssVar('--text')},grid:{display:false},border:{display:false}}
-      }
+      },
+      onClick:(evt,els)=>{
+        if(!els.length) return;
+        const compName=top[els[0].index][0];
+        _pvSetFilter('comp', compName);
+      },
+      onHover:(evt,els)=>{ cv.style.cursor=els.length?'pointer':'default'; }
     }
   });
 }
 
-function _pvBuildTable(data, isAP=false){
+// ── Table — sortable + clickable ──────────────────────
+function _pvBuildTable(d){
   const scroll=document.getElementById('pvTableScroll');
   scroll.innerHTML='';
-  const rows=data.slice().sort((a,b)=>b.val-a.val).slice(0,14);
+  const isAP=_pvState.isAP;
+  const {sortCol,sortDir}=_pvState;
+  const cols=isAP
+    ?[{h:'JO',k:'jo'},{h:'Code',k:'code'},{h:'Cause',k:'cause'},{h:'Dept',k:'dept'},{h:'เดือน',k:'_month'},{h:'มูลค่า',k:'val'}]
+    :[{h:'JO',k:'jo'},{h:'Component',k:'_comp'},{h:'Cause',k:'cause'},{h:'Dept',k:'dept'},{h:'เดือน',k:'_month'},{h:'มูลค่า',k:'val'}];
+  const getVal=(r,k)=>{
+    if(k==='_comp') return r.compnt||r.component||r.code||'';
+    if(k==='_month') return r.month;
+    return r[k]||'';
+  };
+  const sorted=d.slice().sort((a,b)=>{
+    const va=getVal(a,sortCol), vb=getVal(b,sortCol);
+    if(typeof va==='number'&&typeof vb==='number') return sortDir*(va-vb);
+    return sortDir*String(va).localeCompare(String(vb),'th');
+  });
   const tbl=document.createElement('table');
   tbl.className='pv-tbl';
-  const cols=isAP
-    ?[{h:'JO',f:'jo'},{h:'Code',f:'code'},{h:'Cause',f:'cause'},{h:'Dept',f:'dept'},{h:'เดือน',f:r=>`${MN[r.month]||''} ${r.year||''}`},{h:'มูลค่า',f:r=>fB(r.val)}]
-    :[{h:'JO',f:'jo'},{h:'Component',f:r=>r.compnt||r.component||''},{h:'Cause',f:'cause'},{h:'Dept',f:'dept'},{h:'เดือน',f:r=>`${MN[r.month]||''} ${r.year||''}`},{h:'มูลค่า',f:r=>fB(r.val)}];
+  // thead
   const thead=document.createElement('thead');
-  thead.innerHTML='<tr>'+cols.map(c=>`<th>${c.h}</th>`).join('')+'<th></th></tr>';
+  thead.innerHTML='<tr>'+cols.map(c=>{
+    const active=c.k===sortCol;
+    const arrow=active?(sortDir>0?'↑':'↓'):'';
+    return `<th class="pv-th${active?' pv-th-on':''}" data-k="${c.k}" style="cursor:pointer">${c.h} <span style="opacity:.6">${arrow}</span></th>`;
+  }).join('')+'<th></th></tr>';
+  thead.querySelectorAll('th[data-k]').forEach(th=>{
+    th.onclick=()=>{
+      const k=th.dataset.k;
+      if(_pvState.sortCol===k) _pvState.sortDir*=-1;
+      else{ _pvState.sortCol=k; _pvState.sortDir=-1; }
+      _pvBuildTable(_pvFiltered());
+    };
+  });
   tbl.appendChild(thead);
+  // tbody
   const tbody=document.createElement('tbody');
-  rows.forEach(r=>{
+  sorted.forEach(r=>{
     const tr=document.createElement('tr');
+    tr.style.cursor='pointer';
+    tr.title='คลิกเพื่อดูรายละเอียด';
     const hi=r.val>=5000;
     const isNew=r.isNew;
     tr.innerHTML=cols.map(c=>{
-      const v=typeof c.f==='function'?c.f(r):(r[c.f]||'');
-      return `<td>${String(v).slice(0,24)}</td>`;
+      let v=getVal(r,c.k);
+      if(c.k==='_month') v=`${MN[v]||''} ${r.year||''}`.trim();
+      if(c.k==='val') v=fB(v)+' ฿';
+      return `<td>${String(v).slice(0,28)}</td>`;
     }).join('')+`<td>${hi?'<span class="pv-high">HIGH</span>':''}${isNew?'<span class="pv-new">NEW</span>':''}</td>`;
+    tr.onclick=()=>_pvDrillDown(r);
     tbody.appendChild(tr);
   });
   tbl.appendChild(tbody);
   scroll.appendChild(tbl);
+  // row count
+  const info=document.createElement('div');
+  info.style.cssText='font-size:9px;color:var(--text2);padding:4px 6px;text-align:right';
+  info.textContent=`แสดง ${sorted.length} รายการ`;
+  scroll.appendChild(info);
 }
 
-// ── Open present (Replan) ──
+// ── Shared drill-down modal (Present Mode + Main Page) ────────────
+function showDrillModal(r, pvMode=false){
+  const isAP = pvMode ? _pvState.isAP : false;
+  const now = new Date();
+  const tsStr = now.toLocaleString('th-TH',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const fields = isAP
+    ? [['JO',r.jo],['Code',r.code||r.compnt||''],['Cause',r.cause],['Dept',r.dept],
+       ['เดือน',`${MN[r.month]||''} ${r.year||''}`],['มูลค่า',fB(r.val)+' THB'],
+       ['Sheet',r.sh?fmt(r.sh)+' sh':''],['Machine',r.machine||''],['Check',r.check!==undefined&&r.check!==''?r.check:''],
+       ['วันที่บันทึก',r.date||''],
+       ['ดูข้อมูลเมื่อ',tsStr]]
+    : [['JO',r.jo],['Component',r.compnt||r.component||r.code||''],['Machine',r.machine||''],
+       ['Cause',r.cause],['Dept',r.dept],['เดือน',`${MN[r.month]||''} ${r.year||''}`],
+       ['มูลค่า',fB(r.val)+' THB'],['Check',r.check!==undefined&&r.check!==''?r.check:''],
+       ['วันที่บันทึก',r.date||''],
+       ['Status',r.status||''],['Detail',r.detail||''],
+       ['ดูข้อมูลเมื่อ',tsStr]];
+  const rows = fields.filter(([,v])=>v&&String(v).trim()!=='')
+    .map(([l,v],i)=>`<tr style="background:${i%2===0?'rgba(255,255,255,.06)':'transparent'}">
+      <td style="color:#94a3b8;font-size:10px;padding:6px 14px;white-space:nowrap;font-weight:600;width:110px;letter-spacing:.02em">${l}</td>
+      <td style="font-size:12px;padding:6px 14px;font-weight:700;color:#ffffff">${v}</td>
+    </tr>`).join('');
+  const existing=document.getElementById('pvDrillModal');
+  if(existing) existing.remove();
+  const modal=document.createElement('div');
+  modal.id='pvDrillModal';
+  modal.style.cssText='position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(3px)';
+  const pvBtns = pvMode ? `
+    ${_pvState.filterMonth!==r.month?`<button class="pv-drill-btn" onclick="_pvSetFilter('month',${r.month});document.getElementById('pvDrillModal').remove()">📅 ${MN[r.month]||'เดือน'}</button>`:''}
+    ${_pvState.filterDept!==r.dept&&r.dept?`<button class="pv-drill-btn" onclick="_pvSetFilter('dept','${(r.dept||'').replace(/'/g,"\\'")}');document.getElementById('pvDrillModal').remove()">🏭 ${r.dept}</button>`:''}
+  ` : '';
+  modal.innerHTML=`
+    <div style="background:#161d2f;border:1px solid rgba(255,255,255,.1);border-radius:14px;overflow:hidden;min-width:340px;max-width:500px;box-shadow:0 24px 64px rgba(0,0,0,.7);">
+      <div style="padding:14px 18px 12px;background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:13px;font-weight:700;color:#f1f5f9;display:flex;align-items:center;gap:6px">
+          📋 รายละเอียด
+          ${r.isNew?'<span class="pv-new">NEW</span>':''}
+          ${r.val>=5000?'<span class="pv-high">HIGH</span>':''}
+        </span>
+        <button onclick="document.getElementById('pvDrillModal').remove()" style="background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.4);color:#f87171;border-radius:6px;padding:3px 9px;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit">✕ ESC</button>
+      </div>
+      <table style="width:100%;border-collapse:collapse">${rows}</table>
+      <div style="padding:10px 14px;display:flex;gap:8px;flex-wrap:wrap;background:rgba(255,255,255,.03);border-top:1px solid rgba(255,255,255,.07)">
+        ${pvBtns}
+        <button onclick="document.getElementById('pvDrillModal').remove()" style="margin-left:auto;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#cbd5e1;border-radius:6px;padding:4px 12px;font-size:10px;cursor:pointer;font-family:inherit">ปิด</button>
+      </div>
+    </div>`;
+  modal.onclick=e=>{ if(e.target===modal) modal.remove(); };
+  // ESC to close
+  const esc=(e)=>{ if(e.key==='Escape'){ modal.remove(); document.removeEventListener('keydown',esc); } };
+  document.addEventListener('keydown',esc);
+  document.body.appendChild(modal);
+}
+// Present Mode wrapper
+function _pvDrillDown(r){ showDrillModal(r, true); }
+
+// ── Filter chips builder (chart-click chips in pvChipBar) ───────
+function _pvBuildChips(d){
+  // chips are now handled by pvChipBar inside pvFilterBar
+  // just update chip active states — called by _pvRefresh
+}
+
+// ── Open present (Replan) ──────────────────────────────
 function openPresent(){
   document.getElementById('exportMenu')?.classList.remove('open');
-  const fY=document.getElementById('fY')?.value||'all';
-  const fM=document.getElementById('fM')?.value||'all';
-  const coreData=filteredData.filter(r=>!isExcl(r));
-  const tv=coreData.reduce((a,r)=>a+r.val,0);
-  const j5=coreData.filter(r=>r.val>5000);
-  const ni=coreData.filter(r=>r.isNew);
-  const tA=targetData['All']||targetData['all']||0;
-  const pct=tA?(tv/tA*100):null;
-  const pass=pct!==null?tv<=tA:null;
-  const dateLabel=(fM!=='all'&&fY!=='all')?`${MN[parseInt(fM)]} ${fY}`:(fY!=='all'?`Year ${fY}`:'ภาพรวมทั้งหมด');
-
-  document.getElementById('pvTitle').textContent=dateLabel;
-  document.getElementById('pvSubtitle').textContent='Replan Performance & Loss';
-  document.getElementById('pvDate').textContent='สร้างเมื่อ '+new Date().toLocaleDateString('th-TH');
+  // Present Mode is independent — load ALL allData, not filteredData
+  const coreData=allData.filter(r=>!isExcl(r));
+  _pvBaseData=[...coreData];
+  _pvState={ data:[...coreData], dataForMonthly:[...coreData], dataForDept:[...coreData],
+             isAP:false, filterMonth:null, filterDept:null, filterComp:null, sortCol:'val', sortDir:-1, selDepts:new Set(['__all__']) };
+  document.getElementById('pvTitle').textContent='Replan Performance & Loss';
+  document.getElementById('pvSubtitle').textContent='ภาพรวมทั้งหมด';
+  document.getElementById('pvDate').textContent=new Date().toLocaleDateString('th-TH');
   try{document.getElementById('pvLogo').src=_LOGO_DATA;}catch(e){}
-
-  _pvBuildKpi([
-    {label:'TOTAL VALUE (THB)',value:fB(tv)+' THB',
-     sub:tA?`Target: ${fB(tA)} THB`:'',
-     badge:pct!==null?(pass?`✓ ต่ำกว่าเป้า ${(100-pct).toFixed(1)}%`:`⚠ เกินเป้า ${(pct-100).toFixed(1)}%`):'',
-     badgeCol:pass===false?'#ef4444':pass===true?'#22c55e':'',col:'#3b82f6'},
-    {label:'TOTAL JOBS',value:fmt(filteredData.length),sub:`เฉลี่ย ${fB(filteredData.length?tv/filteredData.length:0)} THB/งาน`,col:'#22c55e'},
-    {label:'JOBS > 5,000 THB',value:fmt(j5.length),sub:`รวม ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,col:'#ef4444'},
-    {label:'รายการใหม่ (CHECK=0)',value:fmt(ni.length),sub:`รวม ${fB(ni.reduce((a,r)=>a+r.val,0))} THB`,col:'#f59e0b'},
-  ]);
-
-  _pvBuildNew(ni);
+  // populate & reset filter bar
+  pvPopulateFilters(coreData);
+  const yEl=document.getElementById('pvFYear'); if(yEl) yEl.value='all';
+  const mEl=document.getElementById('pvFMonth'); if(mEl) mEl.value='all';
+  const mcEl=document.getElementById('pvFMachine'); if(mcEl) mcEl.value='all';
+  document.getElementById('pvDeptDrop').style.display='none';
   _pvDestroyCharts();
-  _pvCopyChart(document.querySelector('#cardMonthly canvas'),'pvMonthlyCanvas');
-  _pvCopyChart(document.querySelector('#cardDept canvas'),'pvDeptCanvas');
-  _pvBuildTop10(coreData,false);
-  _pvBuildTable(coreData,false);
-
+  _pvRefresh();
   document.getElementById('presentOverlay').classList.add('show');
   document.body.style.overflow='hidden';
 }
 
-// ── Open present (AP) ──
+// ── Open present (AP) ─────────────────────────────────
 function openAPPresent(){
   document.getElementById('apExportMenu')?.classList.remove('open');
-  const fY=document.getElementById('apFY')?.value||'all';
-  const fM=document.getElementById('apFM')?.value||'all';
-  const tv=apFilteredData.reduce((a,r)=>a+r.val,0);
-  const tSh=apFilteredData.reduce((a,r)=>a+r.sh,0);
-  const j5=apFilteredData.filter(r=>r.val>5000);
-  const ni=apFilteredData.filter(r=>r.isNew);
-  const tA=apTargetData['All']||apTargetData['all']||0;
-  const pct=tA?(tv/tA*100):null;
-  const pass=pct!==null?tv<=tA:null;
-  const dateLabel=(fM!=='all'&&fY!=='all')?`${MN[parseInt(fM)]} ${fY}`:(fY!=='all'?`Year ${fY}`:'ภาพรวมทั้งหมด');
-
-  document.getElementById('pvTitle').textContent=dateLabel;
-  document.getElementById('pvSubtitle').textContent='Add Paper Performance';
-  document.getElementById('pvDate').textContent='สร้างเมื่อ '+new Date().toLocaleDateString('th-TH');
+  // Use full loaded AP dataset
+  const _apAll=typeof apAllData!=='undefined'&&apAllData.length?apAllData:apFilteredData;
+  _pvBaseData=[..._apAll];
+  _pvState={ data:[..._apAll], dataForMonthly:[..._apAll], dataForDept:[..._apAll],
+             isAP:true, filterMonth:null, filterDept:null, filterComp:null, sortCol:'val', sortDir:-1, selDepts:new Set(['__all__']) };
+  document.getElementById('pvTitle').textContent='Add Paper Performance';
+  document.getElementById('pvSubtitle').textContent='ภาพรวมทั้งหมด';
+  document.getElementById('pvDate').textContent=new Date().toLocaleDateString('th-TH');
   try{document.getElementById('pvLogo').src=_LOGO_DATA;}catch(e){}
-
-  _pvBuildKpi([
-    {label:'TOTAL VALUE (THB)',value:fB(tv)+' THB',
-     sub:tA?`Target: ${fB(tA)} THB`:'',
-     badge:pct!==null?(pass?`✓ ต่ำกว่าเป้า ${(100-pct).toFixed(1)}%`:`⚠ เกินเป้า ${(pct-100).toFixed(1)}%`):'',
-     badgeCol:pass===false?'#ef4444':pass===true?'#22c55e':'',col:'#a855f7'},
-    {label:'TOTAL SHEET',value:fmt(Math.round(tSh))+' sh',sub:`เฉลี่ย ${fmt(apFilteredData.length?Math.round(tSh/apFilteredData.length):0)} sh/งาน`,col:'#6366f1'},
-    {label:'TOTAL JOBS',value:fmt(apFilteredData.length),sub:`เฉลี่ย ${fB(apFilteredData.length?tv/apFilteredData.length:0)} THB/งาน`,col:'#22c55e'},
-    {label:'JOBS > 5,000 THB',value:fmt(j5.length),sub:`รวม ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,col:'#ef4444'},
-  ]);
-
-  _pvBuildNew(ni);
+  pvPopulateFilters(_pvBaseData);
+  const yEl=document.getElementById('pvFYear'); if(yEl) yEl.value='all';
+  const mEl=document.getElementById('pvFMonth'); if(mEl) mEl.value='all';
+  const mcEl=document.getElementById('pvFMachine'); if(mcEl) mcEl.value='all';
+  document.getElementById('pvDeptDrop').style.display='none';
   _pvDestroyCharts();
-  _pvCopyChart(document.querySelector('#apCardMonthly canvas'),'pvMonthlyCanvas');
-  _pvCopyChart(document.querySelector('#apCardDept canvas'),'pvDeptCanvas');
-  _pvBuildTop10(apFilteredData,true);
-  _pvBuildTable(apFilteredData,true);
-
+  _pvRefresh();
   document.getElementById('presentOverlay').classList.add('show');
   document.body.style.overflow='hidden';
-}
-
-function _pvBuildNewItems(data, isAP=false){
-  const scroll = document.getElementById('pvNewScroll');
-  scroll.innerHTML = '';
-  const items = data.filter(r=>r.isNew).slice().sort((a,b)=>b.val-a.val);
-  if(!items.length){
-    scroll.innerHTML='<div style="color:var(--text2);font-size:11px;padding:8px">ไม่มีรายการใหม่</div>';
-    return;
-  }
-  items.slice(0,15).forEach(r=>{
-    const d=document.createElement('div');
-    d.className='pv-new-item-row';
-    d.innerHTML=`
-      <span class="pv-new">NEW</span>
-      <span style="flex:1;font-size:10px;color:var(--text)">${r.compnt||r.code||r.jo||'—'}</span>
-      <span style="font-size:9px;color:var(--text2)">${r.dept||''}</span>
-      <span style="font-size:10px;font-weight:700;color:#f59e0b;margin-left:6px">${fB(r.val)}</span>`;
-    scroll.appendChild(d);
-  });
-  if(items.length>15){
-    const more=document.createElement('div');
-    more.style.cssText='font-size:9px;color:var(--text2);padding:4px 0;text-align:center';
-    more.textContent=`+${items.length-15} รายการ`;
-    scroll.appendChild(more);
-  }
 }
 
 function closePresent(){
   document.getElementById('presentOverlay').classList.remove('show');
   document.body.style.overflow='';
   _pvDestroyCharts();
+  document.getElementById('pvDrillModal')?.remove();
+  document.getElementById('pvDeptDrop').style.display='none';
 }
 
 
@@ -2959,6 +3356,9 @@ function togglePM(){
           <select id="apExpFDept" onchange="applyAPExpFilter()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:5px;font-size:11px;font-family:inherit;outline:none;cursor:pointer;">
             <option value="all">All Dept</option>
           </select>
+          <select id="apExpFMachine" onchange="applyAPExpFilter()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:5px;font-size:11px;font-family:inherit;outline:none;cursor:pointer;">
+            <option value="all">All Machine</option>
+          </select>
           <button onclick="resetAPExpFilter()" style="background:none;border:1px solid var(--border);color:var(--text2);padding:3px 9px;border-radius:5px;font-size:11px;cursor:pointer;transition:all .2s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">↺ ล้าง</button>
         </div>
         <div class="exp-search">
@@ -2991,6 +3391,26 @@ function togglePM(){
       <span id="pvDate"></span>
     </div>
     <button class="pv-close" onclick="closePresent()">✕ ESC</button>
+  </div>
+  <div id="pvFilterBar" style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-bottom:1px solid var(--border);background:var(--surface2);flex-shrink:0;flex-wrap:wrap;">
+    <span style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Filter:</span>
+    <select id="pvFYear" onchange="pvApplyFilter()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:5px;font-size:11px;font-family:inherit;outline:none;cursor:pointer;"></select>
+    <select id="pvFMonth" onchange="pvApplyFilter()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:5px;font-size:11px;font-family:inherit;outline:none;cursor:pointer;"></select>
+    <div id="pvDeptWrap" style="position:relative;display:inline-block;">
+      <button id="pvDeptBtn" onclick="pvToggleDept()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 10px;border-radius:5px;font-size:11px;font-family:inherit;outline:none;cursor:pointer;display:flex;align-items:center;gap:4px;">
+        <span id="pvDeptTxt">All Depts</span><span style="font-size:9px;opacity:.5">▼</span>
+      </button>
+      <div id="pvDeptDrop" style="display:none;position:absolute;top:110%;left:0;z-index:100;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:6px;min-width:140px;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4);">
+        <div style="padding:2px 0 4px;display:flex;gap:4px;">
+          <button onclick="pvDeptAll()" style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:4px;padding:2px 6px;font-size:9px;cursor:pointer;font-family:inherit">ทั้งหมด</button>
+          <button onclick="pvDeptClear()" style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:4px;padding:2px 6px;font-size:9px;cursor:pointer;font-family:inherit">ล้าง</button>
+        </div>
+        <div id="pvDeptList"></div>
+      </div>
+    </div>
+    <select id="pvFMachine" onchange="pvApplyFilter()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:5px;font-size:11px;font-family:inherit;outline:none;cursor:pointer;"></select>
+    <button onclick="pvResetFilters()" style="background:none;border:1px solid var(--border);color:var(--text2);padding:3px 9px;border-radius:5px;font-size:11px;cursor:pointer;font-family:inherit" onmouseover="this.style.borderColor='var(--accent2)';this.style.color='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">↺ ล้าง</button>
+    <div id="pvChipBar" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-left:4px;"></div>
   </div>
   <div class="pv-body">
     <div class="pv-col-kpi" id="pvKpiCol"></div>
