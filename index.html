@@ -1138,6 +1138,12 @@ window.addEventListener('DOMContentLoaded',()=>{
   }else{
     document.getElementById('con').innerHTML='<div class="nd">📂 ไม่พบ GS URL<br><button class="btn pri" onclick="openModal()" style="padding:7px 18px;font-size:13px">📁 ตั้งค่า</button>&nbsp;<button class="btn" onclick="loadDemo()" style="padding:7px 18px;font-size:13px">🎮 Demo</button></div>';
   }
+  // ── AP auto-load ──
+  const apUrl = localStorage.getItem('ap_gs_url') || AP_GS_URL || '';
+  if (apUrl) {
+    try { document.getElementById('apGsUrl').value = apUrl; localStorage.setItem('ap_gs_url', apUrl); } catch(e) {}
+    loadAPGS(apUrl, true);
+  }
   // ── Scroll button ──
   updateScrollBtn();
   // ── Present btn ──
@@ -3033,8 +3039,7 @@ document.addEventListener('keydown',e=>{
   const tag=e.target.tagName;
   if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
   if(e.key==='p'||e.key==='P'){
-    const tab=document.querySelector('.tab-btn.active')?.dataset?.tab||'replan';
-    if(tab==='ap') openAPPresent(); else openPresent();
+    if(currentPage==='addpaper') openAPPresent(); else openPresent();
   }
   if(e.key==='Escape') closePresent();
 });
@@ -3220,10 +3225,23 @@ let apAllData = [];
 let apFilteredData = [];
 let apSelDepts = new Set(['__all__']);
 let apTargetData = {};
+
+// ── Parse AP Target (เหมือน parseTgt ของ Replan) ──────────────
+function parseAPTarget(raw) {
+  apTargetData = {};
+  raw.forEach(row => {
+    const keys = Object.keys(row).map(k => String(k).toLowerCase().trim());
+    const di = keys.findIndex(k => k === 'dept' || k === 'department');
+    const ti = keys.findIndex(k => k === 'target');
+    const dept = String(di >= 0 ? Object.values(row)[di] : Object.values(row)[0]).trim();
+    const val = parseFloat(ti >= 0 ? Object.values(row)[ti] : Object.values(row)[1]) || 0;
+    if (dept) apTargetData[dept] = val;
+  });
+}
 let apAllDeptList = [];
 let _apFilterTimer = null;
 let _apDomReady = false;
-const apCharts = { monthly: null, dept: null, product: null };
+const apCharts = { monthly: null, dept: null, pareto_count: null, pareto_value: null, product: null };
 
 // ── AP Upload Modal ────────────────────────────────────────────
 function openAPModal() {
@@ -3248,10 +3266,10 @@ function switchAPTab(tab) {
 }
 
 // ── Excel Upload ───────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+// ── AP file input & drag-drop (setup after DOM ready, handled in main DOMContentLoaded) ──
+window.addEventListener('DOMContentLoaded', () => {
   const fi = document.getElementById('apFi');
   if (fi) fi.addEventListener('change', e => { if (e.target.files[0]) readXLAP(e.target.files[0]); });
-
   const dz = document.getElementById('apDz');
   if (dz) {
     dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor = 'var(--accent)'; });
@@ -3261,13 +3279,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const f = e.dataTransfer.files[0];
       if (f && (f.name.endsWith('.xlsx') || f.name.endsWith('.xls'))) readXLAP(f);
     });
-  }
-
-  // auto-load AP GS on startup — ใช้ AP_GS_URL ที่ฝังใน code เป็น fallback
-  const apUrl = localStorage.getItem('ap_gs_url') || (typeof AP_GS_URL !== 'undefined' ? AP_GS_URL : '');
-  if (apUrl) {
-    try { document.getElementById('apGsUrl').value = apUrl; localStorage.setItem('ap_gs_url', apUrl); } catch(e) {}
-    setTimeout(() => loadAPGS(apUrl, true), 1200);
   }
 });
 
@@ -3283,6 +3294,9 @@ function readXLAP(file) {
         if (st) st.innerHTML = '<span style="color:#ef4444">❌ ไม่พบ sheet ที่ขึ้นต้นด้วย apall_</span>';
         return;
       }
+      // parse Target sheet if exists
+      const tgName = wb.SheetNames.find(n => n.toLowerCase() === 'target');
+      if (tgName) parseAPTarget(XLSX.utils.sheet_to_json(wb.Sheets[tgName], { defval: 0 }));
       const rows = XLSX.utils.sheet_to_json(wb.Sheets[sname], { defval: '' });
       parseAPData(rows, 'xl');
       if (st) st.innerHTML = `<span style="color:#22c55e">✅ โหลดสำเร็จ ${apAllData.length.toLocaleString()} รายการ จาก ${sname}</span>`;
@@ -3314,6 +3328,11 @@ async function loadAPGS(urlOverride, silent = false) {
       const res = await fetch(`${url}?page=${page}`);
       const d = await res.json();
       if (!d.apall || d.apall.length === 0) break;
+      // parse target on first page
+      if (page === 0 && d.target && d.target.length > 1) {
+        const th = d.target[0].map(h => String(h).toLowerCase().trim());
+        parseAPTarget(d.target.slice(1).map(row => { const r = {}; th.forEach((h, i) => r[h] = row[i]); return r; }));
+      }
       const headers = d.apall[0];
       const dataRows = d.apall.slice(page === 0 ? 1 : 0).map(row => {
         const obj = {};
@@ -3534,18 +3553,38 @@ function renderAPKPIs(el, data, animate = false) {
     .sort((a, b) => b.v - a.v).slice(0, 2).map(x => `${x.f}: ${fB(x.v)}`).join(' / ');
   const avgVal = data.length ? tv / data.length : 0;
 
+  // Target
+  const tA  = apTargetData['All']  || apTargetData['all']  || 0;
+  const tAv = apTargetData['Avg.'] || apTargetData['avg']  || 0;
+  const pct = tA ? (tv - tA) / tA * 100 : null;
+  const pass = pct !== null ? tv <= tA : null;
+  const badgeHtml = pct !== null
+    ? `<span class="badge ${pass ? 'bg' : 'br'}">${pass ? '✓' : '⚠'} ${Math.abs(pct).toFixed(1)}% ${pass ? 'ต่ำกว่า' : 'เกิน'}เป้า</span>`
+    : '';
+
   const cards = [
-    { l: 'Total Value (THB)', raw: tv, isCurr: true, cls: 'b', c: 'cb', sub: `${data.length.toLocaleString()} รายการ`, tip: `Top Dept: ${topDept || '—'}` },
-    { l: 'Total Jobs', raw: data.length, isCurr: false, cls: 'g', c: 'cg', sub: `เฉลี่ย: ${fB(avgVal)} THB/งาน`, tip: `Factory: ${topFacc || '—'}` },
-    { l: 'Jobs > 5,000 THB', raw: j5.length, isCurr: false, cls: 'r', c: 'cr', sub: `มูลค่ารวม: ${fB(j5.reduce((a, r) => a + r.val, 0))} THB`, tip: `คิดเป็น ${data.length ? ((j5.length / data.length) * 100).toFixed(1) + '%' : '-'} ของทั้งหมด` },
-    { l: 'รายการใหม่ (check=0)', raw: ni.length, isCurr: false, cls: 'y', c: 'cy', sub: `มูลค่ารวม: ${fB(ni.reduce((a, r) => a + r.val, 0))} THB`, tip: `คิดเป็น ${data.length ? ((ni.length / data.length) * 100).toFixed(1) + '%' : '-'} ของทั้งหมด` },
-    { l: 'Departments', raw: depts.length, isCurr: false, cls: 'p', c: 'cp', sub: `Factories: ${faccs.length}`, tip: `Depts: ${depts.slice(0, 5).join(', ')}` },
+    { l: 'Total Value (THB)', raw: tv, isCurr: true, cls: 'b', c: 'cb',
+      sub: tA ? `Target: ${fB(tA)} THB` : `${data.length.toLocaleString()} รายการ`,
+      tip: `Top Dept: ${topDept || '—'}`, bx: badgeHtml },
+    { l: 'Target All (THB)', raw: tA, isCurr: true, cls: 'o', c: 'co',
+      sub: 'เป้าหมายรวม', tip: tAv ? `Avg. Baseline: ${fB(tAv)} THB` : '' },
+    { l: 'Baseline Avg (THB)', raw: tAv, isCurr: true, cls: 'p', c: 'cp',
+      sub: 'ค่าเฉลี่ย Baseline', tip: tA && tAv ? `ต่างจาก Target: ${fB(Math.abs(tA - tAv))} THB` : '' },
+    { l: 'Total Jobs', raw: data.length, isCurr: false, cls: 'g', c: 'cg',
+      sub: `เฉลี่ย: ${fB(avgVal)} THB/งาน`, tip: `Factory: ${topFacc || '—'}` },
+    { l: 'Jobs > 5,000 THB', raw: j5.length, isCurr: false, cls: 'r', c: 'cr',
+      sub: `มูลค่ารวม: ${fB(j5.reduce((a, r) => a + r.val, 0))} THB`,
+      tip: `คิดเป็น ${data.length ? ((j5.length / data.length) * 100).toFixed(1) + '%' : '-'} ของทั้งหมด` },
+    { l: 'รายการใหม่ (check=0)', raw: ni.length, isCurr: false, cls: 'y', c: 'cy',
+      sub: `มูลค่ารวม: ${fB(ni.reduce((a, r) => a + r.val, 0))} THB`,
+      tip: `คิดเป็น ${data.length ? ((ni.length / data.length) * 100).toFixed(1) + '%' : '-'} ของทั้งหมด` },
   ];
   el.innerHTML = cards.map((c, i) => `
     <div class="kc ${c.c}" ${c.tip ? `data-tip="${c.tip}"` : ''}>
       <div class="kl">${c.l}</div>
       <div class="kv ${c.cls}" data-raw="${c.raw}" data-curr="${c.isCurr}" data-idx="${i}">${c.isCurr ? fB(c.raw) : fmt(c.raw)}</div>
       <div class="ks">${c.sub}</div>
+      ${c.bx || ''}
     </div>`).join('');
   initKcGlow(el);
   if (animate) {
@@ -3574,15 +3613,23 @@ function buildAPMonthlyChart(cv, filtData) {
   const src = yr !== 'all' ? allMonthsData : (years.length ? allMonthsData.filter(r => r.year === Math.max(...years)) : allMonthsData);
   const vals = Array.from({ length: 12 }, (_, i) => src.filter(r => r.month === i + 1).reduce((a, r) => a + r.val, 0));
 
+  const tA  = apTargetData['All']  || apTargetData['all']  || 0;
+  const tAv = apTargetData['Avg.'] || apTargetData['avg']  || 0;
+  const ref = tA || tAv || 0;
+
   const bgColors = vals.map((v, i) => {
     const isHl = selM === 'all' || String(i + 1) === selM;
     if (v === 0) return `rgba(42,48,69,${isHl ? .5 : .2})`;
-    return isHl ? cssVar('--accent') : 'rgba(99,102,241,.25)';
+    return ref ? targetRatioColor(v, ref, isHl ? .88 : .2) : (isHl ? cssVar('--accent') : 'rgba(99,102,241,.25)');
   });
+
+  const ds = [{ label: 'Value (THB)', data: vals, type: 'bar', backgroundColor: bgColors, borderRadius: 4, order: 3 }];
+  if (tAv) ds.push({ label: `Avg. ${fB(tAv)}`, data: Array(12).fill(tAv), type: 'line', borderColor: '#f5a623', borderWidth: 2, borderDash: [8, 5], pointRadius: 0, fill: false, order: 1 });
+  if (tA)  ds.push({ label: `Target ${fB(tA)}`, data: Array(12).fill(tA), type: 'line', borderColor: '#e74c3c', borderWidth: 2.5, pointRadius: 0, fill: false, order: 0 });
 
   if (apCharts.monthly) { try { apCharts.monthly.destroy(); } catch (e) { } apCharts.monthly = null; }
   apCharts.monthly = new Chart(cv, {
-    type: 'bar', data: { labels: MN.slice(1), datasets: [{ label: 'Value (THB)', data: vals, backgroundColor: bgColors, borderRadius: 4 }] },
+    type: 'bar', data: { labels: MN.slice(1), datasets: ds },
     options: {
       responsive: true, maintainAspectRatio: false,
       onClick: (e, els) => {
@@ -3713,6 +3760,9 @@ function renderAPTable(container, data) {
 }
 
 // ── Render All AP ──────────────────────────────────────────────
+// apCharts merged into apCharts above
+let _apDomBuilt = false;
+
 function renderAPAll() {
   const c = document.getElementById('apCon');
   if (!c) return;
@@ -3725,58 +3775,354 @@ function renderAPAll() {
       <button class="btn pri" onclick="openAPModal()">📁 อัปเดตข้อมูล</button>
     </div>`;
     _apDomReady = false;
+    _apDomBuilt = false;
     return;
   }
 
-  const data = apFilteredData;
+  const scrollY = window.scrollY;
 
-  if (!_apDomReady) {
-    // Build DOM structure first time (or after reset)
-    c.innerHTML = `
-      <div id="apKpiRow" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:16px"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
-        <div class="card" id="apMonthlyCard">
-          <div class="cb2" style="cursor:pointer" onclick="openAPExp('monthly')">📅 Monthly Value (THB) <span style="font-size:10px;color:var(--text2)">▶ ขยาย</span></div>
-          <div style="position:relative;height:220px" id="apMonthlyWrap"><canvas id="apMonthlyCanvas"></canvas></div>
-        </div>
-        <div class="card" id="apDeptCard">
-          <div class="cb2" style="cursor:pointer" onclick="openAPExp('dept')">🏭 Value by Department <span style="font-size:10px;color:var(--text2)">▶ ขยาย</span></div>
-          <div style="position:relative;height:220px" id="apDeptWrap"><canvas id="apDeptCanvas"></canvas></div>
-        </div>
-      </div>
-      <div class="card" style="margin-bottom:16px" id="apCauseCard">
-        <div class="cb2" style="cursor:pointer" onclick="openAPExp('cause')">🔍 Top 10 Causes by Value <span style="font-size:10px;color:var(--text2)">▶ ขยาย</span></div>
-        <div style="position:relative;height:260px" id="apCauseWrap"><canvas id="apCauseCanvas"></canvas></div>
-      </div>
-      <div class="card" id="apTableCard">
-        <div class="cb2">📋 รายละเอียด <span id="apTblCount" style="color:var(--accent);font-family:'IBM Plex Mono',monospace"></span></div>
-        <div id="apTblCon"></div>
-      </div>`;
+  if (!_apDomBuilt) {
+    // ── ครั้งแรก: สร้าง DOM skeleton ทั้งหน้า เหมือน Replan ──
+    c.innerHTML = '';
+
+    c.appendChild(mkSecLabel(1, 'ภาพรวมมูลค่า Add Paper'));
+    const ks = document.createElement('div'); ks.className = 'krow'; ks.id = 'apKpiRow'; c.appendChild(ks);
+
+    c.appendChild(mkSecLabel(2, 'แนวโน้มรายเดือน & แผนก'));
+    const g1 = document.createElement('div'); g1.className = 'g2'; c.appendChild(g1);
+    const mC = mkCard('📅 Monthly Value (THB)', 'Add Paper รายเดือน', 'ap_monthly'); mC.id = 'apCardMonthly'; g1.appendChild(mC);
+    const dC = mkCard('🏭 Department Value', 'แสดงทุก Dept • กรองเฉพาะปี/เดือน', 'ap_dept'); dC.id = 'apCardDept'; g1.appendChild(dC);
+
+    c.appendChild(mkSecLabel(3, 'ประเมินผล vs เป้าหมาย'));
+    const apGaugeRow = document.createElement('div'); apGaugeRow.id = 'apGaugeRow'; c.appendChild(apGaugeRow);
+    const apGC = mkCard('🎯 KPI vs Target', ''); apGC.id = 'apCardGauge'; apGaugeRow.appendChild(apGC);
+
+    c.appendChild(mkSecLabel(4, 'วิเคราะห์สาเหตุ (Why?)'));
+    const g3 = document.createElement('div'); g3.className = 'g2'; c.appendChild(g3);
+    const p1C = mkCard('📊 Pareto — สาเหตุ vs จำนวนครั้ง', 'Top 10 Causes by Count', 'ap_pareto_count'); p1C.id = 'apCardPareto1'; g3.appendChild(p1C);
+    const p2C = mkCard('📊 Pareto — สาเหตุ vs มูลค่า', 'Top 10 Causes by Value', 'ap_pareto_value'); p2C.id = 'apCardPareto2'; g3.appendChild(p2C);
+
+    c.appendChild(mkSecLabel(5, 'Code ที่มีมูลค่าสูงสุด (What?)'));
+    const g2 = document.createElement('div'); g2.className = 'g2'; c.appendChild(g2);
+    const pC = mkCard('📦 Top 10 Code by Value', 'รวมทุก Dept', 'ap_product'); pC.id = 'apCardProduct'; g2.appendChild(pC);
+    g2.appendChild(document.createElement('div'));
+
+    c.appendChild(mkSecLabel(6, 'รายละเอียดทั้งหมด'));
+    const t1 = mkCard('📋 รายละเอียดทั้งหมด', ''); t1.id = 'apTcMain'; c.appendChild(t1);
+    const t2 = mkCard('🆕 รายการใหม่ (check = 0)', ''); t2.id = 'apTcNew'; c.appendChild(t2);
+
+    // Skeleton ก่อน render
+    ['apCardMonthly', 'apCardDept', 'apCardGauge', 'apCardPareto1', 'apCardPareto2', 'apCardProduct'].forEach((id, i) => {
+      const heights = [230, 230, 160, 280, 280, 260];
+      const el = document.getElementById(id);
+      if (el) el.querySelector('.cbody').innerHTML = mkSkeleton(heights[i]);
+    });
+
+    _apDomBuilt = true;
     _apDomReady = true;
+    requestAnimationFrame(() => _renderAPCharts(apFilteredData, scrollY, true));
+  } else {
+    // ── Filter เปลี่ยน: fade + skeleton + rebuild ──
+    c.style.transition = 'opacity .15s'; c.style.opacity = '.5';
+    ['apCardMonthly', 'apCardDept', 'apCardGauge', 'apCardPareto1', 'apCardPareto2', 'apCardProduct'].forEach((id, i) => {
+      const el = document.getElementById(id); if (!el) return;
+      const heights = [230, 230, 160, 280, 280, 260];
+      el.querySelector('.cbody').innerHTML = mkSkeleton(heights[i]);
+    });
+    Object.keys(apCharts).forEach(k => { if (apCharts[k]) { try { apCharts[k].destroy(); } catch(e) {} apCharts[k] = null; } });
+    requestAnimationFrame(() => {
+      c.style.opacity = '1';
+      _renderAPCharts(apFilteredData, scrollY, false);
+    });
   }
-
-  // KPIs
-  const kpiRow = document.getElementById('apKpiRow');
-  if (kpiRow) renderAPKPIs(kpiRow, data, true);
-
-  // Monthly chart
-  const mCv = document.getElementById('apMonthlyCanvas');
-  if (mCv) buildAPMonthlyChart(mCv, data);
-
-  // Dept chart
-  const dCv = document.getElementById('apDeptCanvas');
-  if (dCv) buildAPDeptChart(dCv, data);
-
-  // Cause chart
-  const cCv = document.getElementById('apCauseCanvas');
-  if (cCv) buildAPCauseChart(cCv, data);
-
-  // Table
-  const tbl = document.getElementById('apTblCon');
-  const cnt = document.getElementById('apTblCount');
-  if (tbl) renderAPTable(tbl, data);
-  if (cnt) cnt.textContent = data.length.toLocaleString() + ' รายการ';
 }
+
+function _renderAPCharts(data, scrollY, isFirst) {
+  // ── KPI (instant) ──
+  const ks = document.getElementById('apKpiRow');
+  if (ks) renderAPKPIs(ks, data, isFirst);
+
+  // ── Tables (instant) ──
+  const t1 = document.getElementById('apTcMain');
+  const t2 = document.getElementById('apTcNew');
+  if (t1) _renderAPTableInCard(t1, data, 'main');
+  if (t2) _renderAPTableInCard(t2, data.filter(r => r.isNew), 'new');
+
+  // ── Fast charts: monthly, dept, gauge ──
+  const mCb = document.getElementById('apCardMonthly')?.querySelector('.cbody');
+  const dCb = document.getElementById('apCardDept')?.querySelector('.cbody');
+  const gCb = document.getElementById('apCardGauge')?.querySelector('.cbody');
+  if (mCb) {
+    mCb.innerHTML = ''; const w = document.createElement('div'); w.style.cssText = 'position:relative;height:230px'; mCb.appendChild(w);
+    const cv = document.createElement('canvas'); w.appendChild(cv);
+    apCharts.monthly = buildAPMonthlyChart(cv, data);
+  }
+  if (dCb) {
+    dCb.innerHTML = ''; const w = document.createElement('div'); w.style.cssText = 'position:relative;height:230px'; dCb.appendChild(w);
+    const cv = document.createElement('canvas'); w.appendChild(cv);
+    apCharts.dept = buildAPDeptChart(cv, data);
+  }
+  if (gCb) renderAPGauge(gCb, data);
+
+  // ── Slow charts: pareto, product ──
+  requestAnimationFrame(() => {
+    const p1Cb = document.getElementById('apCardPareto1')?.querySelector('.cbody');
+    const p2Cb = document.getElementById('apCardPareto2')?.querySelector('.cbody');
+    const pCb  = document.getElementById('apCardProduct')?.querySelector('.cbody');
+    if (p1Cb) renderAPPareto(p1Cb, data, 'count');
+    if (p2Cb) renderAPPareto(p2Cb, data, 'value');
+    if (pCb)  renderAPCodeChart(pCb, data);
+    if (scrollY > 0) requestAnimationFrame(() => window.scrollTo({ top: scrollY, behavior: 'instant' }));
+  });
+}
+
+// ── AP Gauge (เหมือน renderGauge แต่ใช้ apTargetData + apSelDepts) ──
+function renderAPGauge(con, data) {
+  con.innerHTML = '';
+  const tv = data.reduce((a, r) => a + r.val, 0);
+  const ds = [...apSelDepts].filter(d => d !== '__all__');
+  let gaugeTarget = ds.length > 0 ? ds.reduce((a, d) => a + (apTargetData[d] || 0), 0) : 0;
+  if (!gaugeTarget) gaugeTarget = apTargetData['All'] || apTargetData['all'] || 0;
+  const tA = gaugeTarget;
+  const pass = tA ? tv <= tA : null;
+  const pct = tA ? Math.min(tv / tA, 1.5) : 0.5;
+
+  const w = document.createElement('div'); w.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center'; con.appendChild(w);
+  const left = document.createElement('div'); left.style.cssText = 'display:flex;flex-direction:column;align-items:center';
+
+  const cv = document.createElement('canvas'); cv.width = 260; cv.height = 160; left.appendChild(cv);
+  const c2 = cv.getContext('2d');
+  const cx = 130, cy = 148, r = 110, lw = 18;
+
+  const bgColor = document.body.classList.contains('light') ? 'rgba(0,0,0,.07)' : 'rgba(255,255,255,.06)';
+  c2.beginPath(); c2.arc(cx, cy, r, Math.PI, 2 * Math.PI);
+  c2.lineWidth = lw; c2.strokeStyle = bgColor; c2.lineCap = 'butt'; c2.stroke();
+
+  const arcEnd = Math.PI + Math.min(pct, 1.5) * Math.PI;
+  const grad = c2.createLinearGradient(cx - r, cy, cx + r, cy);
+  if (pass === null) {
+    grad.addColorStop(0, '#3b8ef3'); grad.addColorStop(1, '#9b59b6');
+  } else if (pass) {
+    grad.addColorStop(0, '#3b8ef3'); grad.addColorStop(0.5, '#2ec4b6'); grad.addColorStop(1, '#2ecc71');
+  } else {
+    const ex = Math.min((pct - 1) / 0.5, 1);
+    grad.addColorStop(0, '#ffe066'); grad.addColorStop(0.35 + ex * 0.15, '#f5a623'); grad.addColorStop(1, '#e74c3c');
+  }
+  c2.beginPath(); c2.arc(cx, cy, r, Math.PI, arcEnd);
+  c2.lineWidth = lw; c2.strokeStyle = grad; c2.lineCap = 'round'; c2.stroke();
+
+  const endX = cx + Math.cos(arcEnd) * r, endY = cy + Math.sin(arcEnd) * r;
+  const glow = c2.createRadialGradient(endX, endY, 0, endX, endY, lw * 0.8);
+  const glowCol = pass === false ? 'rgba(231,76,60,.6)' : pass === true ? 'rgba(46,204,113,.6)' : 'rgba(59,142,243,.6)';
+  glow.addColorStop(0, glowCol); glow.addColorStop(1, 'rgba(0,0,0,0)');
+  c2.beginPath(); c2.arc(endX, endY, lw * 0.8, 0, Math.PI * 2);
+  c2.fillStyle = glow; c2.fill();
+
+  c2.font = 'bold 10px IBM Plex Mono,monospace';
+  c2.fillStyle = document.body.classList.contains('light') ? 'rgba(0,0,0,.4)' : 'rgba(255,255,255,.35)';
+  c2.textAlign = 'left'; c2.fillText('0', cx - r + 4, cy + 10);
+  c2.textAlign = 'right'; c2.fillText(tA ? fB(tA) : '—', cx + r - 4, cy + 10);
+
+  const gv = document.createElement('div');
+  gv.style.cssText = `font-size:clamp(20px,2.2vw,28px);font-weight:700;font-family:'IBM Plex Mono',monospace;margin-top:-4px;color:${pass === false ? 'var(--accent2)' : pass === true ? 'var(--green)' : 'var(--blue)'};transition:color .3s;letter-spacing:-.02em;`;
+  gv.textContent = fB(tv); left.appendChild(gv);
+  const gs = document.createElement('div'); gs.style.cssText = 'font-size:10px;color:var(--text2);margin-top:2px';
+  gs.textContent = tA ? (ds.length > 0 ? `Dept Target: ${fB(tA)} THB` : `Target: ${fB(tA)} THB`) : 'ยังไม่มีข้อมูล Target';
+  left.appendChild(gs);
+  if (tA) { const pg = document.createElement('div'); pg.style.cssText = 'font-size:9px;color:var(--text2);opacity:.7;margin-top:1px'; pg.textContent = `${(pct * 100).toFixed(1)}% ของ Target`; left.appendChild(pg); }
+  if (pass !== null) { const b = document.createElement('div'); b.className = `badge ${pass ? 'bg' : 'br'}`; b.style.marginTop = '5px'; b.textContent = pass ? '✓ ผ่านเป้าหมาย' : '⚠ เกินเป้าหมาย'; left.appendChild(b); }
+  w.appendChild(left);
+
+  const right = document.createElement('div'); right.style.cssText = 'display:flex;flex-direction:column;gap:8px';
+  const dt = ds.length > 0 ? ds.reduce((a, d) => a + (apTargetData[d] || 0), 0) : 0;
+  const deptLabel = ds.length === 0 ? '—' : ds.length === 1 ? fB(dt) + ' THB' : `${ds.length} depts = ${fB(dt)} THB`;
+  [{ l: 'Dept Target', v: deptLabel, col: 'var(--purple)' },
+   { l: 'Jobs > 5,000', v: fmt(data.filter(r => r.val > 5000).length) + ' jobs', col: 'var(--accent2)' },
+   { l: 'Value Jobs > 5K', v: fB(data.filter(r => r.val > 5000).reduce((a, r) => a + r.val, 0)) + ' THB', col: 'var(--blue)' },
+   { l: 'รายการใหม่', v: fmt(data.filter(r => r.isNew).length) + ' items', col: 'var(--yellow)' }
+  ].forEach(s => {
+    const b = document.createElement('div'); b.style.cssText = 'background:var(--surface2);border-radius:6px;padding:8px 10px;';
+    b.innerHTML = `<div style="font-size:9px;color:var(--text2)">${s.l}</div><div style="font-size:14px;font-weight:700;color:${s.col};font-family:'IBM Plex Mono',monospace">${s.v}</div>`;
+    right.appendChild(b);
+  });
+  w.appendChild(right);
+}
+
+// ── AP Pareto (reuse buildParetoChart logic but with AP data keys) ──
+function renderAPPareto(con, data, mode) {
+  con.innerHTML = getParetoInsight(data, mode);
+  const w = document.createElement('div'); w.style.cssText = 'position:relative;height:250px'; con.appendChild(w);
+  const cv = document.createElement('canvas'); w.appendChild(cv);
+  const key = mode === 'count' ? 'pareto_count' : 'pareto_value';
+  if (apCharts[key]) { try { apCharts[key].destroy(); } catch(e) {} }
+  apCharts[key] = buildParetoChart(cv, data, mode);
+}
+
+// ── AP Code Top10 chart (เหมือน Product chart แต่ใช้ code แทน compnt) ──
+function renderAPCodeChart(con, data) {
+  con.innerHTML = '';
+  const w = document.createElement('div'); w.style.cssText = 'position:relative;height:240px'; con.appendChild(w);
+  const cv = document.createElement('canvas'); w.appendChild(cv);
+  // group by code
+  const grp = {};
+  data.forEach(r => { const k = r.code || '—'; grp[k] = (grp[k] || 0) + r.val; });
+  const sorted = Object.entries(grp).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const labels = sorted.map(x => x[0]);
+  const vals = sorted.map(x => x[1]);
+  const palette = ['#6366f1','#8b5cf6','#a78bfa','#c4b5fd','#38bdf8','#34d399','#fbbf24','#f87171','#fb923c','#a3e635'];
+  if (apCharts.product) { try { apCharts.product.destroy(); } catch(e) {} }
+  apCharts.product = new Chart(cv, {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Value (THB)', data: vals, backgroundColor: palette.slice(0, labels.length), borderRadius: 4 }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + fB(ctx.parsed.x) + ' THB' } } },
+      scales: {
+        x: { grid: { color: () => cssVar('--border') }, ticks: { color: () => cssVar('--text2'), font: { size: 9 }, callback: v => fB(v) } },
+        y: { grid: { display: false }, ticks: { color: () => cssVar('--text'), font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// ── AP Table ใน card — pagination + sort + search เหมือน Replan ──
+const AP_PAGE_SIZE = 50;
+const apTblState = {
+  main: { page: 0, sort: { col: 'val', dir: 'desc' } },
+  new:  { page: 0, sort: { col: 'val', dir: 'desc' } }
+};
+
+function _renderAPTableInCard(card, data, key='main') {
+  const isNew = key === 'new';
+  const body = card.querySelector('.cbody');
+  body.innerHTML = '';
+  if (data.length === 0) {
+    body.innerHTML = `<div class="empty-state"><div class="empty-ico">🔍</div><div class="empty-title">ไม่พบข้อมูล</div><div class="empty-sub">ลองเปลี่ยน filter หรือ reset เพื่อดูข้อมูลทั้งหมด</div></div>`;
+    return;
+  }
+  apTblState[key].page = 0;
+
+  const bar = document.createElement('div'); bar.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap';
+  const inp = document.createElement('input'); inp.type = 'text'; inp.className = 'ts2'; inp.placeholder = '🔍 ค้นหาในตาราง...';
+  const cnt = document.createElement('span'); cnt.className = 'cb3';
+  inp.oninput = () => { apTblState[key].page = 0; _renderAPRows(key, data, tbody, foot, cnt, pgBar, inp.value, isNew); };
+  bar.appendChild(inp); bar.appendChild(cnt); body.appendChild(bar);
+
+  const wrap = document.createElement('div'); wrap.className = 'tw'; body.appendChild(wrap);
+  const tbl = document.createElement('table'); wrap.appendChild(tbl);
+
+  const cols = [
+    { k: 'jo', l: 'JO' }, { k: 'code', l: 'Code' }, { k: 'sh', l: 'SH' },
+    { k: 'cause', l: 'Cause' }, { k: 'dept', l: 'Dept' }, { k: 'facc', l: 'Factory' },
+    { k: 'mc', l: 'MC' }, { k: 'month', l: 'Month' }, { k: 'val', l: 'Value (THB)' }
+  ];
+  const thead = document.createElement('thead'); tbl.appendChild(thead);
+  const hr = document.createElement('tr'); thead.appendChild(hr);
+  cols.forEach(c => {
+    const th = document.createElement('th'); th.textContent = c.l;
+    th.onclick = () => {
+      const s = apTblState[key].sort;
+      if (s.col === c.k) s.dir = s.dir === 'asc' ? 'desc' : 'asc';
+      else { s.col = c.k; s.dir = 'desc'; }
+      apTblState[key].page = 0;
+      _renderAPRows(key, data, tbody, foot, cnt, pgBar, inp.value, isNew);
+      _apUpdateSortHeaders(thead, cols, apTblState[key].sort);
+    };
+    hr.appendChild(th);
+  });
+  if (isNew) { const th = document.createElement('th'); th.textContent = 'Status'; hr.appendChild(th); }
+  _apUpdateSortHeaders(thead, cols, apTblState[key].sort);
+
+  const tbody = document.createElement('tbody'); tbl.appendChild(tbody);
+  const foot  = document.createElement('tfoot');  tbl.appendChild(foot);
+  const pgBar = document.createElement('div'); pgBar.className = 'pg-bar'; body.appendChild(pgBar);
+  _renderAPRows(key, data, tbody, foot, cnt, pgBar, '', isNew);
+}
+
+function _apUpdateSortHeaders(thead, cols, sort) {
+  thead.querySelectorAll('th').forEach((th, i) => {
+    th.classList.remove('sa', 'sd');
+    if (cols[i] && cols[i].k === sort.col) th.classList.add(sort.dir === 'asc' ? 'sa' : 'sd');
+  });
+}
+
+function _renderAPRows(key, src, tbody, foot, cnt, pgBar, search, isNew) {
+  const s = apTblState[key].sort;
+  let data = src.filter(r => {
+    if (!search) return true;
+    return [r.jo, r.code, r.cause, r.dept, r.facc, r.mc, r.sh].some(v => String(v || '').toLowerCase().includes(search.toLowerCase()));
+  });
+  data = [...data].sort((a, b) => {
+    const v = s.dir === 'asc' ? 1 : -1;
+    const av = a[s.col], bv = b[s.col];
+    return (typeof av === 'number' ? (av - bv) : String(av || '').localeCompare(String(bv || ''))) * v;
+  });
+  const total = data.length;
+  const pages = Math.ceil(total / AP_PAGE_SIZE) || 1;
+  const pg = Math.min(apTblState[key].page, pages - 1);
+  apTblState[key].page = pg;
+  const slice = data.slice(pg * AP_PAGE_SIZE, (pg + 1) * AP_PAGE_SIZE);
+  cnt.textContent = `${total.toLocaleString()} rows`;
+
+  // store for click
+  window._apRowData = window._apRowData || {};
+  window._apRowData[key] = slice;
+
+  tbody.innerHTML = slice.map((r, idx) => `
+    <tr class="${r.isNew ? 'nr' : ''} ${r.val >= 5000 ? 'hi5k' : ''}">
+      <td>${r.jo || ''}</td>
+      <td>${r.code || ''}</td>
+      <td>${r.sh || ''}</td>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis" title="${r.cause || ''}">${r.cause || ''}</td>
+      <td>${r.dept || ''}</td>
+      <td>${r.facc || ''}</td>
+      <td>${r.mc || ''}</td>
+      <td>${MN[r.month] || ''} ${r.year || ''}</td>
+      <td class="tr ${r.val >= 5000 ? 'val5k' : 'val-normal'}">${fmt(r.val)}${r.val >= 5000 ? '<span class="badge-hot">⚠ HIGH</span>' : ''}</td>
+      ${isNew ? '<td><span class="ntag">NEW</span></td>' : ''}
+    </tr>`).join('');
+
+  foot.innerHTML = `<tr>
+    <td colspan="${isNew ? 8 : 7}"><strong>Total (${total.toLocaleString()} rows)</strong></td>
+    <td class="tr"><strong>${fmt(data.reduce((a, r) => a + r.val, 0))}</strong></td>
+    ${isNew ? '<td></td>' : ''}
+  </tr>`;
+
+  if (pages <= 1) { pgBar.innerHTML = ''; return; }
+  const start = pg * AP_PAGE_SIZE + 1, end = Math.min((pg + 1) * AP_PAGE_SIZE, total);
+  pgBar.innerHTML = `
+    <div class="pg-info">${start.toLocaleString()}–${end.toLocaleString()} จาก ${total.toLocaleString()} rows</div>
+    <div class="pg-btns">
+      <button class="pg-btn" ${pg === 0 ? 'disabled' : ''} onclick="apChangePage('${key}',${pg - 1})">‹ ก่อน</button>
+      ${Array.from({ length: Math.min(pages, 7) }, (_, i) => {
+        let p = i;
+        if (pages > 7) { if (pg < 4) p = i; else if (pg > pages - 4) p = pages - 7 + i; else p = pg - 3 + i; }
+        return `<button class="pg-btn${p === pg ? ' active' : ''}" onclick="apChangePage('${key}',${p})">${p + 1}</button>`;
+      }).join('')}
+      <button class="pg-btn" ${pg === pages - 1 ? 'disabled' : ''} onclick="apChangePage('${key}',${pg + 1})">ถัดไป ›</button>
+    </div>`;
+}
+
+function apChangePage(key, pg) {
+  const card = document.getElementById(key === 'main' ? 'apTcMain' : 'apTcNew');
+  if (!card) return;
+  apTblState[key].page = pg;
+  const inp   = card.querySelector('input.ts2');
+  const tbody = card.querySelector('tbody');
+  const foot  = card.querySelector('tfoot');
+  const cnt   = card.querySelector('.cb3');
+  const pgBar = card.querySelector('.pg-bar');
+  const data  = key === 'main' ? apFilteredData : apFilteredData.filter(r => r.isNew);
+  if (tbody) {
+    tbody.classList.add('fading');
+    setTimeout(() => {
+      _renderAPRows(key, data, tbody, foot, cnt, pgBar, inp ? inp.value : '', key === 'new');
+      tbody.classList.remove('fading');
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 120);
+  }
+}
+
 
 // ── Search AP ──────────────────────────────────────────────────
 function onSearchAP() {
@@ -3863,7 +4209,15 @@ function openAPExp(type) {
   so('apExpFDept', depts, 'Dept');
   so('apExpFMachine', mcs, 'MC');
 
-  const titles = { monthly: '📅 Monthly Value', dept: '🏭 Value by Department', cause: '🔍 Top Causes' };
+  const titles = {
+    'ap_monthly': '📅 Monthly Value (THB)',
+    'ap_dept': '🏭 Value by Department',
+    'ap_pareto_count': '📊 Pareto — สาเหตุ vs จำนวนครั้ง',
+    'ap_pareto_value': '📊 Pareto — สาเหตุ vs มูลค่า',
+    'ap_product': '📦 Top 10 Code by Value',
+    // legacy keys
+    'monthly': '📅 Monthly Value (THB)', 'dept': '🏭 Value by Department', 'cause': '🔍 Top Causes'
+  };
   const titleEl = document.getElementById('apExpTitle');
   if (titleEl) titleEl.textContent = titles[type] || type;
 
@@ -3918,8 +4272,12 @@ function renderAPExp() {
     wrap.innerHTML = '<div style="position:relative;height:100%;width:100%"><canvas id="apExpCanvas"></canvas></div>';
     const cv = document.getElementById('apExpCanvas');
     if (cv) {
-      if (_apExpType === 'monthly') buildAPMonthlyChartFrom(cv, data);
-      else if (_apExpType === 'dept') buildAPDeptChart(cv, data);
+      const t = _apExpType;
+      if (t === 'ap_monthly' || t === 'monthly') buildAPMonthlyChartFrom(cv, data);
+      else if (t === 'ap_dept' || t === 'dept') buildAPDeptChart(cv, data);
+      else if (t === 'ap_pareto_count') buildParetoChart(cv, data, 'count');
+      else if (t === 'ap_pareto_value') buildParetoChart(cv, data, 'value');
+      else if (t === 'ap_product') buildAPCauseChart(cv, data);
       else buildAPCauseChart(cv, data);
     }
   }
