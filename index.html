@@ -2324,6 +2324,8 @@ function switchPage(page){
     const b=document.getElementById('mobBtn'+n);
     if(b) b.classList.toggle('active', n.toLowerCase()===page);
   });
+  // render AP content when switching to AP tab
+  if(isAP) renderAPAll();
 }
 
 // ═══ GAUGE (no needle, clean arc) ═══
@@ -3346,12 +3348,16 @@ function parseAPData(rows, source) {
     } else if (typeof raw === 'string' && raw.includes('/')) {
       const parts = raw.split('/');
       if (parts.length >= 2) {
-        const a = parseInt(parts[0]), b = parseInt(parts[1]), c = parts[2] ? parseInt(parts[2]) : null;
-        // dd/mm/yyyy or yyyy/mm/dd
-        if (c && a < 100) { year = c; month = b; }
-        else if (c && a > 1000) { year = a; month = b; }
-        else { year = b; month = a; }
+        const a = parseInt(parts[0]), b = parseInt(parts[1]), c = parts[2] !== undefined ? parseInt(parts[2]) : null;
+        if (c !== null) {
+          if (a > 1000) { year = a; month = b; }       // yyyy/mm/dd
+          else if (c > 1000) { year = c; month = b; }  // dd/mm/yyyy
+          else { year = 2000 + c; month = b; }         // dd/mm/yy → 2000+c
+        }
       }
+    } else if (typeof raw === 'number' && raw > 40000) {
+      const d = new Date(Math.round((raw - 25569) * 86400 * 1000));
+      if (!isNaN(d)) { year = d.getFullYear(); month = d.getMonth() + 1; }
     }
     const val = parseFloat(String(r.val || r.Val || 0).replace(/,/g, '')) || 0;
     const check = parseInt(r.check || r.Check || 0) || 0;
@@ -3364,7 +3370,7 @@ function parseAPData(rows, source) {
       sh: String(r.sh || r.SH || ''),
       cause: String(r.cause || r.Cause || ''),
       dept: String(r.dept || r.Dept || ''),
-      facc: String(r.facc || r.Facc || r.FACC || ''),
+      facc: String(r.face || r.Face || r.facc || r.Facc || r.FACC || ''),
       check,
       val,
       mc: String(r.MC || r.mc || ''),
