@@ -2627,9 +2627,9 @@ function _pvBuildKpiFromData(d){
      sub:tA?`Target: ${fB(tA)} THB`:'',
      badge:pct!==null?(pass?`✓ ต่ำกว่าเป้า ${(100-pct).toFixed(1)}%`:`⚠ เกินเป้า ${(pct-100).toFixed(1)}%`):'',
      badgeCol:pass===false?'#ef4444':pass===true?'#22c55e':'',col:'#a855f7'},
-    {label:'TOTAL SHEET',value:fmt(Math.round(d.reduce((a,r)=>a+r.sh,0)))+' sh',col:'#6366f1'},
     {label:'TOTAL JOBS',value:fmt(d.length),sub:`เฉลี่ย ${fB(d.length?tv/d.length:0)} THB/งาน`,col:'#22c55e'},
     {label:'JOBS > 5,000 THB',value:fmt(j5.length),sub:`รวม ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,col:'#ef4444'},
+    {label:'รายการใหม่ (CHECK=0)',value:fmt(ni.length),sub:`รวม ${fB(ni.reduce((a,r)=>a+r.val,0))} THB`,col:'#f59e0b'},
   ]:[
     {label:'TOTAL VALUE (THB)',value:fB(tv)+' THB',
      sub:tA?`Target: ${fB(tA)} THB`:'',
