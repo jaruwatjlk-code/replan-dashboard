@@ -3263,10 +3263,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // auto-load AP GS on startup
-  const savedUrl = localStorage.getItem('ap_gs_url');
-  if (savedUrl) {
-    setTimeout(() => loadAPGS(savedUrl, true), 1200);
+  // auto-load AP GS on startup — ใช้ AP_GS_URL ที่ฝังใน code เป็น fallback
+  const apUrl = localStorage.getItem('ap_gs_url') || (typeof AP_GS_URL !== 'undefined' ? AP_GS_URL : '');
+  if (apUrl) {
+    try { document.getElementById('apGsUrl').value = apUrl; localStorage.setItem('ap_gs_url', apUrl); } catch(e) {}
+    setTimeout(() => loadAPGS(apUrl, true), 1200);
   }
 });
 
