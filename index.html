@@ -1696,7 +1696,7 @@ function renderExpKpi(data){
   const cards=[
     {l:'Total Value',v:fB(tv)+' THB',col:'var(--blue)',
      sub:tLabel,
-     badge:pct!==null?`<span style="display:inline-block;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:600;background:${pass?'rgba(46,204,113,.15)':'rgba(231,76,60,.15)'};color:${pass?'var(--green)':'var(--accent2)'};">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ดีกว่า':'เกิน'}เป้า</span>`:''},
+     badge:pct!==null?`<span style="display:inline-block;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:600;background:${pass?'rgba(46,204,113,.15)':'rgba(231,76,60,.15)'};color:${pass?'var(--green)':'var(--accent2)'};">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ต่ำกว่า':'เกิน'}เป้า</span>`:''},
     {l:'Total Jobs',v:fmt(data.length),col:'var(--green)',sub:'รายการทั้งหมด'},
     {l:'Jobs ≥ 5,000 THB',v:fmt(j5.length),col:'var(--accent2)',sub:`รวม: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`},
     {l:'รายการใหม่ (check=0)',v:fmt(ni.length),col:'var(--yellow)',sub:`รวม: ${fB(ni.reduce((a,r)=>a+r.val,0))} THB`},
@@ -1862,7 +1862,7 @@ function renderKPIs(el, coreData, animate=false){
   const trend=calcTrend(coreData,yr,mo);
   const cards=[
     {l:'Total Value (THB)',raw:tv,isCurr:true,cls:'b',c:'cb',sub:tA?`Target: ${fB(tA)} THB`:'รวมทั้งหมด',tip:`Top Dept: ${topDept||'—'}`,
-      bx:(pct!==null?`<span class="badge ${pass?'bg':'br'}">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ดีกว่า':'เกิน'}เป้า</span>`:'')+trendBadgeHtml(trend)},
+      bx:(pct!==null?`<span class="badge ${pass?'bg':'br'}">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ต่ำกว่า':'เกิน'}เป้า</span>`:'')+trendBadgeHtml(trend)},
     {l:'Target All (THB)',raw:tA,isCurr:true,cls:'o',c:'co',sub:'เป้าหมายรวม',tip:tAv?`Avg. Baseline: ${fB(tAv)} THB`:''},
     {l:'Baseline Avg (THB)',raw:tAv,isCurr:true,cls:'p',c:'cp',sub:'ค่าเฉลี่ย Baseline',tip:tA&&tAv?`ต่างจาก Target: ${fB(Math.abs(tA-tAv))} THB`:''},
     {l:'Total Jobs',raw:filteredData.length,isCurr:false,cls:'g',c:'cg',sub:'จำนวนรายการทั้งหมด',tip:`ค่าเฉลี่ยต่อ Job: ${filteredData.length?fB(tv/filteredData.length)+' THB':'—'}`},
@@ -2617,7 +2617,7 @@ function _pvBuildKpiFromData(d){
   const tv=d.reduce((a,r)=>a+r.val,0);
   const isAP=_pvState.isAP;
   const tData=isAP?apTargetData:targetData;
-  const tA=tData['All']||tData['all']||0;
+  const tA=isAP?(tData['Avg.']||tData['avg']||0):(tData['All']||tData['all']||0);
   const pct=tA?(tv/tA*100):null;
   const pass=pct!==null?tv<=tA:null;
   const j5=d.filter(r=>r.val>5000);
@@ -2625,7 +2625,7 @@ function _pvBuildKpiFromData(d){
   const cards=isAP?[
     {label:'TOTAL VALUE (THB)',value:fB(tv)+' THB',
      sub:tA?`Target: ${fB(tA)} THB`:'',
-     badge:pct!==null?(pass?`✓ ดีกว่าเป้าหมาย ${(100-pct).toFixed(1)}%`:`⚠ เกินเป้า ${(pct-100).toFixed(1)}%`):'',
+     badge:pct!==null?(pass?`✓ ต่ำกว่าเป้า ${(100-pct).toFixed(1)}%`:`⚠ เกินเป้า ${(pct-100).toFixed(1)}%`):'',
      badgeCol:pass===false?'#ef4444':pass===true?'#22c55e':'',col:'#a855f7'},
     {label:'TOTAL JOBS',value:fmt(d.length),sub:`เฉลี่ย ${fB(d.length?tv/d.length:0)} THB/งาน`,col:'#22c55e'},
     {label:'JOBS > 5,000 THB',value:fmt(j5.length),sub:`รวม ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,col:'#ef4444'},
@@ -2633,7 +2633,7 @@ function _pvBuildKpiFromData(d){
   ]:[
     {label:'TOTAL VALUE (THB)',value:fB(tv)+' THB',
      sub:tA?`Target: ${fB(tA)} THB`:'',
-     badge:pct!==null?(pass?`✓ ดีกว่าเป้าหมาย ${(100-pct).toFixed(1)}%`:`⚠ เกินเป้า ${(pct-100).toFixed(1)}%`):'',
+     badge:pct!==null?(pass?`✓ ต่ำกว่าเป้า ${(100-pct).toFixed(1)}%`:`⚠ เกินเป้า ${(pct-100).toFixed(1)}%`):'',
      badgeCol:pass===false?'#ef4444':pass===true?'#22c55e':'',col:'#3b82f6'},
     {label:'TOTAL JOBS',value:fmt(d.length),sub:`เฉลี่ย ${fB(d.length?tv/d.length:0)} THB/งาน`,col:'#22c55e'},
     {label:'JOBS > 5,000 THB',value:fmt(j5.length),sub:`รวม ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,col:'#ef4444'},
@@ -3105,7 +3105,7 @@ function _poChip(label){
 function updatePresentOverlay(){
   const isAP = currentPage==='ap';
   const data      = isAP ? apFilteredData : filteredData.filter(r=>!isExcl(r));
-  const targetVal = isAP ? (apTargetData['All']||0) : (targetData['All']||targetData['all']||0);
+  const targetVal = isAP ? (apTargetData['Avg.']||apTargetData['avg']||0) : (targetData['All']||targetData['all']||0);
   const fY = document.getElementById(isAP?'apFY':'fY')?.value||'all';
   const fM = document.getElementById(isAP?'apFM':'fM')?.value||'all';
   const selD = isAP ? apSelDepts : selDepts;
@@ -3554,12 +3554,12 @@ function renderAPKPIs(el, data, animate = false) {
   const avgVal = data.length ? tv / data.length : 0;
 
   // Target
-  const tA  = apTargetData['All']  || apTargetData['all']  || 0;
-  const tAv = apTargetData['Avg.'] || apTargetData['avg']  || 0;
+  const tA  = apTargetData['Avg.'] || apTargetData['avg']  || 0;
+  const tAv = apTargetData['All']  || apTargetData['all']  || 0;
   const pct = tA ? (tv - tA) / tA * 100 : null;
   const pass = pct !== null ? tv <= tA : null;
   const badgeHtml = pct !== null
-    ? `<span class="badge ${pass ? 'bg' : 'br'}">${pass ? '✓' : '⚠'} ${Math.abs(pct).toFixed(1)}% ${pass ? 'ดีกว่า' : 'เกิน'}เป้า</span>`
+    ? `<span class="badge ${pass ? 'bg' : 'br'}">${pass ? '✓' : '⚠'} ${Math.abs(pct).toFixed(1)}% ${pass ? 'ต่ำกว่า' : 'เกิน'}เป้า</span>`
     : '';
 
   const cards = [
@@ -3613,8 +3613,8 @@ function buildAPMonthlyChart(cv, filtData) {
   const src = yr !== 'all' ? allMonthsData : (years.length ? allMonthsData.filter(r => r.year === Math.max(...years)) : allMonthsData);
   const vals = Array.from({ length: 12 }, (_, i) => src.filter(r => r.month === i + 1).reduce((a, r) => a + r.val, 0));
 
-  const tA  = apTargetData['All']  || apTargetData['all']  || 0;
-  const tAv = apTargetData['Avg.'] || apTargetData['avg']  || 0;
+  const tA  = apTargetData['Avg.'] || apTargetData['avg']  || 0;
+  const tAv = apTargetData['All']  || apTargetData['all']  || 0;
   const ref = tA || tAv || 0;
 
   const bgColors = vals.map((v, i) => {
@@ -3882,7 +3882,7 @@ function renderAPGauge(con, data) {
   const tv = data.reduce((a, r) => a + r.val, 0);
   const ds = [...apSelDepts].filter(d => d !== '__all__');
   let gaugeTarget = ds.length > 0 ? ds.reduce((a, d) => a + (apTargetData[d] || 0), 0) : 0;
-  if (!gaugeTarget) gaugeTarget = apTargetData['All'] || apTargetData['all'] || 0;
+  if (!gaugeTarget) gaugeTarget = apTargetData['Avg.'] || apTargetData['avg'] || 0;
   const tA = gaugeTarget;
   const pass = tA ? tv <= tA : null;
   const pct = tA ? Math.min(tv / tA, 1.5) : 0.5;
