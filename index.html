@@ -421,7 +421,7 @@ body.light .kl{opacity:1!important;}
 .page-panel.ap .chip strong{color:var(--purple);}
 .page-panel.ap .chip-x{color:var(--purple);}
 /* AP card top-border accent */
-.page-panel.ap .card{border-top:2px solid rgba(168,85,247,.35);}
+.page-panel.ap .card{border-top:1px solid rgba(99,102,241,.12);}
 /* AP active tab */
 #tabAddpaper.active{color:var(--purple);border-bottom-color:var(--purple);}
 /* AP section label line gradient */
@@ -1207,6 +1207,8 @@ function parseTgt(raw){
   // targetData[dept] = sorted array of {ym, val} — ym = yyyymm number
   // Legacy (no year/month cols): stored as ym=0, acts as default
   targetData={};
+  // debug: log first row to check structure
+  if(raw&&raw.length) console.log('[parseTgt] first row keys:', Object.keys(raw[0]), 'vals:', Object.values(raw[0]).slice(0,5));
   raw.forEach(row=>{
     const ks=Object.keys(row).map(k=>k.toLowerCase().trim());
     const vals=Object.values(row);
@@ -1227,6 +1229,7 @@ function parseTgt(raw){
   });
   // sort each dept array ascending by ym
   Object.keys(targetData).forEach(d=>targetData[d].sort((a,b)=>a.ym-b.ym));
+  console.log('[parseTgt] result sample:', JSON.stringify(Object.fromEntries(Object.entries(targetData).slice(0,3))));
 }
 // Get effective target for dept at (yr, mo). yr/mo=0 → latest value
 function getTgt(dept,yr,mo){
@@ -1729,7 +1732,7 @@ function renderExpKpi(data){
   const cards=[
     {l:'Total Value',v:fB(tv)+' THB',col:'var(--blue)',
      sub:tLabel,
-     badge:pct!==null?`<span style="display:inline-block;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:600;background:${pass?'rgba(46,204,113,.15)':'rgba(231,76,60,.15)'};color:${pass?'var(--green)':'var(--accent2)'};">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ต่ำกว่า':'เกิน'}เป้า</span>`:''},
+     badge:pct!==null?`<span style="display:inline-block;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:600;background:${pass?'rgba(46,204,113,.15)':'rgba(231,76,60,.15)'};color:${pass?'var(--green)':'var(--accent2)'};">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ดีกว่า':'เกิน'}เป้า</span>`:''},
     {l:'Total Jobs',v:fmt(data.length),col:'var(--green)',sub:'รายการทั้งหมด'},
     {l:'Jobs ≥ 5,000 THB',v:fmt(j5.length),col:'var(--accent2)',sub:`รวม: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`},
     {l:'รายการใหม่ (check=0)',v:fmt(ni.length),col:'var(--yellow)',sub:`รวม: ${fB(ni.reduce((a,r)=>a+r.val,0))} THB`},
@@ -1897,7 +1900,7 @@ function renderKPIs(el, coreData, animate=false){
   const trend=calcTrend(coreData,yr,mo);
   const cards=[
     {l:'Total Value (THB)',raw:tv,isCurr:true,cls:'b',c:'cb',sub:tA?`Target: ${fB(tA)} THB`:'รวมทั้งหมด',tip:`Top Dept: ${topDept||'—'}`,
-      bx:(pct!==null?`<span class="badge ${pass?'bg':'br'}">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ต่ำกว่า':'เกิน'}เป้า</span>`:'')+trendBadgeHtml(trend)},
+      bx:(pct!==null?`<span class="badge ${pass?'bg':'br'}">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ดีกว่า':'เกิน'}เป้า</span>`:'')+trendBadgeHtml(trend)},
     {l:'Target All (THB)',raw:tA,isCurr:true,cls:'o',c:'co',sub:'เป้าหมายรวม',tip:tAv?`Avg. Baseline: ${fB(tAv)} THB`:''},
     {l:'Baseline Avg (THB)',raw:tAv,isCurr:true,cls:'p',c:'cp',sub:'ค่าเฉลี่ย Baseline',tip:tA&&tAv?`ต่างจาก Target: ${fB(Math.abs(tA-tAv))} THB`:''},
     {l:'Total Jobs',raw:filteredData.length,isCurr:false,cls:'g',c:'cg',sub:'จำนวนรายการทั้งหมด',tip:`ค่าเฉลี่ยต่อ Job: ${filteredData.length?fB(tv/filteredData.length)+' THB':'—'}`},
@@ -1961,8 +1964,20 @@ function buildMonthlyChart(cv,coreData){
   const _tALast=_tgtArr?_tgtArr.filter(v=>v>0).pop()||tA:tA;
   const _tAvLast=_avgArr?_avgArr.filter(v=>v>0).pop()||tAv:tAv;
   const ds=[{label:'Value (THB)',data:vals,type:'bar',backgroundColor:bgColors,borderRadius:4,order:3}];
-  if(tAv||_avgArr)ds.push({label:`Avg. ${fB(_tAvLast||tAv)}`,data:_avgArr||Array(12).fill(tAv),type:'line',borderColor:'#f5a623',borderWidth:2,borderDash:[8,5],pointRadius:0,stepped:'before',fill:false,order:1});
-  if(tA||_tgtArr)ds.push({label:`Target ${fB(_tALast||tA)}`,data:_tgtArr||Array(12).fill(tA),type:'line',borderColor:'#e74c3c',borderWidth:2.5,pointRadius:0,stepped:'before',fill:false,order:0});
+  if(tAv||_avgArr){
+    ds.push({label:`Avg. ${fB(_tAvLast||tAv)}`,data:_avgArr||Array(12).fill(tAv),type:'line',
+      borderColor:'#f59e0b',borderWidth:1.5,borderDash:[7,4],
+      pointRadius:2.5,pointHoverRadius:5,
+      pointBackgroundColor:'transparent',pointBorderColor:'#f59e0b',pointBorderWidth:1.5,
+      fill:false,order:1,tension:0});
+  }
+  if(tA||_tgtArr){
+    ds.push({label:`Target ${fB(_tALast||tA)}`,data:_tgtArr||Array(12).fill(tA),type:'line',
+      borderColor:'#ef4444',borderWidth:1.5,
+      pointRadius:2.5,pointHoverRadius:5,
+      pointBackgroundColor:'transparent',pointBorderColor:'#ef4444',pointBorderWidth:1.5,
+      fill:false,order:0,tension:0});
+  }
   return new Chart(cv,{type:'bar',data:{labels:MN.slice(1),datasets:ds},options:{
     responsive:true,maintainAspectRatio:false,
     onClick:(e,els)=>{
@@ -1979,10 +1994,24 @@ function buildMonthlyChart(cv,coreData){
     plugins:{legend:{labels:{color:()=>cssVar('--text2'),font:{size:10},boxWidth:20}},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.parsed.y)+' THB'}}},
     scales:{x:{grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:10}}},y:{grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:10},callback:v=>fB(v)}}},
     animation:{onComplete(ctx){
-      const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.font='bold 9px IBM Plex Mono,monospace';c2.textAlign='center';
+      const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.textAlign='center';
       ch.data.datasets[0].data.forEach((v,i)=>{if(v>0){const m=ch.getDatasetMeta(0);if(m.data[i]){const b=m.data[i].getProps(['x','y'],true);
         const isHl=selM==='all'||String(i+1)===selM;
-        c2.fillStyle=isHl?cssVar('--text'):'rgba(128,130,140,.35)';c2.fillText(fB(v),b.x,b.y-5);
+        c2.fillStyle=isHl?cssVar('--text'):'rgba(128,130,140,.35)';
+        c2.font='bold 9px IBM Plex Mono,monospace';
+        c2.fillText(fB(v),b.x,b.y-5);
+        // % vs target label — only on active bar when month is selected
+        if(isHl&&selM!=='all'){
+          const _tRef=_tgtArr?_tgtArr[i]:tA;
+          if(_tRef>0){
+            const pct=((v-_tRef)/_tRef*100);
+            const good=pct<=0;
+            const label=good?`✓ ดีกว่าเป้า ${Math.abs(pct).toFixed(1)}%`:`⚠ เกินเป้า ${pct.toFixed(1)}%`;
+            c2.font='bold 10px IBM Plex Sans Thai,sans-serif';
+            c2.fillStyle=good?'#22c55e':'#ef4444';
+            c2.fillText(label,b.x,b.y-18);
+          }
+        }
       }}});c2.restore();
     }}
   }});
@@ -2677,7 +2706,7 @@ function _pvBuildKpiFromData(d){
   const cards=isAP?[
     {label:'TOTAL VALUE (THB)',value:fB(tv)+' THB',
      sub:tA?`Target: ${fB(tA)} THB`:'',
-     badge:pct!==null?(pass?`✓ ต่ำกว่าเป้า ${(100-pct).toFixed(1)}%`:`⚠ เกินเป้า ${(pct-100).toFixed(1)}%`):'',
+     badge:pct!==null?(pass?`✓ ดีกว่าเป้า ${(100-pct).toFixed(1)}%`:`⚠ เกินเป้า ${(pct-100).toFixed(1)}%`):'',
      badgeCol:pass===false?'#ef4444':pass===true?'#22c55e':'',col:'#a855f7'},
     {label:'TOTAL JOBS',value:fmt(d.length),sub:`เฉลี่ย ${fB(d.length?tv/d.length:0)} THB/งาน`,col:'#22c55e'},
     {label:'JOBS > 5,000 THB',value:fmt(j5.length),sub:`รวม ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,col:'#ef4444'},
@@ -2685,7 +2714,7 @@ function _pvBuildKpiFromData(d){
   ]:[
     {label:'TOTAL VALUE (THB)',value:fB(tv)+' THB',
      sub:tA?`Target: ${fB(tA)} THB`:'',
-     badge:pct!==null?(pass?`✓ ต่ำกว่าเป้า ${(100-pct).toFixed(1)}%`:`⚠ เกินเป้า ${(pct-100).toFixed(1)}%`):'',
+     badge:pct!==null?(pass?`✓ ดีกว่าเป้า ${(100-pct).toFixed(1)}%`:`⚠ เกินเป้า ${(pct-100).toFixed(1)}%`):'',
      badgeCol:pass===false?'#ef4444':pass===true?'#22c55e':'',col:'#3b82f6'},
     {label:'TOTAL JOBS',value:fmt(d.length),sub:`เฉลี่ย ${fB(d.length?tv/d.length:0)} THB/งาน`,col:'#22c55e'},
     {label:'JOBS > 5,000 THB',value:fmt(j5.length),sub:`รวม ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,col:'#ef4444'},
@@ -2759,8 +2788,16 @@ function _pvBuildMonthly(d){
     borderColor:'#fff',
     borderRadius:4,order:3
   }];
-  if(tAv) ds.push({label:`Avg. ${fB(tAv)}`,data:Array(12).fill(tAv),type:'line',borderColor:'#f5a623',borderWidth:2,borderDash:[8,5],pointRadius:0,fill:false,order:1});
-  if(tA)  ds.push({label:`Target ${fB(tA)}`,data:Array(12).fill(tA),type:'line',borderColor:'#e74c3c',borderWidth:2.5,pointRadius:0,fill:false,order:0});
+  if(tAv||_avgArr) ds.push({label:`Avg. ${fB(tAv)}`,data:_avgArr||Array(12).fill(tAv),type:'line',
+    borderColor:'#f59e0b',borderWidth:1.5,borderDash:[7,4],
+    pointRadius:2.5,pointHoverRadius:5,
+    pointBackgroundColor:'transparent',pointBorderColor:'#f59e0b',pointBorderWidth:1.5,
+    fill:false,order:1,tension:0});
+  if(tA||_tgtArr) ds.push({label:`Target ${fB(tA)}`,data:_tgtArr||Array(12).fill(tA),type:'line',
+    borderColor:'#ef4444',borderWidth:1.5,
+    pointRadius:2.5,pointHoverRadius:5,
+    pointBackgroundColor:'transparent',pointBorderColor:'#ef4444',pointBorderWidth:1.5,
+    fill:false,order:0,tension:0});
   _pvCharts.monthly=new Chart(cv,{
     type:'bar',
     data:{labels:MN.slice(1),datasets:ds},
@@ -3638,7 +3675,7 @@ function renderAPKPIs(el, data, animate = false) {
   const pct = tA ? (tv - tA) / tA * 100 : null;
   const pass = pct !== null ? tv <= tA : null;
   const badgeHtml = pct !== null
-    ? `<span class="badge ${pass ? 'bg' : 'br'}">${pass ? '✓' : '⚠'} ${Math.abs(pct).toFixed(1)}% ${pass ? 'ต่ำกว่า' : 'เกิน'}เป้า</span>`
+    ? `<span class="badge ${pass ? 'bg' : 'br'}">${pass ? '✓' : '⚠'} ${Math.abs(pct).toFixed(1)}% ${pass ? 'ดีกว่า' : 'เกิน'}เป้า</span>`
     : '';
 
   const cards = [
@@ -3709,8 +3746,20 @@ function buildAPMonthlyChart(cv, filtData) {
   const _apTALast = _apTgtArr ? _apTgtArr.filter(v => v > 0).pop() || tA : tA;
   const _apTAvLast = _apAvgArr ? _apAvgArr.filter(v => v > 0).pop() || tAv : tAv;
   const ds = [{ label: 'Value (THB)', data: vals, type: 'bar', backgroundColor: bgColors, borderRadius: 4, order: 3 }];
-  if (tAv || _apAvgArr) ds.push({ label: `Avg. ${fB(_apTAvLast || tAv)}`, data: _apAvgArr || Array(12).fill(tAv), type: 'line', borderColor: '#f5a623', borderWidth: 2, borderDash: [8, 5], pointRadius: 0, stepped: 'before', fill: false, order: 1 });
-  if (tA  || _apTgtArr) ds.push({ label: `Target ${fB(_apTALast || tA)}`, data: _apTgtArr  || Array(12).fill(tA),  type: 'line', borderColor: '#e74c3c', borderWidth: 2.5, pointRadius: 0, stepped: 'before', fill: false, order: 0 });
+  if (tAv || _apAvgArr) {
+    ds.push({ label: `Avg. ${fB(_apTAvLast || tAv)}`, data: _apAvgArr || Array(12).fill(tAv), type: 'line',
+      borderColor: '#f59e0b', borderWidth: 1.5, borderDash: [7, 4],
+      pointRadius: 2.5, pointHoverRadius: 5,
+      pointBackgroundColor: 'transparent', pointBorderColor: '#f59e0b', pointBorderWidth: 1.5,
+      fill: false, order: 1, tension: 0 });
+  }
+  if (tA || _apTgtArr) {
+    ds.push({ label: `Target ${fB(_apTALast || tA)}`, data: _apTgtArr || Array(12).fill(tA), type: 'line',
+      borderColor: '#ef4444', borderWidth: 1.5,
+      pointRadius: 2.5, pointHoverRadius: 5,
+      pointBackgroundColor: 'transparent', pointBorderColor: '#ef4444', pointBorderWidth: 1.5,
+      fill: false, order: 0, tension: 0 });
+  }
 
   if (apCharts.monthly) { try { apCharts.monthly.destroy(); } catch (e) { } apCharts.monthly = null; }
   apCharts.monthly = new Chart(cv, {
@@ -3739,7 +3788,19 @@ function buildAPMonthlyChart(cv, filtData) {
                 const b = m.data[i].getProps(['x', 'y'], true);
                 const isHl = selM === 'all' || String(i + 1) === selM;
                 c2.fillStyle = isHl ? cssVar('--text') : 'rgba(128,130,140,.35)';
+                c2.font = 'bold 9px IBM Plex Mono,monospace';
                 c2.fillText(fB(v), b.x, b.y - 5);
+                if (isHl && selM !== 'all') {
+                  const _apRef = _apTgtArr ? _apTgtArr[i] : tA;
+                  if (_apRef > 0) {
+                    const pct = (v - _apRef) / _apRef * 100;
+                    const good = pct <= 0;
+                    const label = good ? `✓ ดีกว่าเป้า ${Math.abs(pct).toFixed(1)}%` : `⚠ เกินเป้า ${pct.toFixed(1)}%`;
+                    c2.font = 'bold 10px IBM Plex Sans Thai,sans-serif';
+                    c2.fillStyle = good ? '#22c55e' : '#ef4444';
+                    c2.fillText(label, b.x, b.y - 18);
+                  }
+                }
               }
             }
           });
@@ -3759,12 +3820,14 @@ function buildAPDeptChart(cv, filtData) {
   const labels = sorted.map(x => x[0]);
   const vals = sorted.map(x => x[1]);
   const total = vals.reduce((a, v) => a + v, 0);
-  const palette = ['#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd', '#38bdf8', '#34d399', '#fbbf24', '#f87171', '#fb923c', '#a3e635', '#e879f9', '#94a3b8'];
+  // single indigo, opacity fades by rank — clean like Replan
+  const _apDeptMax = vals[0] || 1;
+  const _apDeptBg = vals.map(v => `rgba(99,102,241,${(0.45 + 0.55 * v / _apDeptMax).toFixed(2)})`);
 
   if (apCharts.dept) { try { apCharts.dept.destroy(); } catch (e) { } apCharts.dept = null; }
   apCharts.dept = new Chart(cv, {
     type: 'bar',
-    data: { labels, datasets: [{ label: 'Value (THB)', data: vals, backgroundColor: palette.slice(0, labels.length), borderRadius: 4 }] },
+    data: { labels, datasets: [{ label: 'Value (THB)', data: vals, backgroundColor: _apDeptBg, borderRadius: 4 }] },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
       onClick: (e, els) => {
@@ -4046,7 +4109,30 @@ function renderAPPareto(con, data, mode) {
   const cv = document.createElement('canvas'); w.appendChild(cv);
   const key = mode === 'count' ? 'pareto_count' : 'pareto_value';
   if (apCharts[key]) { try { apCharts[key].destroy(); } catch(e) {} }
-  apCharts[key] = buildParetoChart(cv, data, mode);
+  // AP pareto: use indigo palette instead of rainbow
+  const grp = {};
+  data.forEach(r => { const k = (r.cause||'ไม่ระบุ').trim(); if(!grp[k])grp[k]={count:0,val:0}; grp[k].count++; grp[k].val+=r.val; });
+  const sorted = Object.entries(grp).map(([k,v])=>({cause:k,...v})).sort((a,b)=>mode==='count'?b.count-a.count:b.val-a.val).slice(0,10);
+  const labels = sorted.map(s=>s.cause.length>22?s.cause.slice(0,22)+'…':s.cause);
+  const barVals = sorted.map(s=>mode==='count'?s.count:s.val);
+  const total = barVals.reduce((a,v)=>a+v,0);
+  let cum=0; const cumPct=barVals.map(v=>{cum+=v;return total>0?parseFloat((cum/total*100).toFixed(1)):0;});
+  const _max = barVals[0]||1;
+  const barColors = barVals.map(v=>`rgba(99,102,241,${(0.45+0.55*v/_max).toFixed(2)})`);
+  apCharts[key] = new Chart(cv,{type:'bar',data:{labels,datasets:[
+    {label:mode==='count'?'จำนวนครั้ง':'มูลค่า (THB)',data:barVals,backgroundColor:barColors,borderRadius:3,yAxisID:'y',order:2},
+    {label:'Cumulative %',data:cumPct,type:'line',borderColor:'#f59e0b',borderWidth:2,pointBackgroundColor:'#f59e0b',pointRadius:3,pointHoverRadius:5,fill:false,yAxisID:'y2',order:1}
+  ]},options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{color:()=>cssVar('--text2'),font:{size:10},boxWidth:14}},tooltip:{callbacks:{label:ctx=>ctx.datasetIndex===0?(mode==='count'?` ${ctx.parsed.y} ครั้ง`:` ${fmt(ctx.parsed.y)} THB`):` ${ctx.parsed.y}%`}}},
+    scales:{
+      x:{grid:{display:false},ticks:{color:()=>cssVar('--text2'),font:{size:9},maxRotation:35}},
+      y:{position:'left',grid:{color:()=>cssVar('--border')},ticks:{color:()=>cssVar('--text2'),font:{size:9},callback:v=>mode==='count'?v:fB(v)}},
+      y2:{position:'right',min:0,max:100,grid:{display:false},ticks:{color:'#f59e0b',font:{size:9},callback:v=>v+'%'}}
+    },
+    animation:{onComplete(ctx){const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.font='8px IBM Plex Mono,monospace';c2.fillStyle=cssVar('--text');c2.textAlign='center';ch.data.datasets[0].data.forEach((v,i)=>{const mm=ch.getDatasetMeta(0);if(mm.data[i]){const b=mm.data[i].getProps(['x','y'],true);c2.fillText(mode==='count'?v:fB(v),b.x,b.y-5);}});c2.restore();}},
+    onClick:(e,els)=>{if(!els.length||els[0].datasetIndex!==0)return;const cause=sorted[els[0].index].cause;if(document.getElementById('apExpOverlay')?.classList.contains('open'))setExpFilter('cause',cause,cause);}
+  }});
 }
 
 // ── AP Code Top10 chart (เหมือน Product chart แต่ใช้ code แทน compnt) ──
@@ -4060,11 +4146,12 @@ function renderAPCodeChart(con, data) {
   const sorted = Object.entries(grp).sort((a, b) => b[1] - a[1]).slice(0, 10);
   const labels = sorted.map(x => x[0]);
   const vals = sorted.map(x => x[1]);
-  const palette = ['#6366f1','#8b5cf6','#a78bfa','#c4b5fd','#38bdf8','#34d399','#fbbf24','#f87171','#fb923c','#a3e635'];
+  const _apCodeMax = vals[0] || 1;
+  const _apCodeBg = vals.map(v => `rgba(99,102,241,${(0.45 + 0.55 * v / _apCodeMax).toFixed(2)})`);
   if (apCharts.product) { try { apCharts.product.destroy(); } catch(e) {} }
   apCharts.product = new Chart(cv, {
     type: 'bar',
-    data: { labels, datasets: [{ label: 'Value (THB)', data: vals, backgroundColor: palette.slice(0, labels.length), borderRadius: 4 }] },
+    data: { labels, datasets: [{ label: 'Value (THB)', data: vals, backgroundColor: _apCodeBg, borderRadius: 4 }] },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + fB(ctx.parsed.x) + ' THB' } } },
