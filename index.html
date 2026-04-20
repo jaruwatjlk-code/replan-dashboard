@@ -1204,15 +1204,48 @@ function retryGS(){try{const s=localStorage.getItem('gsUrl');if(s){showAutoLoadi
 
 // ═══ PARSE TARGET ═══
 function parseTgt(raw){
+  // targetData[dept] = sorted array of {ym, val} — ym = yyyymm number
+  // Legacy (no year/month cols): stored as ym=0, acts as default
   targetData={};
   raw.forEach(row=>{
     const ks=Object.keys(row).map(k=>k.toLowerCase().trim());
+    const vals=Object.values(row);
     const di=ks.findIndex(k=>k==='dept'||k==='department');
     const ti=ks.findIndex(k=>k==='target');
-    const dept=String(di>=0?Object.values(row)[di]:Object.values(row)[0]).trim();
-    const val=parseFloat(ti>=0?Object.values(row)[ti]:Object.values(row)[1])||0;
-    if(dept)targetData[dept]=val;
+    const yi=ks.findIndex(k=>k==='year'||k==='yr');
+    const mi=ks.findIndex(k=>k==='month'||k==='mon'||k==='mth');
+    const dept=String(di>=0?vals[di]:vals[0]).trim();
+    const val=parseFloat(ti>=0?vals[ti]:vals[1])||0;
+    const yr=yi>=0?parseInt(vals[yi])||0:0;
+    const mo=mi>=0?parseInt(vals[mi])||0:0;
+    const ym=yr&&mo?(yr*100+mo):0;
+    if(!dept)return;
+    if(!targetData[dept])targetData[dept]=[];
+    // avoid duplicate ym
+    if(!targetData[dept].find(e=>e.ym===ym))
+      targetData[dept].push({ym,val});
   });
+  // sort each dept array ascending by ym
+  Object.keys(targetData).forEach(d=>targetData[d].sort((a,b)=>a.ym-b.ym));
+}
+// Get effective target for dept at (yr, mo). yr/mo=0 → latest value
+function getTgt(dept,yr,mo){
+  const arr=targetData[dept];
+  if(!arr||!arr.length)return 0;
+  if(!yr||!mo){
+    // no filter → return latest
+    return arr[arr.length-1].val;
+  }
+  const ym=yr*100+mo;
+  // find latest entry whose ym <= ym
+  let val=arr[0].val;
+  for(const e of arr){if(e.ym<=ym)val=e.val; else break;}
+  return val;
+}
+// Get per-month target array for 12 months of given year (for chart stepped line)
+function getTgtMonthly(dept,yr){
+  if(!yr||yr==='all') return null; // no stepped line when no year selected
+  return Array.from({length:12},(_,i)=>getTgt(dept,parseInt(yr),i+1));
 }
 
 // ═══ PARSE DATA ═══
@@ -1683,9 +1716,9 @@ function renderExpKpi(data){
   } else {
     // รวม target ทุก dept ที่มีข้อมูล (ไม่รวม All/Avg.)
     const depts=[...new Set(data.map(r=>r.dept).filter(Boolean))];
-    tTarget=depts.reduce((a,d)=>a+(targetData[d]||0),0);
+    tTarget=depts.reduce((a,d)=>a+getTgt(d,_eYr,_eMo),0);
     // fallback ถ้าไม่มี dept target เลย ใช้ Target All
-    if(tTarget===0)tTarget=targetData['All']||targetData['all']||0;
+    if(tTarget===0)tTarget=getTgt('All',_eYr,_eMo);
   }
 
   const j5=data.filter(r=>r.val>=5000);
@@ -1696,7 +1729,7 @@ function renderExpKpi(data){
   const cards=[
     {l:'Total Value',v:fB(tv)+' THB',col:'var(--blue)',
      sub:tLabel,
-     badge:pct!==null?`<span style="display:inline-block;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:600;background:${pass?'rgba(46,204,113,.15)':'rgba(231,76,60,.15)'};color:${pass?'var(--green)':'var(--accent2)'};">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ดีกว่า':'เกิน'}เป้า</span>`:''},
+     badge:pct!==null?`<span style="display:inline-block;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:600;background:${pass?'rgba(46,204,113,.15)':'rgba(231,76,60,.15)'};color:${pass?'var(--green)':'var(--accent2)'};">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ต่ำกว่า':'เกิน'}เป้า</span>`:''},
     {l:'Total Jobs',v:fmt(data.length),col:'var(--green)',sub:'รายการทั้งหมด'},
     {l:'Jobs ≥ 5,000 THB',v:fmt(j5.length),col:'var(--accent2)',sub:`รวม: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`},
     {l:'รายการใหม่ (check=0)',v:fmt(ni.length),col:'var(--yellow)',sub:`รวม: ${fB(ni.reduce((a,r)=>a+r.val,0))} THB`},
@@ -1853,7 +1886,9 @@ function renderKPIs(el, coreData, animate=false){
   const tv=coreData.reduce((a,r)=>a+r.val,0);
   const j5=coreData.filter(r=>r.val>5000);
   const ni=coreData.filter(r=>r.isNew);
-  const tA=targetData['All']||targetData['all']||0, tAv=targetData['Avg.']||targetData['avg']||0;
+  const _kYr=parseInt(document.getElementById('fY')?.value)||0;
+  const _kMo=parseInt(document.getElementById('fM')?.value)||0;
+  const tA=getTgt('All',_kYr,_kMo), tAv=getTgt('Avg.',_kYr,_kMo);
   const pct=tA?(tv-tA)/tA*100:null, pass=pct!==null?tv<=tA:null;
   const depts=[...new Set(coreData.map(r=>r.dept).filter(Boolean))];
   const topDept=depts.map(d=>({d,v:coreData.filter(r=>r.dept===d).reduce((a,r)=>a+r.val,0)})).sort((a,b)=>b.v-a.v).slice(0,3).map(x=>`${x.d}: ${fB(x.v)}`).join(' / ');
@@ -1862,7 +1897,7 @@ function renderKPIs(el, coreData, animate=false){
   const trend=calcTrend(coreData,yr,mo);
   const cards=[
     {l:'Total Value (THB)',raw:tv,isCurr:true,cls:'b',c:'cb',sub:tA?`Target: ${fB(tA)} THB`:'รวมทั้งหมด',tip:`Top Dept: ${topDept||'—'}`,
-      bx:(pct!==null?`<span class="badge ${pass?'bg':'br'}">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ดีกว่า':'เกิน'}เป้า</span>`:'')+trendBadgeHtml(trend)},
+      bx:(pct!==null?`<span class="badge ${pass?'bg':'br'}">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ต่ำกว่า':'เกิน'}เป้า</span>`:'')+trendBadgeHtml(trend)},
     {l:'Target All (THB)',raw:tA,isCurr:true,cls:'o',c:'co',sub:'เป้าหมายรวม',tip:tAv?`Avg. Baseline: ${fB(tAv)} THB`:''},
     {l:'Baseline Avg (THB)',raw:tAv,isCurr:true,cls:'p',c:'cp',sub:'ค่าเฉลี่ย Baseline',tip:tA&&tAv?`ต่างจาก Target: ${fB(Math.abs(tA-tAv))} THB`:''},
     {l:'Total Jobs',raw:filteredData.length,isCurr:false,cls:'g',c:'cg',sub:'จำนวนรายการทั้งหมด',tip:`ค่าเฉลี่ยต่อ Job: ${filteredData.length?fB(tv/filteredData.length)+' THB':'—'}`},
@@ -1910,7 +1945,12 @@ function buildMonthlyChart(cv,coreData){
   const years=[...new Set(allMonthsData.map(r=>r.year).filter(Boolean))].sort();
   const src=yr!=='all'?allMonthsData:(years.length?allMonthsData.filter(r=>r.year===Math.max(...years)):allMonthsData);
   const vals=Array.from({length:12},(_,i)=>src.filter(r=>r.month===i+1).reduce((a,r)=>a+r.val,0));
-  const tA=targetData['All']||targetData['all']||0,tAv=targetData['Avg.']||targetData['avg']||0;
+  // stepped target/avg per month
+  const _yrInt=yr==='all'?0:parseInt(yr);
+  const _tgtArr=yr!=='all'?getTgtMonthly('All',yr):null;
+  const _avgArr=yr!=='all'?getTgtMonthly('Avg.',yr):null;
+  const tA=_tgtArr?(_tgtArr.find(v=>v>0)||0):getTgt('All',0,0);
+  const tAv=_avgArr?(_avgArr.find(v=>v>0)||0):getTgt('Avg.',0,0);
   const ref=tA||tAv||0;
   const nonZero=vals.map((v,i)=>({v,i})).filter(x=>x.v>0);
   const bgColors=vals.map((v,i)=>{
@@ -1918,9 +1958,11 @@ function buildMonthlyChart(cv,coreData){
     if(v===0)return`rgba(42,48,69,${isHl?.5:.2})`;
     return targetRatioColor(v,ref,isHl?.88:.2);
   });
+  const _tALast=_tgtArr?_tgtArr.filter(v=>v>0).pop()||tA:tA;
+  const _tAvLast=_avgArr?_avgArr.filter(v=>v>0).pop()||tAv:tAv;
   const ds=[{label:'Value (THB)',data:vals,type:'bar',backgroundColor:bgColors,borderRadius:4,order:3}];
-  if(tAv)ds.push({label:`Avg. ${fB(tAv)}`,data:Array(12).fill(tAv),type:'line',borderColor:'#f5a623',borderWidth:2,borderDash:[8,5],pointRadius:0,fill:false,order:1});
-  if(tA)ds.push({label:`Target ${fB(tA)}`,data:Array(12).fill(tA),type:'line',borderColor:'#e74c3c',borderWidth:2.5,pointRadius:0,fill:false,order:0});
+  if(tAv||_avgArr)ds.push({label:`Avg. ${fB(_tAvLast||tAv)}`,data:_avgArr||Array(12).fill(tAv),type:'line',borderColor:'#f5a623',borderWidth:2,borderDash:[8,5],pointRadius:0,stepped:'before',fill:false,order:1});
+  if(tA||_tgtArr)ds.push({label:`Target ${fB(_tALast||tA)}`,data:_tgtArr||Array(12).fill(tA),type:'line',borderColor:'#e74c3c',borderWidth:2.5,pointRadius:0,stepped:'before',fill:false,order:0});
   return new Chart(cv,{type:'bar',data:{labels:MN.slice(1),datasets:ds},options:{
     responsive:true,maintainAspectRatio:false,
     onClick:(e,els)=>{
@@ -1966,7 +2008,9 @@ function buildDeptChart(cv){
   const allDepts=[...new Set(allData.map(r=>r.dept).filter(Boolean))];
   const depts=[...DEPT_ORDER.filter(d=>allDepts.includes(d)),...allDepts.filter(d=>!DEPT_ORDER.includes(d)).sort()];
   const vals=depts.map(d=>deptData.filter(r=>r.dept===d).reduce((a,r)=>a+r.val,0));
-  const tgts=depts.map(d=>targetData[d]||0);
+  const _dtYr=parseInt(document.getElementById('fY')?.value)||0;
+  const _dtMo=parseInt(document.getElementById('fM')?.value)||0;
+  const tgts=depts.map(d=>getTgt(d,_dtYr,_dtMo));
   const da=selDepts.has('__all__')||selDepts.size===0;
 
   const bgColors=vals.map((v,i)=>{
@@ -2340,7 +2384,11 @@ function renderGauge(con,coreData){
   const tv=coreData.reduce((a,r)=>a+r.val,0);
   const ds=[...selDepts].filter(d=>d!=='__all__');
   let gaugeTarget=ds.length>0?ds.reduce((a,d)=>a+(targetData[d]||0),0):0;
-  if(!gaugeTarget)gaugeTarget=targetData['All']||targetData['all']||0;
+  if(!gaugeTarget){
+    const _gYr=parseInt(document.getElementById('fY')?.value)||0;
+    const _gMo=parseInt(document.getElementById('fM')?.value)||0;
+    gaugeTarget=getTgt('All',_gYr,_gMo);
+  }
   const tA=gaugeTarget;
   const pass=tA?tv<=tA:null;
   const pct=tA?Math.min(tv/tA,1.5):0.5;
@@ -2397,7 +2445,9 @@ function renderGauge(con,coreData){
   w.appendChild(left);
 
   const right=document.createElement('div');right.style.cssText='display:flex;flex-direction:column;gap:8px';
-  const dt=ds.length>0?ds.reduce((a,d)=>a+(targetData[d]||0),0):0;
+  const _rdYr=parseInt(document.getElementById('fY')?.value)||0;
+  const _rdMo=parseInt(document.getElementById('fM')?.value)||0;
+  const dt=ds.length>0?ds.reduce((a,d)=>a+getTgt(d,_rdYr,_rdMo),0):0;
   const deptLabel=ds.length===0?'—':ds.length===1?fB(dt)+' THB':`${ds.length} depts = ${fB(dt)} THB`;
   [{l:'Dept Target',v:deptLabel,col:'var(--accent)'},
    {l:'Jobs > 5,000',v:fmt(coreData.filter(r=>r.val>5000).length)+' jobs',col:'var(--accent2)'},
@@ -2617,7 +2667,9 @@ function _pvBuildKpiFromData(d){
   const tv=d.reduce((a,r)=>a+r.val,0);
   const isAP=_pvState.isAP;
   const tData=isAP?apTargetData:targetData;
-  const tA=isAP?(tData['Avg.']||tData['avg']||0):(tData['All']||tData['all']||0);
+  const _pvFYr=parseInt(document.getElementById('pvFYear')?.value)||0;
+  const _pvFMo=parseInt(document.getElementById('pvFMonth')?.value)||0;
+  const tA=isAP?getAPTgt('Avg.',_pvFYr,_pvFMo):getTgt('All',_pvFYr,_pvFMo);
   const pct=tA?(tv/tA*100):null;
   const pass=pct!==null?tv<=tA:null;
   const j5=d.filter(r=>r.val>5000);
@@ -2625,7 +2677,7 @@ function _pvBuildKpiFromData(d){
   const cards=isAP?[
     {label:'TOTAL VALUE (THB)',value:fB(tv)+' THB',
      sub:tA?`Target: ${fB(tA)} THB`:'',
-     badge:pct!==null?(pass?`✓ ดีกว่าเป้า ${(100-pct).toFixed(1)}%`:`⚠ เกินเป้า ${(pct-100).toFixed(1)}%`):'',
+     badge:pct!==null?(pass?`✓ ต่ำกว่าเป้า ${(100-pct).toFixed(1)}%`:`⚠ เกินเป้า ${(pct-100).toFixed(1)}%`):'',
      badgeCol:pass===false?'#ef4444':pass===true?'#22c55e':'',col:'#a855f7'},
     {label:'TOTAL JOBS',value:fmt(d.length),sub:`เฉลี่ย ${fB(d.length?tv/d.length:0)} THB/งาน`,col:'#22c55e'},
     {label:'JOBS > 5,000 THB',value:fmt(j5.length),sub:`รวม ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,col:'#ef4444'},
@@ -2633,7 +2685,7 @@ function _pvBuildKpiFromData(d){
   ]:[
     {label:'TOTAL VALUE (THB)',value:fB(tv)+' THB',
      sub:tA?`Target: ${fB(tA)} THB`:'',
-     badge:pct!==null?(pass?`✓ ดีกว่าเป้าหมาย ${(100-pct).toFixed(1)}%`:`⚠ เกินเป้า ${(pct-100).toFixed(1)}%`):'',
+     badge:pct!==null?(pass?`✓ ต่ำกว่าเป้า ${(100-pct).toFixed(1)}%`:`⚠ เกินเป้า ${(pct-100).toFixed(1)}%`):'',
      badgeCol:pass===false?'#ef4444':pass===true?'#22c55e':'',col:'#3b82f6'},
     {label:'TOTAL JOBS',value:fmt(d.length),sub:`เฉลี่ย ${fB(d.length?tv/d.length:0)} THB/งาน`,col:'#22c55e'},
     {label:'JOBS > 5,000 THB',value:fmt(j5.length),sub:`รวม ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`,col:'#ef4444'},
@@ -2683,7 +2735,9 @@ function _pvBuildMonthly(d){
   if(_pvCharts.monthly) try{_pvCharts.monthly.destroy();}catch(e){}
   const isAP=_pvState.isAP;
   const tData=isAP?apTargetData:targetData;
-  const tA=tData['All']||tData['all']||0;
+  const _eYr=parseInt(document.getElementById('expFYear')?.value)||0;
+  const _eMo=parseInt(document.getElementById('expFMonth')?.value)||0;
+  const tA=isAP?getAPTgt('Avg.',_eYr,_eMo):getTgt('All',_eYr,_eMo);
   const tAv=tData['Avg.']||tData['avg']||0;
   const ref=tA||tAv||0;
   const vals=Array.from({length:12},(_,i)=>d.filter(r=>r.month===i+1).reduce((a,r)=>a+r.val,0));
@@ -3231,12 +3285,35 @@ function parseAPTarget(raw) {
   apTargetData = {};
   raw.forEach(row => {
     const keys = Object.keys(row).map(k => String(k).toLowerCase().trim());
+    const vals = Object.values(row);
     const di = keys.findIndex(k => k === 'dept' || k === 'department');
     const ti = keys.findIndex(k => k === 'target');
-    const dept = String(di >= 0 ? Object.values(row)[di] : Object.values(row)[0]).trim();
-    const val = parseFloat(ti >= 0 ? Object.values(row)[ti] : Object.values(row)[1]) || 0;
-    if (dept) apTargetData[dept] = val;
+    const yi = keys.findIndex(k => k === 'year' || k === 'yr');
+    const mi = keys.findIndex(k => k === 'month' || k === 'mon' || k === 'mth');
+    const dept = String(di >= 0 ? vals[di] : vals[0]).trim();
+    const val = parseFloat(ti >= 0 ? vals[ti] : vals[1]) || 0;
+    const yr = yi >= 0 ? parseInt(vals[yi]) || 0 : 0;
+    const mo = mi >= 0 ? parseInt(vals[mi]) || 0 : 0;
+    const ym = yr && mo ? (yr * 100 + mo) : 0;
+    if (!dept) return;
+    if (!apTargetData[dept]) apTargetData[dept] = [];
+    if (!apTargetData[dept].find(e => e.ym === ym))
+      apTargetData[dept].push({ ym, val });
   });
+  Object.keys(apTargetData).forEach(d => apTargetData[d].sort((a, b) => a.ym - b.ym));
+}
+function getAPTgt(dept, yr, mo) {
+  const arr = apTargetData[dept];
+  if (!arr || !arr.length) return 0;
+  if (!yr || !mo) return arr[arr.length - 1].val;
+  const ym = yr * 100 + mo;
+  let val = arr[0].val;
+  for (const e of arr) { if (e.ym <= ym) val = e.val; else break; }
+  return val;
+}
+function getAPTgtMonthly(dept, yr) {
+  if (!yr || yr === 'all') return null;
+  return Array.from({ length: 12 }, (_, i) => getAPTgt(dept, parseInt(yr), i + 1));
 }
 let apAllDeptList = [];
 let _apFilterTimer = null;
@@ -3554,12 +3631,14 @@ function renderAPKPIs(el, data, animate = false) {
   const avgVal = data.length ? tv / data.length : 0;
 
   // Target
-  const tA  = apTargetData['Avg.'] || apTargetData['avg']  || 0;
-  const tAv = apTargetData['All']  || apTargetData['all']  || 0;
+  const _akYr=parseInt(document.getElementById('apFY')?.value)||0;
+  const _akMo=parseInt(document.getElementById('apFM')?.value)||0;
+  const tA  = getAPTgt('Avg.',_akYr,_akMo);
+  const tAv = getAPTgt('All',_akYr,_akMo);
   const pct = tA ? (tv - tA) / tA * 100 : null;
   const pass = pct !== null ? tv <= tA : null;
   const badgeHtml = pct !== null
-    ? `<span class="badge ${pass ? 'bg' : 'br'}">${pass ? '✓' : '⚠'} ${Math.abs(pct).toFixed(1)}% ${pass ? 'ดีกว่า' : 'เกิน'}เป้า</span>`
+    ? `<span class="badge ${pass ? 'bg' : 'br'}">${pass ? '✓' : '⚠'} ${Math.abs(pct).toFixed(1)}% ${pass ? 'ต่ำกว่า' : 'เกิน'}เป้า</span>`
     : '';
 
   const cards = [
@@ -3613,8 +3692,12 @@ function buildAPMonthlyChart(cv, filtData) {
   const src = yr !== 'all' ? allMonthsData : (years.length ? allMonthsData.filter(r => r.year === Math.max(...years)) : allMonthsData);
   const vals = Array.from({ length: 12 }, (_, i) => src.filter(r => r.month === i + 1).reduce((a, r) => a + r.val, 0));
 
-  const tA  = apTargetData['Avg.'] || apTargetData['avg']  || 0;
-  const tAv = apTargetData['All']  || apTargetData['all']  || 0;
+  // stepped target/avg per month (AP: Avg.=Target, All=Avg baseline)
+  const _apYrInt = yr !== 'all' ? parseInt(yr) : 0;
+  const _apTgtArr = yr !== 'all' ? getAPTgtMonthly('Avg.', yr) : null;
+  const _apAvgArr = yr !== 'all' ? getAPTgtMonthly('All', yr) : null;
+  const tA  = _apTgtArr ? (_apTgtArr.find(v => v > 0) || 0) : getAPTgt('Avg.', 0, 0);
+  const tAv = _apAvgArr ? (_apAvgArr.find(v => v > 0) || 0) : getAPTgt('All', 0, 0);
   const ref = tA || tAv || 0;
 
   const bgColors = vals.map((v, i) => {
@@ -3623,9 +3706,11 @@ function buildAPMonthlyChart(cv, filtData) {
     return ref ? targetRatioColor(v, ref, isHl ? .88 : .2) : (isHl ? cssVar('--accent') : 'rgba(99,102,241,.25)');
   });
 
+  const _apTALast = _apTgtArr ? _apTgtArr.filter(v => v > 0).pop() || tA : tA;
+  const _apTAvLast = _apAvgArr ? _apAvgArr.filter(v => v > 0).pop() || tAv : tAv;
   const ds = [{ label: 'Value (THB)', data: vals, type: 'bar', backgroundColor: bgColors, borderRadius: 4, order: 3 }];
-  if (tAv) ds.push({ label: `Avg. ${fB(tAv)}`, data: Array(12).fill(tAv), type: 'line', borderColor: '#f5a623', borderWidth: 2, borderDash: [8, 5], pointRadius: 0, fill: false, order: 1 });
-  if (tA)  ds.push({ label: `Target ${fB(tA)}`, data: Array(12).fill(tA), type: 'line', borderColor: '#e74c3c', borderWidth: 2.5, pointRadius: 0, fill: false, order: 0 });
+  if (tAv || _apAvgArr) ds.push({ label: `Avg. ${fB(_apTAvLast || tAv)}`, data: _apAvgArr || Array(12).fill(tAv), type: 'line', borderColor: '#f5a623', borderWidth: 2, borderDash: [8, 5], pointRadius: 0, stepped: 'before', fill: false, order: 1 });
+  if (tA  || _apTgtArr) ds.push({ label: `Target ${fB(_apTALast || tA)}`, data: _apTgtArr  || Array(12).fill(tA),  type: 'line', borderColor: '#e74c3c', borderWidth: 2.5, pointRadius: 0, stepped: 'before', fill: false, order: 0 });
 
   if (apCharts.monthly) { try { apCharts.monthly.destroy(); } catch (e) { } apCharts.monthly = null; }
   apCharts.monthly = new Chart(cv, {
@@ -3882,7 +3967,11 @@ function renderAPGauge(con, data) {
   const tv = data.reduce((a, r) => a + r.val, 0);
   const ds = [...apSelDepts].filter(d => d !== '__all__');
   let gaugeTarget = ds.length > 0 ? ds.reduce((a, d) => a + (apTargetData[d] || 0), 0) : 0;
-  if (!gaugeTarget) gaugeTarget = apTargetData['Avg.'] || apTargetData['avg'] || 0;
+  if (!gaugeTarget) {
+    const _agYr = parseInt(document.getElementById('apFY')?.value) || 0;
+    const _agMo = parseInt(document.getElementById('apFM')?.value) || 0;
+    gaugeTarget = getAPTgt('Avg.', _agYr, _agMo);
+  }
   const tA = gaugeTarget;
   const pass = tA ? tv <= tA : null;
   const pct = tA ? Math.min(tv / tA, 1.5) : 0.5;
@@ -3934,7 +4023,9 @@ function renderAPGauge(con, data) {
   w.appendChild(left);
 
   const right = document.createElement('div'); right.style.cssText = 'display:flex;flex-direction:column;gap:8px';
-  const dt = ds.length > 0 ? ds.reduce((a, d) => a + (apTargetData[d] || 0), 0) : 0;
+  const _adYr=parseInt(document.getElementById('apFY')?.value)||0;
+  const _adMo=parseInt(document.getElementById('apFM')?.value)||0;
+  const dt = ds.length > 0 ? ds.reduce((a, d) => a + getAPTgt(d,_adYr,_adMo), 0) : 0;
   const deptLabel = ds.length === 0 ? '—' : ds.length === 1 ? fB(dt) + ' THB' : `${ds.length} depts = ${fB(dt)} THB`;
   [{ l: 'Dept Target', v: deptLabel, col: 'var(--purple)' },
    { l: 'Jobs > 5,000', v: fmt(data.filter(r => r.val > 5000).length) + ' jobs', col: 'var(--accent2)' },
