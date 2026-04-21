@@ -2688,11 +2688,12 @@ function _pvSetFilter(type, val){
 }
 
 function _pvRefresh(){
-  // Monthly chart: data without month filter (shows all 12 bars)
-  const forMonthly=_pvState.dataForMonthly||_pvState.data;
-  // Dept chart: data without dept filter (shows all depts)
-  const forDept=_pvState.dataForDept||_pvState.data;
-  // KPI/Table/Top10/New: fully filtered data + chart-click filters
+  const base=_pvState.data;
+  // Monthly chart: filter by dept only (not month) → shows all 12 bars, but scoped to selected dept
+  const forMonthly=_pvState.filterDept ? base.filter(r=>r.dept===_pvState.filterDept) : base;
+  // Dept chart: filter by month only (not dept) → shows all depts, but scoped to selected month
+  const forDept=_pvState.filterMonth ? base.filter(r=>r.month===_pvState.filterMonth) : base;
+  // KPI/Table/Top10/New: fully filtered (both month + dept)
   const d=_pvFiltered();
   _pvBuildKpiFromData(d);
   _pvBuildNew(d.filter(r=>r.isNew));
@@ -2887,7 +2888,9 @@ function _pvBuildDept(d){
   const allDepts=[...new Set(d.map(r=>r.dept).filter(Boolean))];
   const depts=[...DEPT_ORDER.filter(dep=>allDepts.includes(dep)),...allDepts.filter(dep=>!DEPT_ORDER.includes(dep)).sort()];
   const vals=depts.map(dep=>d.filter(r=>r.dept===dep).reduce((a,r)=>a+r.val,0));
-  const tgts=depts.map(dep=>tData[dep]||0);
+  const _pvDYr=parseInt(document.getElementById('pvFYear')?.value)||0;
+  const _pvDMo=parseInt(document.getElementById('pvFMonth')?.value)||0;
+  const tgts=depts.map(dep=>isAP?getAPTgt(dep,_pvDYr,_pvDMo):getTgt(dep,_pvDYr,_pvDMo));
   // active dept = chart-click OR filter bar dept selection
   const fdClick=_pvState.filterDept;
   const pvSelDepts=_pvState.selDepts||new Set(['__all__']);
@@ -3126,11 +3129,14 @@ function openPresent(){
   document.getElementById('pvSubtitle').textContent='ภาพรวมทั้งหมด';
   document.getElementById('pvDate').textContent=new Date().toLocaleDateString('th-TH');
   try{document.getElementById('pvLogo').src=_LOGO_DATA;}catch(e){}
-  // populate & reset filter bar
+  // populate filter bar — sync year/month from main page
   pvPopulateFilters(coreData);
-  const yEl=document.getElementById('pvFYear'); if(yEl) yEl.value='all';
-  const mEl=document.getElementById('pvFMonth'); if(mEl) mEl.value='all';
-  const mcEl=document.getElementById('pvFMachine'); if(mcEl) mcEl.value='all';
+  const _mainYr=document.getElementById('fY')?.value||'all';
+  const _mainMo=document.getElementById('fM')?.value||'all';
+  const _mainMc=document.getElementById('fMachine')?.value||'all';
+  const yEl=document.getElementById('pvFYear'); if(yEl) yEl.value=_mainYr;
+  const mEl=document.getElementById('pvFMonth'); if(mEl) mEl.value=_mainMo;
+  const mcEl=document.getElementById('pvFMachine'); if(mcEl) mcEl.value=_mainMc;
   document.getElementById('pvDeptDrop').style.display='none';
   _pvDestroyCharts();
   _pvRefresh();
@@ -3151,9 +3157,12 @@ function openAPPresent(){
   document.getElementById('pvDate').textContent=new Date().toLocaleDateString('th-TH');
   try{document.getElementById('pvLogo').src=_LOGO_DATA;}catch(e){}
   pvPopulateFilters(_pvBaseData);
-  const yEl=document.getElementById('pvFYear'); if(yEl) yEl.value='all';
-  const mEl=document.getElementById('pvFMonth'); if(mEl) mEl.value='all';
-  const mcEl=document.getElementById('pvFMachine'); if(mcEl) mcEl.value='all';
+  const _apMainYr=document.getElementById('apFY')?.value||'all';
+  const _apMainMo=document.getElementById('apFM')?.value||'all';
+  const _apMainMc=document.getElementById('apFMachine')?.value||'all';
+  const yEl=document.getElementById('pvFYear'); if(yEl) yEl.value=_apMainYr;
+  const mEl=document.getElementById('pvFMonth'); if(mEl) mEl.value=_apMainMo;
+  const mcEl=document.getElementById('pvFMachine'); if(mcEl) mcEl.value=_apMainMc;
   document.getElementById('pvDeptDrop').style.display='none';
   _pvDestroyCharts();
   _pvRefresh();
