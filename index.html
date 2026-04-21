@@ -1732,7 +1732,7 @@ function renderExpKpi(data){
   const cards=[
     {l:'Total Value',v:fB(tv)+' THB',col:'var(--blue)',
      sub:tLabel,
-     badge:pct!==null?`<span style="display:inline-block;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:600;background:${pass?'rgba(46,204,113,.15)':'rgba(231,76,60,.15)'};color:${pass?'var(--green)':'var(--accent2)'};">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ต่ำกว่า':'เกิน'}เป้า</span>`:''},
+     badge:pct!==null?`<span style="display:inline-block;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:600;background:${pass?'rgba(46,204,113,.15)':'rgba(231,76,60,.15)'};color:${pass?'var(--green)':'var(--accent2)'};">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ดีกว่า':'เกิน'}เป้า</span>`:''},
     {l:'Total Jobs',v:fmt(data.length),col:'var(--green)',sub:'รายการทั้งหมด'},
     {l:'Jobs ≥ 5,000 THB',v:fmt(j5.length),col:'var(--accent2)',sub:`รวม: ${fB(j5.reduce((a,r)=>a+r.val,0))} THB`},
     {l:'รายการใหม่ (check=0)',v:fmt(ni.length),col:'var(--yellow)',sub:`รวม: ${fB(ni.reduce((a,r)=>a+r.val,0))} THB`},
@@ -1900,7 +1900,7 @@ function renderKPIs(el, coreData, animate=false){
   const trend=calcTrend(coreData,yr,mo);
   const cards=[
     {l:'Total Value (THB)',raw:tv,isCurr:true,cls:'b',c:'cb',sub:tA?`Target: ${fB(tA)} THB`:'รวมทั้งหมด',tip:`Top Dept: ${topDept||'—'}`,
-      bx:(pct!==null?`<span class="badge ${pass?'bg':'br'}">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ต่ำกว่า':'เกิน'}เป้า</span>`:'')+trendBadgeHtml(trend)},
+      bx:(pct!==null?`<span class="badge ${pass?'bg':'br'}">${pass?'✓':'⚠'} ${Math.abs(pct).toFixed(1)}% ${pass?'ดีกว่า':'เกิน'}เป้า</span>`:'')+trendBadgeHtml(trend)},
     {l:'Target All (THB)',raw:tA,isCurr:true,cls:'o',c:'co',sub:'เป้าหมายรวม',tip:tAv?`Avg. Baseline: ${fB(tAv)} THB`:''},
     {l:'Baseline Avg (THB)',raw:tAv,isCurr:true,cls:'p',c:'cp',sub:'ค่าเฉลี่ย Baseline',tip:tA&&tAv?`ต่างจาก Target: ${fB(Math.abs(tA-tAv))} THB`:''},
     {l:'Total Jobs',raw:filteredData.length,isCurr:false,cls:'g',c:'cg',sub:'จำนวนรายการทั้งหมด',tip:`ค่าเฉลี่ยต่อ Job: ${filteredData.length?fB(tv/filteredData.length)+' THB':'—'}`},
@@ -3687,7 +3687,7 @@ function renderAPKPIs(el, data, animate = false) {
   const pct = tA ? (tv - tA) / tA * 100 : null;
   const pass = pct !== null ? tv <= tA : null;
   const badgeHtml = pct !== null
-    ? `<span class="badge ${pass ? 'bg' : 'br'}">${pass ? '✓' : '⚠'} ${Math.abs(pct).toFixed(1)}% ${pass ? 'ต่ำกว่า' : 'เกิน'}เป้า</span>`
+    ? `<span class="badge ${pass ? 'bg' : 'br'}">${pass ? '✓' : '⚠'} ${Math.abs(pct).toFixed(1)}% ${pass ? 'ดีกว่า' : 'เกิน'}เป้า</span>`
     : '';
 
   const cards = [
