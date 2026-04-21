@@ -1032,9 +1032,8 @@ const targetRatioColor=(v,target,alpha=0.88)=>{
   } else if(r<=119){                // แดงอ่อน→แดง
     const t=(r-99)/20;
     rr=Math.round(255+t*(220-255));g=Math.round(80+t*(30-80));b=Math.round(80+t*(30-80));
-  } else {                          // แดงเข้มมืด
-    const t=Math.min((r-119)/40,1);
-    rr=Math.round(220+t*(120-220));g=Math.round(30+t*(0-30));b=Math.round(30+t*(0-30));
+  } else {                          // เกิน 119% → แดงสด คงที่ ไม่มืดลงอีก
+    rr=220;g=30;b=30;
   }
   return`rgba(${rr},${g},${b},${alpha})`;
 };
@@ -1707,6 +1706,8 @@ function getExpFiltered(){
 function renderExpKpi(data){
   const el=document.getElementById('expKpiBar');if(!el)return;
   const tv=data.reduce((a,r)=>a+r.val,0);
+  const _eYr=parseInt(document.getElementById('expFYear')?.value)||0;
+  const _eMo=parseInt(document.getElementById('expFMonth')?.value)||0;
 
   // คำนวณ target ตาม dept ที่ filter อยู่
   const dp=document.getElementById('expFDept').value;
@@ -1715,7 +1716,7 @@ function renderExpKpi(data){
 
   let tTarget=0;
   if(activeDept){
-    tTarget=targetData[activeDept]||0;
+    tTarget=getTgt(activeDept,_eYr,_eMo)||0;
   } else {
     // รวม target ทุก dept ที่มีข้อมูล (ไม่รวม All/Avg.)
     const depts=[...new Set(data.map(r=>r.dept).filter(Boolean))];
@@ -2775,11 +2776,12 @@ function _pvBuildMonthly(d){
   const cv=document.getElementById('pvMonthlyCanvas');
   if(_pvCharts.monthly) try{_pvCharts.monthly.destroy();}catch(e){}
   const isAP=_pvState.isAP;
-  const tData=isAP?apTargetData:targetData;
-  const _eYr=parseInt(document.getElementById('expFYear')?.value)||0;
-  const _eMo=parseInt(document.getElementById('expFMonth')?.value)||0;
-  const tA=isAP?getAPTgt('All',_eYr,_eMo):getTgt('All',_eYr,_eMo);
-  const tAv=tData['Avg.']||tData['avg']||0;
+  const _pvYr=parseInt(document.getElementById('pvFYear')?.value)||0;
+  const _pvMo=parseInt(document.getElementById('pvFMonth')?.value)||0;
+  const _tgtArr=!isAP&&_pvYr?getTgtMonthly('All',_pvYr):isAP&&_pvYr?getAPTgtMonthly('All',_pvYr):null;
+  const _avgArr=!isAP&&_pvYr?getTgtMonthly('Avg.',_pvYr):isAP&&_pvYr?getAPTgtMonthly('Avg.',_pvYr):null;
+  const tA=isAP?getAPTgt('All',_pvYr,_pvMo):getTgt('All',_pvYr,_pvMo);
+  const tAv=isAP?getAPTgt('Avg.',_pvYr,_pvMo):getTgt('Avg.',_pvYr,_pvMo);
   const ref=tA||tAv||0;
   const vals=Array.from({length:12},(_,i)=>d.filter(r=>r.month===i+1).reduce((a,r)=>a+r.val,0));
   // active month = chart-click filterMonth OR filter bar month dropdown
@@ -2828,6 +2830,36 @@ function _pvBuildMonthly(d){
         const m=els[0].index+1;
         _pvSetFilter('month',m);
       },
+      animation:{onComplete(ctx){
+        const ch=ctx.chart,{ctx:c2}=ch;c2.save();c2.textAlign='center';
+        const _pvSelM=document.getElementById('pvFMonth')?.value||'all';
+        ch.data.datasets[0].data.forEach((v,i)=>{
+          if(v>0){const m=ch.getDatasetMeta(0);if(m.data[i]){
+            const b=m.data[i].getProps(['x','y'],true);
+            const isHl=_pvSelM==='all'||String(i+1)===_pvSelM;
+            c2.fillStyle=isHl?cssVar('--text'):'rgba(128,130,140,.35)';
+            c2.font='bold 9px IBM Plex Mono,monospace';
+            c2.fillText(fB(v),b.x,b.y-5);
+            if(isHl&&_pvSelM!=='all'){
+              const _pvRef=_tgtArr?_tgtArr[i]:tA;
+              if(_pvRef>0){
+                const done=v/_pvRef*100;
+                const icon=done>=100?'✕':done>=50?'⚠':'✓';
+                const col=done>=100?'#ef4444':done>=50?'#f97316':'#22c55e';
+                const label=`${icon} ทำได้ ${done.toFixed(1)}%`;
+                c2.font='bold 10px IBM Plex Sans Thai,sans-serif';
+                const tw=c2.measureText(label).width;
+                const lx=b.x-tw/2-6,ly=b.y-32,lw=tw+12,lh=18;
+                c2.globalAlpha=0.5;c2.fillStyle='#ffffff';
+                c2.beginPath();
+                if(c2.roundRect)c2.roundRect(lx,ly,lw,lh,4);else c2.rect(lx,ly,lw,lh);
+                c2.fill();c2.globalAlpha=1;
+                c2.fillStyle=col;c2.fillText(label,b.x,b.y-18);
+              }
+            }
+          }}
+        });c2.restore();
+      }},
       onHover:(evt,els)=>{ cv.style.cursor=(els.length&&els[0].datasetIndex===0)?'pointer':'default'; },
       animation:{onComplete(ctx){
         const ch=ctx.chart,{ctx:c2}=ch;c2.save();
